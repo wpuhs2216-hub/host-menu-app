@@ -1,0 +1,31 @@
+node_modules/
+dist/
+
+# Vite cache
+.vite/
+
+# Capacitor / Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/google-services.json
+android/captures/
+android/.idea/
+android/*.iml
+android/app/*.iml
+
+# Keystore (絶対に push しない)
+*.keystore
+*.jks
+debug.keystore.backup
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

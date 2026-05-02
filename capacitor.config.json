@@ -1,0 +1,11 @@
+{
+  "appId": "com.gentlydiva.menu",
+  "appName": "GENTLY DIVA",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

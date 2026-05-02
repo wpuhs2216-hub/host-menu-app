@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>管理者画面 - GENTLY DIVA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/admin.css" />
+</head>
+<body>
+  <!-- パスワード画面 -->
+  <div class="pw-screen" id="pw-screen">
+    <div class="pw-box">
+      <h2>管理者パスワード</h2>
+      <input type="password" id="pw-input" placeholder="パスワードを入力" autocomplete="off" />
+      <div class="pw-actions">
+        <button class="btn btn-secondary" id="pw-cancel">キャンセル</button>
+        <button class="btn btn-primary" id="pw-submit">ログイン</button>
+      </div>
+      <div class="pw-error" id="pw-error"></div>
+    </div>
+  </div>
+
+  <!-- 管理画面本体（初期非表示） -->
+  <div id="admin-body" style="display:none">
+    <header class="header">
+      <h1>管理者画面</h1>
+      <div class="header-right">
+        <div class="header-clock" id="admin-clock"></div>
+        <a href="/" class="header-link">← メニュー表示</a>
+      </div>
+    </header>
+
+    <div class="admin-content">
+      <!-- 初回ピックアップ履歴セクション -->
+      <div class="section">
+        <div class="section-title">
+          <span>初回ピックアップ履歴</span>
+          <button class="btn-add" id="btn-clear-orders" style="background:rgba(220,53,69,0.15);color:#dc3545;border-color:rgba(220,53,69,0.3)">全件クリア</button>
+        </div>
+        <div id="order-list" class="order-history-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">
+          <span>メニューパネル一覧</span>
+          <button class="btn-add" id="btn-add">＋ 追加</button>
+        </div>
+        <div class="sortable-list" id="item-list"></div>
+      </div>
+
+      <!-- フォントサイズ設定（一番下） -->
+      <div class="section">
+        <div class="section-title"><span>フォントサイズ設定</span></div>
+        <div class="font-size-controls">
+          <div class="fs-control">
+            <label>サムネイル 源氏名</label>
+            <div class="range-row">
+              <input type="range" id="fs-name" min="16" max="48" step="2" />
+              <span class="range-val" id="fs-name-val"></span>
+            </div>
+          </div>
+          <div class="fs-control">
+            <label>サムネイル 役職</label>
+            <div class="range-row">
+              <input type="range" id="fs-title" min="10" max="32" step="2" />
+              <span class="range-val" id="fs-title-val"></span>
+            </div>
+          </div>
+          <div class="fs-control">
+            <label>全画面 源氏名</label>
+            <div class="range-row">
+              <input type="range" id="fs-fs-name" min="24" max="72" step="2" />
+              <span class="range-val" id="fs-fs-name-val"></span>
+            </div>
+          </div>
+          <div class="fs-control">
+            <label>全画面 役職</label>
+            <div class="range-row">
+              <input type="range" id="fs-fs-title" min="14" max="48" step="2" />
+              <span class="range-val" id="fs-fs-title-val"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- メンテナンス -->
+      <div class="section">
+        <div class="section-title"><span>メンテナンス</span></div>
+        <div class="toolbar">
+          <button class="btn btn-secondary" id="btn-optimize-images">画像を軽量化</button>
+          <button class="btn btn-secondary" id="btn-check-update">アップデート確認</button>
+          <span id="app-version" style="margin-left:auto;opacity:0.6;font-size:0.85em;align-self:center"></span>
+        </div>
+        <div id="optimize-status" style="display:none;margin-top:8px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.05);font-size:0.85em"></div>
+        <div id="update-status" style="display:none;margin-top:8px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.05);font-size:0.85em"></div>
+      </div>
+
+      <!-- 操作ボタン（最下層） -->
+      <div class="section">
+        <div class="section-title"><span>その他</span></div>
+        <div class="toolbar">
+          <button class="btn btn-newface" id="btn-toggle-new">新人を非表示</button>
+          <button class="btn btn-secondary" id="btn-export">バックアップ</button>
+          <button class="btn btn-secondary" id="btn-import">復元</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" />
+          <button class="btn btn-secondary" id="btn-change-pw">パスワード変更</button>
+          <button class="btn btn-danger" id="btn-reset">データリセット</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 編集モーダル -->
+    <div class="modal-overlay" id="edit-modal">
+      <div class="modal">
+        <h3 id="modal-title">パネル編集</h3>
+        <input type="hidden" id="edit-id" />
+        <div class="form-group">
+          <label>パネル画像</label>
+          <div class="image-upload-area" id="upload-area">
+            <input type="file" id="edit-image" accept="image/*" />
+            <div class="upload-text" id="upload-text">タップして画像を選択</div>
+            <img class="upload-preview" id="upload-preview" style="display:none" />
+          </div>
+        </div>
+        <div class="form-group img-pos-group" id="img-pos-group" style="display:none">
+          <label>表示範囲プレビュー</label>
+          <div class="img-pos-preview-wrap">
+            <div class="img-pos-preview" id="img-pos-preview">
+              <img id="img-pos-preview-img" src="" />
+            </div>
+          </div>
+          <div class="img-pos-controls">
+            <div class="img-pos-row">
+              <label>横位置</label>
+              <input type="range" id="edit-img-x" min="0" max="100" step="1" value="50" />
+            </div>
+            <div class="img-pos-row">
+              <label>縦位置</label>
+              <input type="range" id="edit-img-y" min="0" max="100" step="1" value="50" />
+            </div>
+            <div class="img-pos-row">
+              <label>拡大</label>
+              <input type="range" id="edit-img-scale" min="100" max="250" step="5" value="100" />
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>源氏名（空欄可）</label>
+          <input type="text" id="edit-name" placeholder="例: 蓮" />
+        </div>
+        <div class="form-group">
+          <label>ふりがな（空欄可）</label>
+          <input type="text" id="edit-ruby" placeholder="例: れん" />
+        </div>
+        <div class="form-group">
+          <label>役職（空欄可）</label>
+          <input type="text" id="edit-title" placeholder="例: 代表、幹部、主任" />
+        </div>
+        <div class="form-group check-row">
+          <label class="check-label">
+            <input type="checkbox" id="edit-newface" />
+            <span>新人タグを表示</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>ラベル（源氏名が空の場合に表示）</label>
+          <input type="text" id="edit-label" placeholder="例: 料金表" />
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="modal-cancel">キャンセル</button>
+          <button class="btn btn-primary" id="modal-save">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>
