@@ -642,3 +642,29 @@ body {
 .placeholder-bg-6 { background: linear-gradient(135deg, #1a3e2e, #1a1a2e); }
 .placeholder-bg-7 { background: linear-gradient(135deg, #3e2e1a, #1a1a2e); }
 .placeholder-bg-8 { background: linear-gradient(135deg, #1a2e3e, #1a1a2e); }
+
+/* 同期ステータス（admin ヘッダ） */
+.sync-status {
+  font-size: 0.8em;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #aaa;
+  white-space: nowrap;
+}
+.sync-status.sync-ok {
+  color: #6ad080;
+  border-color: rgba(106, 208, 128, 0.3);
+  background: rgba(106, 208, 128, 0.08);
+}
+.sync-status.sync-syncing {
+  color: #d4af37;
+  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(212, 175, 55, 0.08);
+}
+.sync-status.sync-error {
+  color: #e26d6d;
+  border-color: rgba(226, 109, 109, 0.3);
+  background: rgba(226, 109, 109, 0.08);
+}

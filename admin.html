@@ -28,6 +28,7 @@
     <header class="header">
       <h1>管理者画面</h1>
       <div class="header-right">
+        <div class="sync-status sync-idle" id="sync-status">同期: 未接続</div>
         <div class="header-clock" id="admin-clock"></div>
         <a href="/" class="header-link">← メニュー表示</a>
       </div>
@@ -91,6 +92,8 @@
         <div class="section-title"><span>メンテナンス</span></div>
         <div class="toolbar">
           <button class="btn btn-secondary" id="btn-optimize-images">画像を軽量化</button>
+          <button class="btn btn-secondary" id="btn-resync">クラウド再同期</button>
+          <button class="btn btn-secondary" id="btn-push-all">この端末で上書き</button>
           <button class="btn btn-secondary" id="btn-check-update">アップデート確認</button>
           <span id="app-version" style="margin-left:auto;opacity:0.6;font-size:0.85em;align-self:center"></span>
         </div>

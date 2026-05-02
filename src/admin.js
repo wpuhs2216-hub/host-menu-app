@@ -2,6 +2,10 @@
 import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, loadSettings, saveSettings, exportAllData, importAllData, getAdminPw, setAdminPw } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
+import {
+  initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
+  syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
+} from './sync.js';
 
 // === パスワード認証 ===
 
@@ -145,6 +149,7 @@ function createSortableItem(item, imageSrc) {
     selectableBtn.addEventListener('click', () => {
       item.selectable = item.selectable === false ? true : false;
       saveData(data);
+      syncPatchPanel(item.id, { selectable: item.selectable }).catch(() => {});
       renderList();
     });
   }
@@ -153,6 +158,7 @@ function createSortableItem(item, imageSrc) {
   el.querySelector('.btn-visible').addEventListener('click', () => {
     item.visible = item.visible === false ? true : false;
     saveData(data);
+    syncPatchPanel(item.id, { visible: item.visible }).catch(() => {});
     renderList();
   });
 
@@ -189,6 +195,7 @@ function createSortableItem(item, imageSrc) {
     imagesCached = null;
     data.items = data.items.filter((x) => x.id !== item.id);
     saveData(data);
+    syncDeletePanel(item.id).catch(() => {});
     renderList();
   });
 
@@ -210,6 +217,7 @@ function moveItem(id, direction) {
   sorted[targetIdx].order = tmp;
 
   saveData(data);
+  syncBulkUpdateOrder([sorted[idx], sorted[targetIdx]]).catch(() => {});
   renderList();
 }
 
@@ -322,6 +330,7 @@ function reorderItem(fromId, toId) {
   sorted.forEach((x, i) => { x.order = i; });
 
   saveData(data);
+  syncBulkUpdateOrder(sorted).catch(() => {});
   renderList();
 }
 
@@ -439,6 +448,8 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   const imgScale = Number(editImgScale.value);
 
   const id = editId.value;
+  let savedItem = null;
+  let imageForSync = null;
   if (id) {
     const item = data.items.find((x) => x.id === id);
     if (item) {
@@ -454,15 +465,18 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         await saveImage(id, pendingImage);
         imagesCached = null;
         item.hasImage = true;
+        imageForSync = pendingImage;
       }
+      savedItem = item;
     }
   } else {
     const newId = generateId();
     if (pendingImage) {
       await saveImage(newId, pendingImage);
       imagesCached = null;
+      imageForSync = pendingImage;
     }
-    data.items.push({
+    savedItem = {
       id: newId,
       name, ruby, title, label,
       hasImage: !!pendingImage,
@@ -471,10 +485,15 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       order: data.items.length,
       visible: true,
       isNewFace,
-    });
+      selectable: true,
+    };
+    data.items.push(savedItem);
   }
 
   saveData(data);
+  if (savedItem) {
+    syncSavePanel(savedItem, imageForSync).catch(() => {});
+  }
   editModal.classList.remove('active');
   renderList();
 });
@@ -844,6 +863,57 @@ window.addEventListener('popstate', () => {
   }
 });
 
+// === 同期ステータス UI ===
+const syncStatusEl = document.getElementById('sync-status');
+const btnResync = document.getElementById('btn-resync');
+const btnPushAll = document.getElementById('btn-push-all');
+
+function renderSyncStatus(s) {
+  if (!syncStatusEl) return;
+  const map = {
+    idle:      { text: '同期: 未接続', cls: 'sync-idle' },
+    syncing:   { text: `同期: ${s.message || '処理中…'}`, cls: 'sync-syncing' },
+    connected: { text: '同期: 接続中 ✓', cls: 'sync-ok' },
+    error:     { text: `同期エラー: ${s.message || '不明'}`, cls: 'sync-error' },
+  };
+  const m = map[s.state] || map.idle;
+  syncStatusEl.textContent = m.text;
+  syncStatusEl.className = `sync-status ${m.cls}`;
+}
+subscribeStatus(renderSyncStatus);
+
+if (btnResync) {
+  btnResync.addEventListener('click', async () => {
+    btnResync.disabled = true;
+    try {
+      await forcePull();
+      data = loadData();
+      imagesCached = null;
+      renderList();
+      updateNewFaceBtn();
+    } catch (e) {
+      alert('再同期に失敗しました: ' + (e.message || e));
+    } finally {
+      btnResync.disabled = false;
+    }
+  });
+}
+
+if (btnPushAll) {
+  btnPushAll.addEventListener('click', async () => {
+    if (!confirm('このタブレットのデータでクラウドを上書きします。よろしいですか？')) return;
+    btnPushAll.disabled = true;
+    try {
+      await forcePush();
+      alert('送信しました');
+    } catch (e) {
+      alert('送信に失敗しました: ' + (e.message || e));
+    } finally {
+      btnPushAll.disabled = false;
+    }
+  });
+}
+
 // === 初期化 ===
 
 async function init() {
@@ -855,4 +925,21 @@ async function init() {
   renderOrders();
   renderList();
   updateNewFaceBtn();
+
+  // クラウド同期を開始（失敗しても admin の編集は続行可能）
+  try {
+    await initialSync();
+    data = loadData();
+    imagesCached = null;
+    renderList();
+    updateNewFaceBtn();
+  } catch (e) {
+    console.warn('initialSync 失敗', e);
+  }
+  startRealtime(async () => {
+    data = loadData();
+    imagesCached = null;
+    renderList();
+    updateNewFaceBtn();
+  });
 }

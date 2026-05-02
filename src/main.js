@@ -1,6 +1,7 @@
 // メインビューワー
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
+import { initialSync, startRealtime } from './sync.js';
 
 const grid = document.getElementById('grid');
 const fullscreen = document.getElementById('fullscreen');
@@ -397,4 +398,14 @@ window.addEventListener('popstate', () => {
   history.pushState(null, '', location.href);
 });
 
-render();
+// 起動時にクラウドから最新を取得 → 反映 → リアルタイム購読
+(async () => {
+  await render();
+  try {
+    await initialSync();
+    await render();
+  } catch (e) {
+    console.warn('initialSync 失敗（オフライン継続）', e);
+  }
+  startRealtime(async () => { await render(); });
+})();
