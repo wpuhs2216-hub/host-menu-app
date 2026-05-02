@@ -109,6 +109,15 @@ export function deleteOrder(orderId) {
   localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
 }
 
+export function updateOrder(orderId, patch) {
+  const orders = loadOrders();
+  const idx = orders.findIndex((o) => o.id === orderId);
+  if (idx === -1) return null;
+  orders[idx] = { ...orders[idx], ...patch };
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+  return orders[idx];
+}
+
 export function clearOrders() {
   localStorage.removeItem(ORDERS_KEY);
 }
@@ -120,6 +129,7 @@ const DEFAULT_SETTINGS = {
   titleFontSize: 13,
   fsNameFontSize: 44,
   fsTitleFontSize: 24,
+  skipOrderInput: false,
 };
 
 export function loadSettings() {

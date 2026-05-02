@@ -1,5 +1,5 @@
 // 管理者画面（統一型）
-import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, loadSettings, saveSettings, exportAllData, importAllData, getAdminPw, setAdminPw } from './store.js';
+import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, getAdminPw, setAdminPw } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import {
@@ -538,22 +538,29 @@ function renderOrders() {
     return;
   }
 
+  const VALID_COLORS = ['yellow', 'red', 'blue', 'green'];
+
   orderList.innerHTML = orders
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .map((o) => {
       const time = new Date(o.createdAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       const castNames = o.casts.map((c) => `<span class="order-tag">${escapeHtml(c.name)}</span>`).join('');
+      const color = VALID_COLORS.includes(o.color) ? o.color : 'yellow';
       return `
-        <div class="order-card" data-id="${o.id}">
+        <div class="order-card color-${color}" data-id="${o.id}">
           <div class="order-card-header">
             <div class="order-meta">
+              <span class="order-color-badge color-${color}"></span>
               <span class="order-seat">席: ${escapeHtml(o.seat || '-')}</span>
               <span class="order-customer">${escapeHtml(o.customerName || '-')}</span>
             </div>
             <span class="order-time">${time}</span>
           </div>
           <div class="order-casts">${castNames}</div>
-          <button class="btn-icon danger order-delete" title="削除">✕</button>
+          <div class="order-card-actions">
+            <button class="btn-icon order-edit" title="編集">✎</button>
+            <button class="btn-icon danger order-delete" title="削除">✕</button>
+          </div>
         </div>
       `;
     })
@@ -564,6 +571,28 @@ function renderOrders() {
       const card = btn.closest('.order-card');
       if (!confirm('この履歴を削除しますか？')) return;
       deleteOrder(card.dataset.id);
+      renderOrders();
+    });
+  });
+
+  orderList.querySelectorAll('.order-edit').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.order-card');
+      const id = card.dataset.id;
+      const current = loadOrders().find((o) => o.id === id);
+      if (!current) return;
+      const seat = prompt('席番号', current.seat || '');
+      if (seat === null) return;
+      const name = prompt('お客様名', current.customerName || '');
+      if (name === null) return;
+      const colorChoice = prompt('色を選択（yellow / red / blue / green）', current.color || 'yellow');
+      if (colorChoice === null) return;
+      const color = VALID_COLORS.includes(colorChoice.trim()) ? colorChoice.trim() : current.color;
+      updateOrder(id, {
+        seat: seat.trim(),
+        customerName: name.trim(),
+        color,
+      });
       renderOrders();
     });
   });
@@ -845,6 +874,17 @@ function initFontSettings() {
   fsSliders.fsName.value = s.fsNameFontSize;
   fsSliders.fsTitle.value = s.fsTitleFontSize;
   Object.keys(fsVals).forEach((k) => { fsVals[k].textContent = fsSliders[k].value + 'px'; });
+
+  // スキップ設定
+  const skipCb = document.getElementById('setting-skip-order-input');
+  if (skipCb) {
+    skipCb.checked = !!s.skipOrderInput;
+    skipCb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur.skipOrderInput = skipCb.checked;
+      saveSettings(cur);
+    });
+  }
 }
 
 Object.keys(fsSliders).forEach((key) => {

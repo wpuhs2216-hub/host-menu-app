@@ -3,6 +3,27 @@ import { loadData, saveData, saveOrder, generateId, loadSettings } from './store
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import { initialSync, startRealtime } from './sync.js';
 
+// === カラーピッカー ===
+let pickColor = 'yellow';
+const COLOR_VALID = ['yellow', 'red', 'blue', 'green'];
+
+function applyPickColor(c) {
+  pickColor = COLOR_VALID.includes(c) ? c : 'yellow';
+  // body のクラスを差し替え
+  document.body.classList.remove('pick-yellow', 'pick-red', 'pick-blue', 'pick-green');
+  document.body.classList.add(`pick-${pickColor}`);
+  // ボタンの active 切替
+  document.querySelectorAll('.color-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.color === pickColor);
+  });
+}
+applyPickColor('yellow');
+
+document.getElementById('color-picker')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.color-btn');
+  if (btn && btn.dataset.color) applyPickColor(btn.dataset.color);
+});
+
 const grid = document.getElementById('grid');
 const fullscreen = document.getElementById('fullscreen');
 const fsImage = document.getElementById('fs-image');
@@ -191,12 +212,38 @@ function updateConfirmBtn() {
 function openOrderModal() {
   const data = loadData();
   const selected = data.items.filter((item) => checkedCasts.has(item.id));
+
+  // スキップ設定 ON のときは入力をすっ飛ばして即送信
+  const settings = loadSettings();
+  if (settings.skipOrderInput) {
+    submitOrder('', '');
+    return;
+  }
+
   orderCastList.innerHTML = selected
     .map((c) => `<div class="order-cast-tag"><span class="tag-title">${escapeHtml(c.title)}</span> ${escapeHtml(c.name)}</div>`)
     .join('');
   orderSeat.value = '';
   orderName.value = '';
   orderModal.classList.add('active');
+}
+
+function submitOrder(seat, name) {
+  const data = loadData();
+  const selected = data.items.filter((item) => checkedCasts.has(item.id));
+  const order = {
+    id: generateId(),
+    seat,
+    customerName: name,
+    color: pickColor,
+    casts: selected.map((c) => ({ id: c.id, name: c.name, title: c.title })),
+    createdAt: new Date().toISOString(),
+  };
+  saveOrder(order);
+  checkedCasts.clear();
+  updateConfirmBtn();
+  orderModal.classList.remove('active');
+  render();
 }
 
 confirmBtn.addEventListener('click', openOrderModal);
@@ -210,23 +257,7 @@ fsConfirmBtn.addEventListener('click', (e) => {
 document.getElementById('order-submit').addEventListener('click', () => {
   const seat = orderSeat.value.trim();
   const name = orderName.value.trim();
-
-  const data = loadData();
-  const selected = data.items.filter((item) => checkedCasts.has(item.id));
-
-  const order = {
-    id: generateId(),
-    seat,
-    customerName: name,
-    casts: selected.map((c) => ({ id: c.id, name: c.name, title: c.title })),
-    createdAt: new Date().toISOString(),
-  };
-
-  saveOrder(order);
-  checkedCasts.clear();
-  updateConfirmBtn();
-  orderModal.classList.remove('active');
-  render();
+  submitOrder(seat, name);
   alert('送信しました');
 });
 
