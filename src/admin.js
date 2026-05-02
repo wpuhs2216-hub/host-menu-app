@@ -5,6 +5,7 @@ import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
+  cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
 } from './sync.js';
 
 // === パスワード認証 ===
@@ -582,27 +583,38 @@ document.getElementById('btn-export').addEventListener('click', async () => {
   const filename = `gently-diva-backup-${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
 
-  // Android WebViewでは<a download>が動かないため navigator.share() を使用
-  if (navigator.canShare) {
+  // 1) navigator.share に files を渡せるか実際にチェック
+  let file = null;
+  try { file = new File([blob], filename, { type: 'application/json' }); } catch { /* ignore */ }
+  if (file && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }) && navigator.share) {
     try {
-      const file = new File([blob], filename, { type: 'application/json' });
-      await navigator.share({ files: [file] });
+      await navigator.share({ files: [file], title: filename });
       return;
     } catch (err) {
-      // ユーザーキャンセルは無視
-      if (err.name === 'AbortError') return;
+      if (err && err.name === 'AbortError') return;
+      // それ以外はフォールバックに進む
     }
   }
 
-  // フォールバック（PCブラウザ等）
+  // 2) <a download> + クリック（PCブラウザで動く）
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // ダウンロードがブロックされる Android WebView 対策で、ついでに新しいタブで開いて長押し保存できるようにする
+    setTimeout(() => {
+      try { window.open(url, '_system'); } catch { /* ignore */ }
+    }, 200);
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  alert('バックアップを作成しました。\nうまく保存できない場合は「クラウドバックアップ」を使ってください。');
 });
 
 document.getElementById('btn-import').addEventListener('click', () => {
@@ -910,6 +922,119 @@ if (btnPushAll) {
       alert('送信に失敗しました: ' + (e.message || e));
     } finally {
       btnPushAll.disabled = false;
+    }
+  });
+}
+
+// === クラウドバックアップ UI ===
+
+const btnCloudBackup = document.getElementById('btn-cloud-backup');
+const btnCloudBackupList = document.getElementById('btn-cloud-backup-list');
+const cloudBackupListEl = document.getElementById('cloud-backup-list');
+
+function fmtDate(iso) {
+  try {
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  } catch { return iso; }
+}
+
+function fmtKB(n) {
+  if (n == null) return '';
+  if (n < 1024) return `${n}B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)}KB`;
+  return `${(n / 1024 / 1024).toFixed(1)}MB`;
+}
+
+if (btnCloudBackup) {
+  btnCloudBackup.addEventListener('click', async () => {
+    const label = prompt('メモ（任意・例: 5/3 リニューアル前）', '');
+    if (label === null) return;
+    btnCloudBackup.disabled = true;
+    try {
+      const r = await cloudBackup(label);
+      alert(`クラウドにバックアップしました\n${r.filename.split('/').pop()}\nサイズ: ${fmtKB(r.size)}`);
+      await renderCloudBackupList();
+    } catch (e) {
+      alert('クラウドバックアップに失敗しました: ' + (e.message || e));
+    } finally {
+      btnCloudBackup.disabled = false;
+    }
+  });
+}
+
+async function renderCloudBackupList() {
+  if (!cloudBackupListEl) return;
+  cloudBackupListEl.style.display = 'block';
+  cloudBackupListEl.innerHTML = '<div class="empty-msg">読み込み中…</div>';
+  try {
+    const list = await cloudBackupList();
+    if (list.length === 0) {
+      cloudBackupListEl.innerHTML = '<div class="empty-msg">クラウドバックアップはまだありません</div>';
+      return;
+    }
+    cloudBackupListEl.innerHTML = list.map((f) => {
+      const created = f.created_at || (f.metadata && f.metadata.lastModified) || '';
+      const size = f.metadata && f.metadata.size;
+      return `
+        <div class="cloud-backup-item" data-name="${f.name}">
+          <div class="cb-meta">
+            <span class="cb-date">${fmtDate(created)}</span>
+            <span class="cb-size">${fmtKB(size)}</span>
+          </div>
+          <div class="cb-actions">
+            <button class="btn btn-secondary cb-restore">復元</button>
+            <button class="btn-icon danger cb-delete" title="削除">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    cloudBackupListEl.querySelectorAll('.cb-restore').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const name = btn.closest('.cloud-backup-item').dataset.name;
+        if (!confirm(`このバックアップで全データを上書き復元します。\n${name}\nよろしいですか？`)) return;
+        btn.disabled = true;
+        try {
+          await cloudBackupRestore(name);
+          data = loadData();
+          imagesCached = null;
+          renderList();
+          renderOrders();
+          updateNewFaceBtn();
+          initFontSettings();
+          alert('復元しました。「この端末で上書き」を押すとクラウド同期にも反映されます。');
+        } catch (e) {
+          alert('復元に失敗: ' + (e.message || e));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    cloudBackupListEl.querySelectorAll('.cb-delete').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const name = btn.closest('.cloud-backup-item').dataset.name;
+        if (!confirm(`削除します: ${name}`)) return;
+        try {
+          await cloudBackupDelete(name);
+          await renderCloudBackupList();
+        } catch (e) {
+          alert('削除に失敗: ' + (e.message || e));
+        }
+      });
+    });
+  } catch (e) {
+    cloudBackupListEl.innerHTML = `<div class="empty-msg">取得失敗: ${e.message || e}</div>`;
+  }
+}
+
+if (btnCloudBackupList) {
+  btnCloudBackupList.addEventListener('click', () => {
+    if (cloudBackupListEl.style.display === 'none' || !cloudBackupListEl.style.display) {
+      renderCloudBackupList();
+    } else {
+      cloudBackupListEl.style.display = 'none';
     }
   });
 }

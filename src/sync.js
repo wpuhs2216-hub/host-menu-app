@@ -297,6 +297,100 @@ export async function initialSync() {
   }
 }
 
+// === クラウドバックアップ/復元（panels 同期とは独立） ===
+// Supabase Storage に backups/<タイムスタンプ>.json として全データを保存
+
+const BACKUP_FOLDER = 'backups';
+
+export async function cloudBackup(label = '') {
+  setStatus('syncing', 'バックアップ作成中…');
+  try {
+    // 全データを収集
+    const { loadData: ld, loadOrders: lo, loadSettings: ls, getAdminPw: gp } = await import('./store.js');
+    const data = ld();
+    const orders = lo();
+    const settings = ls();
+    const adminPw = gp();
+    const images = await getAllImages();
+
+    const snapshot = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      label: label || '',
+      items: data,
+      orders,
+      settings,
+      adminPw,
+      images,
+    };
+
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${BACKUP_FOLDER}/${ts}.json`;
+    const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
+    const { error } = await supabase.storage.from(PANEL_BUCKET).upload(filename, blob, {
+      contentType: 'application/json',
+      upsert: false,
+    });
+    if (error) throw error;
+    setStatus('connected');
+    return { filename, size: blob.size, createdAt: snapshot.createdAt };
+  } catch (e) {
+    setStatus('error', e.message || String(e));
+    throw e;
+  }
+}
+
+export async function cloudBackupList() {
+  const { data, error } = await supabase.storage.from(PANEL_BUCKET).list(BACKUP_FOLDER, {
+    limit: 100,
+    sortBy: { column: 'created_at', order: 'desc' },
+  });
+  if (error) throw error;
+  return (data || []).filter((f) => f.name && f.name.endsWith('.json'));
+}
+
+export async function cloudBackupRestore(filename) {
+  setStatus('syncing', 'バックアップから復元中…');
+  try {
+    const path = filename.startsWith(BACKUP_FOLDER) ? filename : `${BACKUP_FOLDER}/${filename}`;
+    const { data: blob, error } = await supabase.storage.from(PANEL_BUCKET).download(path);
+    if (error) throw error;
+    const text = await blob.text();
+    const snap = JSON.parse(text);
+
+    const { saveData, importAllData, setAdminPw } = await import('./store.js');
+    const { saveImage, clearImages } = await import('./imageDB.js');
+
+    // ローカル全部置き換え
+    if (snap.items) saveData(snap.items);
+    if (snap.orders || snap.settings) {
+      const payload = {};
+      if (snap.items) payload.items = snap.items;
+      if (snap.orders) payload.orders = snap.orders;
+      if (snap.settings) payload.settings = snap.settings;
+      importAllData(payload);
+    }
+    if (snap.adminPw) setAdminPw(snap.adminPw);
+
+    if (snap.images) {
+      await clearImages();
+      for (const [id, img] of Object.entries(snap.images)) {
+        await saveImage(id, img);
+      }
+    }
+    setStatus('connected');
+  } catch (e) {
+    setStatus('error', e.message || String(e));
+    throw e;
+  }
+}
+
+export async function cloudBackupDelete(filename) {
+  const path = filename.startsWith(BACKUP_FOLDER) ? filename : `${BACKUP_FOLDER}/${filename}`;
+  const { error } = await supabase.storage.from(PANEL_BUCKET).remove([path]);
+  if (error) throw error;
+}
+
 // 強制再同期（admin の「再同期」ボタン）
 export async function forcePull() {
   try {
