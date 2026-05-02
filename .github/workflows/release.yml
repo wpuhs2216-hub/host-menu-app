@@ -1,9 +1,8 @@
 name: Release APK
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # CI ランナーが debug.keystore を毎回新規生成して署名がブレる問題があるため、
+  # タグ push での自動ビルドは一時停止。release keystore に切り替えるまで手動配布。
   workflow_dispatch:
 
 permissions:
