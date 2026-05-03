@@ -591,6 +591,7 @@ function renderOrders() {
         </span>`;
       }).join('');
       const color = (o.color === 'mixed' || VALID_COLORS.includes(o.color)) ? o.color : 'yellow';
+      const memo = o.memo ? `<div class="order-memo">${escapeHtml(o.memo)}</div>` : '';
       return `
         <div class="order-card color-${color}" data-id="${o.id}">
           <div class="order-card-header">
@@ -602,6 +603,7 @@ function renderOrders() {
             <span class="order-time">${time}</span>
           </div>
           <div class="order-casts">${castNames}</div>
+          ${memo}
           <div class="order-card-actions">
             <button class="btn-icon order-edit" title="編集">✎</button>
             <button class="btn-icon danger order-delete" title="削除">✕</button>
@@ -630,12 +632,15 @@ function renderOrders() {
       if (seat === null) return;
       const name = prompt('お客様名', current.customerName || '');
       if (name === null) return;
+      const memo = prompt('メモ', current.memo || '');
+      if (memo === null) return;
       const colorChoice = prompt('色を選択（yellow / red / blue / green）', current.color || 'yellow');
       if (colorChoice === null) return;
       const color = VALID_COLORS.includes(colorChoice.trim()) ? colorChoice.trim() : current.color;
       updateOrder(id, {
         seat: seat.trim(),
         customerName: name.trim(),
+        memo: memo.trim(),
         color,
       });
       renderOrders();

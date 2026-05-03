@@ -63,10 +63,13 @@ values ('panel-images', 'panel-images', true)
 on conflict (id) do update set public = true;
 
 -- ===== selections テーブル（チェック中キャスト共有） =====
-create table if not exists public.selections (
-  id text primary key,             -- panel id
-  color text not null default 'yellow',
-  updated_at timestamptz default now()
+-- 1キャストに複数色を許す: PK は (panel_id, color) 複合
+drop table if exists public.selections cascade;
+create table public.selections (
+  panel_id text not null,
+  color text not null,
+  updated_at timestamptz default now(),
+  primary key (panel_id, color)
 );
 
 drop trigger if exists trg_selections_touch on public.selections;

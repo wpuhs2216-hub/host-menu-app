@@ -3,9 +3,33 @@ import { loadData, saveData, saveOrder, generateId, loadSettings } from './store
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import {
   initialSync, startRealtime,
-  syncSelectionUpsert, syncSelectionRemove, syncSelectionsClear,
+  syncSelectionAdd, syncSelectionRemove, syncSelectionsClear,
   loadSelections, startSelectionsRealtime,
 } from './sync.js';
+
+// 色 → CSS カラー
+const COLOR_HEX = { yellow: '#d4af37', red: '#e26d6d', blue: '#6da5e2', green: '#6ad080' };
+const COLOR_ORDER = ['yellow', 'red', 'blue', 'green'];
+
+// 色集合から枠の box-shadow を組み立てる
+function buildBoxShadow(colors) {
+  if (!colors || colors.length === 0) return '';
+  // 表示順を固定して安定させる
+  const sorted = COLOR_ORDER.filter((c) => colors.includes(c));
+  const map = sorted.map((c) => COLOR_HEX[c]);
+  if (map.length === 1) {
+    return `inset 0 0 0 4px ${map[0]}`;
+  }
+  if (map.length === 2) {
+    // 上下2分割
+    return `inset 0 4px 0 0 ${map[0]}, inset 0 -4px 0 0 ${map[1]}, inset 4px 0 0 0 ${map[0]}, inset -4px 0 0 0 ${map[1]}`;
+  }
+  if (map.length === 3) {
+    return `inset 0 4px 0 0 ${map[0]}, inset 4px 0 0 0 ${map[1]}, inset -4px 0 0 0 ${map[1]}, inset 0 -4px 0 0 ${map[2]}`;
+  }
+  // 4色: 4辺それぞれ別色
+  return `inset 0 4px 0 0 ${map[0]}, inset -4px 0 0 0 ${map[1]}, inset 0 -4px 0 0 ${map[2]}, inset 4px 0 0 0 ${map[3]}`;
+}
 
 // === カラーピッカー ===
 let pickColor = 'yellow';
@@ -45,8 +69,6 @@ const fsConfirmBtn = document.getElementById('fs-confirm-btn');
 const fsConfirmCount = document.getElementById('fs-confirm-count');
 const orderModal = document.getElementById('order-modal');
 const orderCastList = document.getElementById('order-cast-list');
-const orderSeat = document.getElementById('order-seat');
-const orderName = document.getElementById('order-name');
 const headerLogo = document.getElementById('header-logo');
 
 // キャスト判定（nameがあればキャスト）
@@ -78,13 +100,42 @@ let currentIndex = 0;
 // 画像キャッシュ（id → base64）
 let imageCache = {};
 
-// チェック状態（キャストID → 色文字列）
+// チェック状態（キャストID → 色集合 Set<string>）
 const checkedCasts = new Map();
-const COLOR_CLASSES = ['color-yellow', 'color-red', 'color-blue', 'color-green'];
+const COLOR_CLASSES = ['color-yellow', 'color-red', 'color-blue', 'color-green', 'color-mixed'];
 
-function setPanelColorClass(el, color) {
+function getColorsArr(id) {
+  const s = checkedCasts.get(id);
+  return s ? [...s] : [];
+}
+
+function applyPanelStyle(el, id) {
+  const colors = getColorsArr(id);
   el.classList.remove(...COLOR_CLASSES);
-  if (color) el.classList.add(`color-${color}`);
+  if (colors.length === 0) {
+    el.classList.remove('checked');
+    el.style.boxShadow = '';
+    return;
+  }
+  el.classList.add('checked');
+  if (colors.length === 1) {
+    el.classList.add(`color-${colors[0]}`);
+  } else {
+    el.classList.add('color-mixed');
+  }
+  el.style.boxShadow = buildBoxShadow(colors);
+}
+
+function applyCheckboxStyle(cb, id) {
+  if (!cb) return;
+  const colors = getColorsArr(id);
+  const input = cb.querySelector('input');
+  if (input) input.checked = colors.length > 0;
+  cb.classList.remove(...COLOR_CLASSES);
+  // チェックボックスは現在の pickColor がそのキャストにも付いていればその色、なければ最初の色
+  if (colors.length === 0) return;
+  const showColor = colors.includes(pickColor) ? pickColor : colors[0];
+  cb.classList.add(`color-${showColor}`);
 }
 
 // === 時計表示 ===
@@ -140,10 +191,7 @@ async function render() {
   visibleItems.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = `host-panel placeholder-bg-${i % 9}`;
-    if (checkedCasts.has(item.id)) {
-      el.classList.add('checked');
-      setPanelColorClass(el, checkedCasts.get(item.id));
-    }
+    applyPanelStyle(el, item.id);
 
     const img = imageCache[item.id] || '';
     if (img) {
@@ -180,17 +228,15 @@ async function render() {
     if (isCast(item) && !locked) {
       const cb = document.createElement('label');
       cb.className = 'cast-checkbox';
-      const curColor = checkedCasts.get(item.id);
-      if (curColor) cb.classList.add(`color-${curColor}`);
-      cb.innerHTML = `<input type="checkbox" data-id="${item.id}" ${curColor ? 'checked' : ''} /><span class="cb-mark"></span>`;
-      cb.addEventListener('click', (e) => e.stopPropagation());
-      cb.querySelector('input').addEventListener('change', (e) => {
-        toggleCheck(item.id, e.target.checked);
-        el.classList.toggle('checked', e.target.checked);
-        const c = checkedCasts.get(item.id);
-        setPanelColorClass(el, c);
-        cb.classList.remove(...COLOR_CLASSES);
-        if (c) cb.classList.add(`color-${c}`);
+      cb.innerHTML = `<input type="checkbox" data-id="${item.id}" /><span class="cb-mark"></span>`;
+      applyCheckboxStyle(cb, item.id);
+      cb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // 自前 toggle: input の自動 toggle を打ち消して、現在の pickColor を加減算する
+        e.preventDefault();
+        togglePickColor(item.id);
+        applyPanelStyle(el, item.id);
+        applyCheckboxStyle(cb, item.id);
       });
       el.appendChild(cb);
     }
@@ -201,13 +247,17 @@ async function render() {
   });
 }
 
-function toggleCheck(id, checked) {
-  if (checked) {
-    checkedCasts.set(id, pickColor);
-    syncSelectionUpsert(id, pickColor);
+// pickColor で id の色を toggle（含まれていれば外す、なければ追加）
+function togglePickColor(id) {
+  let s = checkedCasts.get(id);
+  if (!s) { s = new Set(); checkedCasts.set(id, s); }
+  if (s.has(pickColor)) {
+    s.delete(pickColor);
+    syncSelectionRemove(id, pickColor);
+    if (s.size === 0) checkedCasts.delete(id);
   } else {
-    checkedCasts.delete(id);
-    syncSelectionRemove(id);
+    s.add(pickColor);
+    syncSelectionAdd(id, pickColor);
   }
   updateConfirmBtn();
 }
@@ -216,8 +266,9 @@ function toggleCheck(id, checked) {
 
 function updateConfirmBtn() {
   const count = checkedCasts.size;
-  // 色の集合を取って 1色ならその色、2色以上は mixed（白）、0なら非表示
-  const distinctColors = new Set(checkedCasts.values());
+  // 全キャストの色集合を統合して、1色なら該当色、2色以上は mixed
+  const distinctColors = new Set();
+  for (const s of checkedCasts.values()) for (const c of s) distinctColors.add(c);
   let stateColor = null;
   if (distinctColors.size === 1) stateColor = [...distinctColors][0];
   else if (distinctColors.size >= 2) stateColor = 'mixed';
@@ -239,46 +290,87 @@ function updateConfirmBtn() {
   }
 }
 
-function openOrderModal() {
+// 色ごとにキャストをグルーピング
+function groupCastsByColor() {
   const data = loadData();
-  const selected = data.items.filter((item) => checkedCasts.has(item.id));
+  const byColor = new Map(); // color -> [{id,name,title}, ...]
+  for (const [id, set] of checkedCasts.entries()) {
+    const item = data.items.find((x) => x.id === id);
+    if (!item) continue;
+    for (const c of set) {
+      if (!byColor.has(c)) byColor.set(c, []);
+      byColor.get(c).push({ id: item.id, name: item.name, title: item.title });
+    }
+  }
+  // 色順を固定
+  const ordered = [];
+  for (const c of COLOR_ORDER) {
+    if (byColor.has(c)) ordered.push({ color: c, casts: byColor.get(c) });
+  }
+  return ordered;
+}
 
-  // スキップ設定 ON のときは入力をすっ飛ばして即送信
+const COLOR_LABEL = { yellow: '黄', red: '赤', blue: '青', green: '緑' };
+
+function openOrderModal() {
+  const groups = groupCastsByColor();
+  if (groups.length === 0) return;
+
   const settings = loadSettings();
-  if (settings.skipOrderInput) {
-    submitOrder('', '');
+  const skip = !!settings.skipOrderInput;
+  if (skip) {
+    // 入力スキップ ON: モーダル出さず即送信（後から admin で編集可能）
+    submitOrder();
     return;
   }
 
-  orderCastList.innerHTML = selected
-    .map((c) => `<div class="order-cast-tag"><span class="tag-title">${escapeHtml(c.title)}</span> ${escapeHtml(c.name)}</div>`)
-    .join('');
-  orderSeat.value = '';
-  orderName.value = '';
+  orderCastList.innerHTML = groups.map((g) => `
+    <div class="order-color-group color-${g.color}" data-color="${g.color}">
+      <div class="order-group-header">
+        <span class="order-color-badge color-${g.color}"></span>
+        <span class="order-color-label">${COLOR_LABEL[g.color]}グループ（${g.casts.length}名）</span>
+      </div>
+      <div class="order-group-casts">
+        ${g.casts.map((c) => `<div class="order-cast-tag color-${g.color}"><span class="tag-title">${escapeHtml(c.title || '')}</span> ${escapeHtml(c.name)}</div>`).join('')}
+      </div>
+      <div class="order-group-fields">
+        <input type="text" class="og-seat" placeholder="席番号" />
+        <input type="text" class="og-name" placeholder="お客様名" />
+        <textarea class="og-memo" placeholder="メモ（任意）" rows="2"></textarea>
+      </div>
+    </div>
+  `).join('');
+
   orderModal.classList.add('active');
 }
 
-function submitOrder(seat, name) {
-  const data = loadData();
-  const selected = data.items.filter((item) => checkedCasts.has(item.id));
-  const casts = selected.map((c) => ({
-    id: c.id,
-    name: c.name,
-    title: c.title,
-    color: checkedCasts.get(c.id) || 'yellow',
-  }));
-  const distinct = new Set(casts.map((c) => c.color));
-  const orderColor = distinct.size === 1 ? [...distinct][0] : 'mixed';
+function submitOrder() {
+  const groups = groupCastsByColor();
+  if (groups.length === 0) return;
 
-  const order = {
-    id: generateId(),
-    seat,
-    customerName: name,
-    color: orderColor,
-    casts,
-    createdAt: new Date().toISOString(),
-  };
-  saveOrder(order);
+  const settings = loadSettings();
+  const skip = !!settings.skipOrderInput;
+  const groupEls = orderCastList.querySelectorAll('.order-color-group');
+  const now = new Date().toISOString();
+
+  groups.forEach((g) => {
+    const el = [...groupEls].find((x) => x.dataset.color === g.color);
+    const seat = (skip || !el) ? '' : (el.querySelector('.og-seat')?.value || '').trim();
+    const name = (skip || !el) ? '' : (el.querySelector('.og-name')?.value || '').trim();
+    const memo = (skip || !el) ? '' : (el.querySelector('.og-memo')?.value || '').trim();
+
+    const order = {
+      id: generateId(),
+      seat,
+      customerName: name,
+      memo,
+      color: g.color,
+      casts: g.casts.map((c) => ({ ...c, color: g.color })),
+      createdAt: now,
+    };
+    saveOrder(order);
+  });
+
   checkedCasts.clear();
   syncSelectionsClear();
   updateConfirmBtn();
@@ -295,9 +387,7 @@ fsConfirmBtn.addEventListener('click', (e) => {
 // === 確定モーダル ===
 
 document.getElementById('order-submit').addEventListener('click', () => {
-  const seat = orderSeat.value.trim();
-  const name = orderName.value.trim();
-  submitOrder(seat, name);
+  submitOrder();
   alert('送信しました');
 });
 
@@ -347,37 +437,29 @@ function showCurrentItem() {
   // 全画面チェックボックス（キャストかつ選択可のみ）
   if (isCast(item) && item.selectable !== false) {
     fsCheckbox.style.display = 'flex';
-    const c = checkedCasts.get(item.id);
-    fsCheckInput.checked = !!c;
-    fsCheckbox.classList.remove(...COLOR_CLASSES);
-    if (c) fsCheckbox.classList.add(`color-${c}`);
+    applyCheckboxStyle(fsCheckbox, item.id);
   } else {
     fsCheckbox.style.display = 'none';
   }
 }
 
-// 全画面チェックボックスの変更
-fsCheckInput.addEventListener('change', () => {
+// 全画面チェックボックスの変更（自前 toggle）
+fsCheckInput.addEventListener('click', (e) => {
   const item = visibleItems[currentIndex];
   if (!item) return;
-  toggleCheck(item.id, fsCheckInput.checked);
-  syncGridCheckbox(item.id, fsCheckInput.checked);
+  e.preventDefault();
+  togglePickColor(item.id);
+  applyCheckboxStyle(fsCheckbox, item.id);
+  syncGridCheckbox(item.id);
 });
 
-function syncGridCheckbox(id, checked) {
+function syncGridCheckbox(id) {
   const gridCb = grid.querySelector(`input[data-id="${id}"]`);
-  if (gridCb) {
-    gridCb.checked = checked;
-    const panel = gridCb.closest('.host-panel');
-    panel.classList.toggle('checked', checked);
-    const c = checkedCasts.get(id);
-    setPanelColorClass(panel, c);
-    const cb = gridCb.closest('.cast-checkbox');
-    if (cb) {
-      cb.classList.remove(...COLOR_CLASSES);
-      if (c) cb.classList.add(`color-${c}`);
-    }
-  }
+  if (!gridCb) return;
+  const panel = gridCb.closest('.host-panel');
+  const cb = gridCb.closest('.cast-checkbox');
+  applyPanelStyle(panel, id);
+  applyCheckboxStyle(cb, id);
 }
 
 function closeFullscreen() {
@@ -495,43 +577,34 @@ window.addEventListener('popstate', () => {
   try {
     const sels = await loadSelections();
     checkedCasts.clear();
-    for (const s of sels) checkedCasts.set(s.id, s.color || 'yellow');
+    for (const s of sels) {
+      const id = s.panel_id;
+      const c = s.color || 'yellow';
+      let set = checkedCasts.get(id);
+      if (!set) { set = new Set(); checkedCasts.set(id, set); }
+      set.add(c);
+    }
     updateConfirmBtn();
     await render();
   } catch (e) { console.warn('selections fetch 失敗', e); }
 
   startSelectionsRealtime({
-    onUpsert: (id, color) => {
-      checkedCasts.set(id, color);
-      // 該当パネルの DOM を更新
-      const cb = grid.querySelector(`input[data-id="${id}"]`);
-      if (cb) {
-        cb.checked = true;
-        const panel = cb.closest('.host-panel');
-        panel.classList.add('checked');
-        setPanelColorClass(panel, color);
-        const lbl = cb.closest('.cast-checkbox');
-        if (lbl) {
-          lbl.classList.remove(...COLOR_CLASSES);
-          lbl.classList.add(`color-${color}`);
-        }
-      }
-      // 全画面表示中のキャストなら更新
+    onAdd: (id, color) => {
+      let s = checkedCasts.get(id);
+      if (!s) { s = new Set(); checkedCasts.set(id, s); }
+      s.add(color);
+      syncGridCheckbox(id);
       const cur = visibleItems[currentIndex];
       if (cur && cur.id === id && fullscreen.classList.contains('active')) showCurrentItem();
       updateConfirmBtn();
     },
-    onDelete: (id) => {
-      checkedCasts.delete(id);
-      const cb = grid.querySelector(`input[data-id="${id}"]`);
-      if (cb) {
-        cb.checked = false;
-        const panel = cb.closest('.host-panel');
-        panel.classList.remove('checked');
-        setPanelColorClass(panel, null);
-        const lbl = cb.closest('.cast-checkbox');
-        if (lbl) lbl.classList.remove(...COLOR_CLASSES);
-      }
+    onRemove: (id, color) => {
+      const s = checkedCasts.get(id);
+      if (!s) return;
+      if (color) s.delete(color);
+      else s.clear();
+      if (s.size === 0) checkedCasts.delete(id);
+      syncGridCheckbox(id);
       const cur = visibleItems[currentIndex];
       if (cur && cur.id === id && fullscreen.classList.contains('active')) showCurrentItem();
       updateConfirmBtn();

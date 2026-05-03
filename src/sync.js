@@ -345,22 +345,25 @@ export async function initialSync() {
   }
 }
 
-// === selections 同期（チェック中キャスト共有） ===
+// === selections 同期（チェック中キャスト共有・複数色対応） ===
+// 1キャストに複数色を許す。PK は (panel_id, color)
 
-export async function syncSelectionUpsert(id, color) {
+export async function syncSelectionAdd(panelId, color) {
   try {
     const { error } = await supabase
       .from('selections')
-      .upsert({ id, color: color || 'yellow' });
+      .upsert({ panel_id: panelId, color: color || 'yellow' });
     if (error) throw error;
   } catch (e) {
-    console.warn('selection upsert 失敗', e);
+    console.warn('selection add 失敗', e);
   }
 }
 
-export async function syncSelectionRemove(id) {
+export async function syncSelectionRemove(panelId, color) {
   try {
-    const { error } = await supabase.from('selections').delete().eq('id', id);
+    let q = supabase.from('selections').delete().eq('panel_id', panelId);
+    if (color) q = q.eq('color', color);
+    const { error } = await q;
     if (error) throw error;
   } catch (e) {
     console.warn('selection remove 失敗', e);
@@ -369,8 +372,7 @@ export async function syncSelectionRemove(id) {
 
 export async function syncSelectionsClear() {
   try {
-    // 全行削除（neq dummy で全件マッチ）
-    const { error } = await supabase.from('selections').delete().not('id', 'is', null);
+    const { error } = await supabase.from('selections').delete().not('panel_id', 'is', null);
     if (error) throw error;
   } catch (e) {
     console.warn('selections clear 失敗', e);
@@ -379,7 +381,7 @@ export async function syncSelectionsClear() {
 
 export async function loadSelections() {
   try {
-    const { data, error } = await supabase.from('selections').select('id,color');
+    const { data, error } = await supabase.from('selections').select('panel_id,color');
     if (error) throw error;
     return data || [];
   } catch (e) {
@@ -392,17 +394,17 @@ let selectionsChannel = null;
 
 export function startSelectionsRealtime(handlers) {
   if (selectionsChannel) return;
-  // handlers: { onUpsert(id, color), onDelete(id) }
+  // handlers: { onAdd(panelId, color), onRemove(panelId, color) }
   selectionsChannel = supabase
     .channel('selections-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'selections' }, (payload) => {
       try {
         if (payload.eventType === 'DELETE') {
-          const id = payload.old && payload.old.id;
-          if (id) handlers?.onDelete?.(id);
+          const o = payload.old || {};
+          if (o.panel_id) handlers?.onRemove?.(o.panel_id, o.color || null);
         } else {
-          const row = payload.new;
-          if (row?.id) handlers?.onUpsert?.(row.id, row.color || 'yellow');
+          const r = payload.new || {};
+          if (r.panel_id) handlers?.onAdd?.(r.panel_id, r.color || 'yellow');
         }
       } catch (e) { console.warn('selection realtime apply 失敗', e); }
     })

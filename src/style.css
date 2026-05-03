@@ -778,3 +778,70 @@ body {
 
 /* 混色注文の左ボーダー（白） */
 .order-card.color-mixed { border-left-color: #ffffff !important; }
+
+/* === 確定モーダル：色グループ === */
+.modal.modal-orders { max-height: 86vh; overflow-y: auto; }
+
+.order-color-group {
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left-width: 4px;
+}
+.order-color-group.color-yellow { border-left-color: #d4af37; }
+.order-color-group.color-red    { border-left-color: #e26d6d; }
+.order-color-group.color-blue   { border-left-color: #6da5e2; }
+.order-color-group.color-green  { border-left-color: #6ad080; }
+
+.order-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #ddd;
+}
+.order-color-label { font-size: 0.95em; letter-spacing: 1px; }
+
+.order-group-casts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.order-cast-tag.color-yellow { border-color: rgba(212, 175, 55, 0.4); }
+.order-cast-tag.color-red    { border-color: rgba(226, 109, 109, 0.4); }
+.order-cast-tag.color-blue   { border-color: rgba(109, 165, 226, 0.4); }
+.order-cast-tag.color-green  { border-color: rgba(106, 208, 128, 0.4); }
+
+.order-group-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.order-group-fields input,
+.order-group-fields textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+/* 履歴カードのメモ */
+.order-memo {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+}
