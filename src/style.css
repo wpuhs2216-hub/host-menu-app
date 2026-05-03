@@ -1610,3 +1610,90 @@ select.app-dialog-input {
 }
 select.app-dialog-input option { background: #1a1a2e; color: #fff; }
 .order-edit-box textarea.app-dialog-input { min-height: 70px; resize: vertical; }
+
+/* ========================================
+   履歴専用ページ (history.html)
+======================================== */
+body.history-body { padding-bottom: 32px; }
+
+.history-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 12px;
+}
+.history-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #ccc;
+}
+.history-info .btn { padding: 6px 12px; font-size: 12px; }
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.history-list .empty-msg {
+  text-align: center;
+  color: #888;
+  padding: 40px 0;
+}
+.history-list .order-card {
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    "header"
+    "casts"
+    "memo"
+    "footer";
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border-left: 4px solid #d4af37;
+}
+.history-list .order-card-header {
+  grid-area: header;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.history-list .order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.history-list .order-time {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+.history-list .order-casts {
+  grid-area: casts;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.history-list .order-memo { grid-area: memo; }
+.history-list .order-card-actions {
+  grid-area: footer;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 通知トグルボタン */
+#btn-toggle-notify { font-size: 12px; }
+#btn-toggle-notify.active {
+  background: rgba(106, 208, 128, 0.18);
+  border-color: rgba(106, 208, 128, 0.5);
+  color: #6ad080;
+}
+
+/* 履歴ページ全体は env-web の admin と同じスマホ向け既定を使う */
