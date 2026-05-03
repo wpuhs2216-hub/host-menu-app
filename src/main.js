@@ -95,14 +95,79 @@ document.getElementById('color-picker')?.addEventListener('click', (e) => {
   refreshAllCheckboxes();
 });
 
-// 選択リセット: 全クリア + 黄色に戻す
+// 選択リセット: 全クリア + 黄色に戻す + 席もクリア
 function resetSelection() {
   checkedCasts.clear();
   applyPickColor('yellow');
+  setCurrentSeat('');
   updateConfirmBtn();
   render();
 }
 document.getElementById('reset-btn')?.addEventListener('click', resetSelection);
+
+// === 席選択 ===
+const SEAT_OPTIONS = ['A', 'B-1', 'B-2', 'C-1', 'C-2', 'D', 'E-1', 'E-2', 'E-3'];
+let currentSeat = '';                  // '' or 'A' or ... or 任意文字列(other)
+
+function setCurrentSeat(seat) {
+  currentSeat = seat || '';
+  const btn = document.getElementById('seat-btn');
+  if (btn) {
+    btn.textContent = currentSeat ? `席：${currentSeat}` : '席：未選択';
+    btn.classList.toggle('seat-selected', !!currentSeat);
+  }
+}
+
+async function openSeatPicker() {
+  // 「未選択 / A / B-1 ... / E-3 / その他(自由入力) / 解除」を縦リストで表示
+  return new Promise((resolve) => {
+    // ダイアログホストを利用（dialog.js の代替実装）
+    const root = document.createElement('div');
+    root.className = 'seat-picker-host';
+    root.innerHTML = `
+      <div class="seat-picker-backdrop">
+        <div class="seat-picker-box">
+          <h3 class="seat-picker-title">席を選択</h3>
+          <div class="seat-options">
+            ${SEAT_OPTIONS.map((s) => `<button class="seat-option ${currentSeat === s ? 'active' : ''}" data-seat="${s}">${s}</button>`).join('')}
+            <button class="seat-option seat-other" data-action="other">その他…</button>
+          </div>
+          <div class="seat-picker-actions">
+            <button class="btn btn-secondary" data-action="clear">未選択にする</button>
+            <button class="btn btn-secondary" data-action="cancel">キャンセル</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+    const finish = (val) => { root.remove(); resolve(val); };
+    root.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) {
+        if (e.target.classList.contains('seat-picker-backdrop')) finish(undefined);
+        return;
+      }
+      if (btn.dataset.seat) return finish(btn.dataset.seat);
+      if (btn.dataset.action === 'clear') return finish('');
+      if (btn.dataset.action === 'cancel') return finish(undefined);
+      if (btn.dataset.action === 'other') {
+        root.remove();
+        const v = await dlg.prompt('席番号（自由入力）', currentSeat || '', { title: '席を入力' });
+        if (v === null) return resolve(undefined);
+        return resolve(v.trim());
+      }
+    });
+  });
+}
+
+document.getElementById('seat-btn')?.addEventListener('click', async () => {
+  const v = await openSeatPicker();
+  if (v === undefined) return; // キャンセル
+  setCurrentSeat(v);
+});
+
+// 初期描画
+setCurrentSeat('');
 
 const grid = document.getElementById('grid');
 const fullscreen = document.getElementById('fullscreen');
@@ -429,7 +494,7 @@ function openOrderModal() {
         ${g.casts.map((c) => `<div class="order-cast-tag color-${g.color}"><span class="tag-title">${escapeHtml(c.title || '')}</span> ${escapeHtml(c.name)}</div>`).join('')}
       </div>
       <div class="order-group-fields">
-        <input type="text" class="og-seat" placeholder="席番号" />
+        <input type="text" class="og-seat" placeholder="席番号" value="${escapeHtml(currentSeat || '')}" />
         <input type="text" class="og-name" placeholder="お客様名" />
         <textarea class="og-memo" placeholder="メモ（任意）" rows="2"></textarea>
       </div>
@@ -452,7 +517,8 @@ function submitOrder() {
   const source = isPreview ? 'preview' : 'main';
   groups.forEach((g) => {
     const el = [...groupEls].find((x) => x.dataset.color === g.color);
-    const seat = (skip || !el) ? '' : (el.querySelector('.og-seat')?.value || '').trim();
+    // スキップ時 or モーダル要素が無いときは、ヘッダで選択した席をそのまま使う
+    const seat = (skip || !el) ? (currentSeat || '') : (el.querySelector('.og-seat')?.value || '').trim();
     const name = (skip || !el) ? '' : (el.querySelector('.og-name')?.value || '').trim();
     const memo = (skip || !el) ? '' : (el.querySelector('.og-memo')?.value || '').trim();
 
@@ -472,6 +538,7 @@ function submitOrder() {
 
   checkedCasts.clear();
   applyPickColor('yellow');
+  setCurrentSeat('');
   updateConfirmBtn();
   orderModal.classList.remove('active');
   render();

@@ -357,6 +357,15 @@ function deviceId() {
   return id;
 }
 
+// device_name（admin で設定する端末表示名。任意）
+const DEVICE_NAME_KEY = 'host-menu-device-name';
+export function getDeviceName() {
+  return localStorage.getItem(DEVICE_NAME_KEY) || '';
+}
+export function setDeviceName(name) {
+  localStorage.setItem(DEVICE_NAME_KEY, name || '');
+}
+
 function orderToRow(order, source = 'main') {
   return {
     id: order.id,
@@ -367,6 +376,7 @@ function orderToRow(order, source = 'main') {
     casts: order.casts || [],
     source,
     device_id: deviceId(),
+    device_name: getDeviceName(),
     created_at: order.createdAt || new Date().toISOString(),
   };
 }
@@ -380,6 +390,7 @@ function rowToOrder(row) {
     color: row.color || 'yellow',
     casts: row.casts || [],
     source: row.source || 'main',
+    deviceName: row.device_name || '',
     createdAt: row.created_at || new Date().toISOString(),
   };
 }

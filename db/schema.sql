@@ -72,6 +72,7 @@ create table if not exists public.orders (
   casts jsonb default '[]'::jsonb,
   source text default 'main',         -- 'main' or 'preview'
   device_id text default '',
+  device_name text default '',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

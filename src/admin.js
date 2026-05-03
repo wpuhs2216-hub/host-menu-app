@@ -13,6 +13,7 @@ import {
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
   cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
   loadOrdersCloud, startOrdersRealtime, syncOrderUpdate, syncOrderDelete, syncOrdersClear,
+  getDeviceName, setDeviceName,
 } from './sync.js';
 
 // === パスワード認証（30日ログイン保持） ===
@@ -608,6 +609,8 @@ function renderOrders() {
       }).join('');
       const color = (o.color === 'mixed' || VALID_COLORS.includes(o.color)) ? o.color : 'yellow';
       const memo = o.memo ? `<div class="order-memo">${escapeHtml(o.memo)}</div>` : '';
+      const dev = o.deviceName ? `<span class="order-device">${escapeHtml(o.deviceName)}</span>` : '';
+      const src = o.source === 'preview' ? '<span class="order-src-preview">PREVIEW</span>' : '';
       return `
         <div class="order-card color-${color}" data-id="${o.id}">
           <div class="order-card-header">
@@ -615,6 +618,7 @@ function renderOrders() {
               <span class="order-color-badge color-${color}"></span>
               <span class="order-seat">席: ${escapeHtml(o.seat || '-')}</span>
               <span class="order-customer">${escapeHtml(o.customerName || '-')}</span>
+              ${dev}${src}
             </div>
             <span class="order-time">${time}</span>
           </div>
@@ -959,6 +963,15 @@ function initFontSettings() {
       cur.skipOrderInput = skipCb.checked;
       saveSettings(cur);
     });
+  }
+
+  // 端末名
+  const dnInput = document.getElementById('setting-device-name');
+  if (dnInput) {
+    dnInput.value = getDeviceName();
+    const persist = () => setDeviceName(dnInput.value.trim());
+    dnInput.addEventListener('change', persist);
+    dnInput.addEventListener('blur', persist);
   }
 }
 
