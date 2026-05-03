@@ -660,7 +660,6 @@ const ORDER_COLOR_OPTIONS = [
   { v: 'red',    label: 'Red' },
   { v: 'blue',   label: 'Blue' },
   { v: 'green',  label: 'Green' },
-  { v: 'mixed',  label: 'Mixed (複数色)' },
 ];
 
 function openOrderEditModal(id) {
