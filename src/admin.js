@@ -6,6 +6,8 @@ document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, getAdminPw, setAdminPw } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
+import * as dlg from './dialog.js';
+import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
@@ -68,8 +70,8 @@ function doLogin() {
 }
 
 pwSubmit.addEventListener('click', doLogin);
-pwInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('pw-cancel').addEventListener('click', () => {
+pwInput.addEventListener('keydown', async (e) => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('pw-cancel').addEventListener('click', async () => {
   window.location.href = './';
 });
 
@@ -114,7 +116,7 @@ let touchLongPressTimer = null;
 
 // 新人表示/非表示トグル
 const btnToggleNew = document.getElementById('btn-toggle-new');
-btnToggleNew.addEventListener('click', () => {
+btnToggleNew.addEventListener('click', async () => {
   const newFaces = data.items.filter((item) => item.isNewFace);
   if (newFaces.length === 0) return;
   const allHidden = newFaces.every((item) => item.visible === false);
@@ -192,7 +194,7 @@ function createSortableItem(item, imageSrc) {
   // 選択不可トグル
   const selectableBtn = el.querySelector('.btn-selectable');
   if (selectableBtn) {
-    selectableBtn.addEventListener('click', () => {
+    selectableBtn.addEventListener('click', async () => {
       item.selectable = item.selectable === false ? true : false;
       saveData(data);
       syncPatchPanel(item.id, { selectable: item.selectable }).catch(() => {});
@@ -201,7 +203,7 @@ function createSortableItem(item, imageSrc) {
   }
 
   // 表示/非表示トグル
-  el.querySelector('.btn-visible').addEventListener('click', () => {
+  el.querySelector('.btn-visible').addEventListener('click', async () => {
     item.visible = item.visible === false ? true : false;
     saveData(data);
     syncPatchPanel(item.id, { visible: item.visible }).catch(() => {});
@@ -223,20 +225,20 @@ function createSortableItem(item, imageSrc) {
   initTouchDrag(el, item.id);
 
   // 上下移動ボタン
-  el.querySelector('.btn-move-up').addEventListener('click', () => {
+  el.querySelector('.btn-move-up').addEventListener('click', async () => {
     moveItem(item.id, -1);
   });
-  el.querySelector('.btn-move-down').addEventListener('click', () => {
+  el.querySelector('.btn-move-down').addEventListener('click', async () => {
     moveItem(item.id, 1);
   });
 
   // 編集ボタン
-  el.querySelector('.btn-edit').addEventListener('click', () => openModal(item));
+  el.querySelector('.btn-edit').addEventListener('click', async () => openModal(item));
 
   // 削除ボタン
   el.querySelector('.btn-delete').addEventListener('click', async () => {
     const label = item.name || item.label || '（未設定）';
-    if (!confirm(`「${label}」を削除しますか？`)) return;
+    if (!await dlg.confirm(`「${label}」を削除しますか？`)) return;
     await deleteImage(item.id);
     imagesCached = null;
     data.items = data.items.filter((x) => x.id !== item.id);
@@ -270,7 +272,7 @@ function moveItem(id, direction) {
 // === タッチドラッグ並べ替え ===
 
 function initTouchDrag(el, itemId) {
-  el.addEventListener('touchstart', (e) => {
+  el.addEventListener('touchstart', async (e) => {
     // ボタン類のタッチは無視
     if (e.target.closest('.item-actions, .reorder-btns')) return;
 
@@ -301,7 +303,7 @@ function initTouchDrag(el, itemId) {
   }, { passive: true });
 }
 
-document.addEventListener('touchmove', (e) => {
+document.addEventListener('touchmove', async (e) => {
   if (!touchDragEl) {
     // ロングプレス前に指が動いたらキャンセル
     if (touchLongPressTimer) {
@@ -335,7 +337,7 @@ document.addEventListener('touchmove', (e) => {
   }
 }, { passive: false });
 
-document.addEventListener('touchend', () => {
+document.addEventListener('touchend', async () => {
   if (touchLongPressTimer) {
     clearTimeout(touchLongPressTimer);
     touchLongPressTimer = null;
@@ -544,21 +546,21 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   renderList();
 });
 
-document.getElementById('modal-cancel').addEventListener('click', () => {
+document.getElementById('modal-cancel').addEventListener('click', async () => {
   editModal.classList.remove('active');
 });
 
 // === 新規追加ボタン ===
 
-document.getElementById('btn-add').addEventListener('click', () => openModal());
+document.getElementById('btn-add').addEventListener('click', async () => openModal());
 
 // === データリセット ===
 
 document.getElementById('btn-reset').addEventListener('click', async () => {
-  const pw = prompt('データリセットにはパスワードが必要です');
+  const pw = await dlg.prompt('データリセットにはパスワードが必要です');
   if (pw === null) return;
-  if (pw !== getAdminPw()) { alert('パスワードが違います'); return; }
-  if (!confirm('全データを初期状態にリセットしますか？')) return;
+  if (pw !== getAdminPw()) { dlg.alert('パスワードが違います'); return; }
+  if (!await dlg.confirm('全データを初期状態にリセットしますか？')) return;
   await clearImages();
   imagesCached = null;
   data = resetData();
@@ -568,7 +570,7 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
 
 // === モーダル外クリックで閉じる ===
 
-editModal.addEventListener('click', (e) => {
+editModal.addEventListener('click', async (e) => {
   if (e.target === editModal) editModal.classList.remove('active');
 });
 
@@ -619,27 +621,27 @@ function renderOrders() {
     .join('');
 
   orderList.querySelectorAll('.order-delete').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const card = btn.closest('.order-card');
-      if (!confirm('この履歴を削除しますか？')) return;
+      if (!await dlg.confirm('この履歴を削除しますか？')) return;
       deleteOrder(card.dataset.id);
       renderOrders();
     });
   });
 
   orderList.querySelectorAll('.order-edit').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const card = btn.closest('.order-card');
       const id = card.dataset.id;
       const current = loadOrders().find((o) => o.id === id);
       if (!current) return;
-      const seat = prompt('席番号', current.seat || '');
+      const seat = await dlg.prompt('席番号', current.seat || '');
       if (seat === null) return;
-      const name = prompt('お客様名', current.customerName || '');
+      const name = await dlg.prompt('お客様名', current.customerName || '');
       if (name === null) return;
-      const memo = prompt('メモ', current.memo || '');
+      const memo = await dlg.prompt('メモ', current.memo || '');
       if (memo === null) return;
-      const colorChoice = prompt('Color (yellow / red / blue / green)', current.color || 'yellow');
+      const colorChoice = await dlg.prompt('Color (yellow / red / blue / green)', current.color || 'yellow');
       if (colorChoice === null) return;
       const color = VALID_COLORS.includes(colorChoice.trim()) ? colorChoice.trim() : current.color;
       updateOrder(id, {
@@ -653,8 +655,8 @@ function renderOrders() {
   });
 }
 
-document.getElementById('btn-clear-orders').addEventListener('click', () => {
-  if (!confirm('全ての履歴を削除しますか？')) return;
+document.getElementById('btn-clear-orders').addEventListener('click', async () => {
+  if (!await dlg.confirm('全ての履歴を削除しますか？')) return;
   clearOrders();
   renderOrders();
 });
@@ -698,10 +700,10 @@ document.getElementById('btn-export').addEventListener('click', async () => {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
-  alert('バックアップを作成しました。\nうまく保存できない場合は「クラウドバックアップ」を使ってください。');
+  dlg.alert('バックアップを作成しました。\nうまく保存できない場合は「クラウドバックアップ」を使ってください。');
 });
 
-document.getElementById('btn-import').addEventListener('click', () => {
+document.getElementById('btn-import').addEventListener('click', async () => {
   document.getElementById('import-file').click();
 });
 
@@ -711,7 +713,7 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
   try {
     const text = await file.text();
     const backup = JSON.parse(text);
-    if (!confirm('現在のデータを上書きします。よろしいですか？')) return;
+    if (!await dlg.confirm('現在のデータを上書きします。よろしいですか？')) return;
 
     // 画像を復元
     if (backup.images) {
@@ -728,25 +730,25 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
     renderList();
     renderOrders();
     updateNewFaceBtn();
-    alert('復元しました');
+    dlg.alert('復元しました');
   } catch (err) {
-    alert('ファイルの読み込みに失敗しました');
+    dlg.alert('ファイルの読み込みに失敗しました');
   }
   e.target.value = '';
 });
 
 // === パスワード変更 ===
 
-document.getElementById('btn-change-pw').addEventListener('click', () => {
-  const current = prompt('現在のパスワード');
+document.getElementById('btn-change-pw').addEventListener('click', async () => {
+  const current = await dlg.prompt('現在のパスワード');
   if (current === null) return;
-  if (current !== getAdminPw()) { alert('パスワードが違います'); return; }
-  const newPw = prompt('新しいパスワード');
-  if (newPw === null || newPw === '') { alert('パスワードを入力してください'); return; }
-  const confirm2 = prompt('新しいパスワード（確認）');
-  if (newPw !== confirm2) { alert('パスワードが一致しません'); return; }
+  if (current !== getAdminPw()) { dlg.alert('パスワードが違います'); return; }
+  const newPw = await dlg.prompt('新しいパスワード');
+  if (newPw === null || newPw === '') { dlg.alert('パスワードを入力してください'); return; }
+  const confirm2 = await dlg.prompt('新しいパスワード（確認）');
+  if (newPw !== confirm2) { dlg.alert('パスワードが一致しません'); return; }
   setAdminPw(newPw);
-  alert('パスワードを変更しました');
+  dlg.alert('パスワードを変更しました');
 });
 
 // === 画像軽量化（一括圧縮） ===
@@ -761,7 +763,7 @@ function fmtBytes(n) {
 }
 
 async function optimizeAllImages() {
-  if (!confirm('全ての画像を軽量化（再圧縮）します。元の高画質に戻すには再アップロードが必要です。続行しますか？')) return;
+  if (!await dlg.confirm('全ての画像を軽量化（再圧縮）します。元の高画質に戻すには再アップロードが必要です。続行しますか？')) return;
 
   btnOptimizeImages.disabled = true;
   optimizeStatus.textContent = '読み込み中…';
@@ -874,12 +876,12 @@ async function checkForUpdate() {
       const url = apkAsset ? apkAsset.browser_download_url : data.html_url;
       updateStatus.innerHTML = `新しいバージョンがあります: <strong>v${latest}</strong>（現在 v${APP_VERSION}）`;
       if (apkAsset) {
-        if (confirm(`新しいバージョン v${latest} があります。ダウンロードページを開きますか？\n\nダウンロード後、通知をタップしてインストールしてください。`)) {
+        if (await dlg.confirm(`新しいバージョン v${latest} があります。ダウンロードページを開きますか？\n\nダウンロード後、通知をタップしてインストールしてください。`)) {
           // Capacitor / Android WebView から外部ブラウザで開く
           window.open(url, '_system');
         }
       } else {
-        if (confirm(`新しいバージョン v${latest} があります。リリースページを開きますか？`)) {
+        if (await dlg.confirm(`新しいバージョン v${latest} があります。リリースページを開きますか？`)) {
           window.open(url, '_system');
         }
       }
@@ -894,7 +896,7 @@ async function checkForUpdate() {
 }
 
 if (btnCheckUpdate) {
-  btnCheckUpdate.addEventListener('click', checkForUpdate);
+  btnCheckUpdate.addEventListener('click', () => manualCheck());
 }
 
 // バージョン表示
@@ -934,7 +936,7 @@ function initFontSettings() {
   const skipCb = document.getElementById('setting-skip-order-input');
   if (skipCb) {
     skipCb.checked = !!s.skipOrderInput;
-    skipCb.addEventListener('change', () => {
+    skipCb.addEventListener('change', async () => {
       const cur = loadSettings();
       cur.skipOrderInput = skipCb.checked;
       saveSettings(cur);
@@ -943,7 +945,7 @@ function initFontSettings() {
 }
 
 Object.keys(fsSliders).forEach((key) => {
-  fsSliders[key].addEventListener('input', () => {
+  fsSliders[key].addEventListener('input', async () => {
     fsVals[key].textContent = fsSliders[key].value + 'px';
     const s = loadSettings();
     s[settingsKeyMap[key]] = Number(fsSliders[key].value);
@@ -961,7 +963,7 @@ function escapeHtml(str) {
 
 // === 戻るボタン制御（メイン画面に戻る） ===
 history.pushState(null, '', location.href);
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', async () => {
   if (editModal.classList.contains('active')) {
     editModal.classList.remove('active');
     history.pushState(null, '', location.href);
@@ -991,8 +993,8 @@ subscribeStatus(renderSyncStatus);
 
 const btnLogout = document.getElementById('btn-logout');
 if (btnLogout) {
-  btnLogout.addEventListener('click', () => {
-    if (confirm('ログアウトしますか？')) logout();
+  btnLogout.addEventListener('click', async () => {
+    if (await dlg.confirm('ログアウトしますか？')) logout();
   });
 }
 
@@ -1006,7 +1008,7 @@ if (btnResync) {
       renderList();
       updateNewFaceBtn();
     } catch (e) {
-      alert('再同期に失敗しました: ' + (e.message || e));
+      dlg.alert('再同期に失敗しました: ' + (e.message || e));
     } finally {
       btnResync.disabled = false;
     }
@@ -1015,13 +1017,13 @@ if (btnResync) {
 
 if (btnPushAll) {
   btnPushAll.addEventListener('click', async () => {
-    if (!confirm('このタブレットのデータでクラウドを上書きします。よろしいですか？')) return;
+    if (!await dlg.confirm('このタブレットのデータでクラウドを上書きします。よろしいですか？')) return;
     btnPushAll.disabled = true;
     try {
       await forcePush();
-      alert('送信しました');
+      dlg.alert('送信しました');
     } catch (e) {
-      alert('送信に失敗しました: ' + (e.message || e));
+      dlg.alert('送信に失敗しました: ' + (e.message || e));
     } finally {
       btnPushAll.disabled = false;
     }
@@ -1050,15 +1052,15 @@ function fmtKB(n) {
 
 if (btnCloudBackup) {
   btnCloudBackup.addEventListener('click', async () => {
-    const label = prompt('メモ（任意・例: 5/3 リニューアル前）', '');
+    const label = await dlg.prompt('メモ（任意・例: 5/3 リニューアル前）', '');
     if (label === null) return;
     btnCloudBackup.disabled = true;
     try {
       const r = await cloudBackup(label);
-      alert(`クラウドにバックアップしました\n${r.filename.split('/').pop()}\nサイズ: ${fmtKB(r.size)}`);
+      dlg.alert(`クラウドにバックアップしました\n${r.filename.split('/').pop()}\nサイズ: ${fmtKB(r.size)}`);
       await renderCloudBackupList();
     } catch (e) {
-      alert('クラウドバックアップに失敗しました: ' + (e.message || e));
+      dlg.alert('クラウドバックアップに失敗しました: ' + (e.message || e));
     } finally {
       btnCloudBackup.disabled = false;
     }
@@ -1095,7 +1097,7 @@ async function renderCloudBackupList() {
     cloudBackupListEl.querySelectorAll('.cb-restore').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const name = btn.closest('.cloud-backup-item').dataset.name;
-        if (!confirm(`このバックアップで全データを上書き復元します。\n${name}\nよろしいですか？`)) return;
+        if (!await dlg.confirm(`このバックアップで全データを上書き復元します。\n${name}\nよろしいですか？`)) return;
         btn.disabled = true;
         try {
           await cloudBackupRestore(name);
@@ -1105,9 +1107,9 @@ async function renderCloudBackupList() {
           renderOrders();
           updateNewFaceBtn();
           initFontSettings();
-          alert('復元しました。「この端末で上書き」を押すとクラウド同期にも反映されます。');
+          dlg.alert('復元しました。「この端末で上書き」を押すとクラウド同期にも反映されます。');
         } catch (e) {
-          alert('復元に失敗: ' + (e.message || e));
+          dlg.alert('復元に失敗: ' + (e.message || e));
         } finally {
           btn.disabled = false;
         }
@@ -1117,12 +1119,12 @@ async function renderCloudBackupList() {
     cloudBackupListEl.querySelectorAll('.cb-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const name = btn.closest('.cloud-backup-item').dataset.name;
-        if (!confirm(`削除します: ${name}`)) return;
+        if (!await dlg.confirm(`削除します: ${name}`)) return;
         try {
           await cloudBackupDelete(name);
           await renderCloudBackupList();
         } catch (e) {
-          alert('削除に失敗: ' + (e.message || e));
+          dlg.alert('削除に失敗: ' + (e.message || e));
         }
       });
     });
@@ -1132,7 +1134,7 @@ async function renderCloudBackupList() {
 }
 
 if (btnCloudBackupList) {
-  btnCloudBackupList.addEventListener('click', () => {
+  btnCloudBackupList.addEventListener('click', async () => {
     if (cloudBackupListEl.style.display === 'none' || !cloudBackupListEl.style.display) {
       renderCloudBackupList();
     } else {
@@ -1169,4 +1171,7 @@ async function init() {
     renderList();
     updateNewFaceBtn();
   });
+
+  // 起動時自動アップデートチェック
+  scheduleStartupCheck();
 }

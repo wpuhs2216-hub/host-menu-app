@@ -5,11 +5,11 @@ document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
-import {
-  initialSync, startRealtime,
-  syncSelectionAdd, syncSelectionRemove, syncSelectionsClear,
-  loadSelections, startSelectionsRealtime,
-} from './sync.js';
+import { initialSync, startRealtime } from './sync.js';
+import * as dlg from './dialog.js';
+import { scheduleStartupCheck } from './updateCheck.js';
+// 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
+// selections テーブル同期は main 側では使わない（複数端末で選択が干渉しないように）
 
 // 色 → CSS カラー
 const COLOR_HEX = { yellow: '#d4af37', red: '#e26d6d', blue: '#6da5e2', green: '#6ad080' };
@@ -52,8 +52,11 @@ function refreshAllCheckboxes() {
   document.querySelectorAll('.host-panel').forEach((panel) => {
     const input = panel.querySelector('.cast-checkbox input');
     if (!input) return;
+    const id = input.dataset.id;
     const cb = panel.querySelector('.cast-checkbox');
-    applyCheckboxStyle(cb, input.dataset.id);
+    applyCheckboxStyle(cb, id);
+    // バッジ表示条件もピッカー色に依存するため再描画
+    updateSelectingBadges(panel, id);
   });
   const fsCb = document.getElementById('fs-checkbox');
   if (fsCb && visibleItems && visibleItems[currentIndex]) {
@@ -153,6 +156,7 @@ function applyPanelStyle(el, id) {
 const COLOR_LABEL_EN = { yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green' };
 
 // 「Yellow で選択中」のバッジ列をパネル左上に表示
+// 表示条件: 複数色 または 現在のピッカーと違う色1つ で選択中の場合のみ
 function updateSelectingBadges(el, id) {
   let host = el.querySelector('.selecting-badges');
   if (!host) {
@@ -161,7 +165,9 @@ function updateSelectingBadges(el, id) {
     el.appendChild(host);
   }
   const colors = getColorsArr(id);
-  if (colors.length === 0) { host.innerHTML = ''; return; }
+  // 単色かつ現在のピッカー色と一致 → 表示しない（通常運用で邪魔にならないように）
+  const onlyCurrent = colors.length === 1 && colors[0] === pickColor;
+  if (colors.length === 0 || onlyCurrent) { host.innerHTML = ''; return; }
   const sorted = COLOR_ORDER.filter((c) => colors.includes(c));
   host.innerHTML = sorted.map((c) =>
     `<span class="selecting-badge color-${c}">${COLOR_LABEL_EN[c]} で選択中</span>`
@@ -290,16 +296,15 @@ async function render() {
 }
 
 // pickColor で id の色を toggle（含まれていれば外す、なければ追加）
+// 端末ローカルのみ（クラウド同期しない）
 function togglePickColor(id) {
   let s = checkedCasts.get(id);
   if (!s) { s = new Set(); checkedCasts.set(id, s); }
   if (s.has(pickColor)) {
     s.delete(pickColor);
-    syncSelectionRemove(id, pickColor);
     if (s.size === 0) checkedCasts.delete(id);
   } else {
     s.add(pickColor);
-    syncSelectionAdd(id, pickColor);
   }
   updateConfirmBtn();
 }
@@ -414,7 +419,6 @@ function submitOrder() {
   });
 
   checkedCasts.clear();
-  syncSelectionsClear();
   updateConfirmBtn();
   orderModal.classList.remove('active');
   render();
@@ -430,7 +434,7 @@ fsConfirmBtn.addEventListener('click', (e) => {
 
 document.getElementById('order-submit').addEventListener('click', () => {
   submitOrder();
-  alert('送信しました');
+  dlg.toast('送信しました', { type: 'success' });
 });
 
 document.getElementById('order-cancel').addEventListener('click', () => {
@@ -614,42 +618,7 @@ window.addEventListener('popstate', () => {
     console.warn('initialSync 失敗（オフライン継続）', e);
   }
   startRealtime(async () => { await render(); });
-
-  // 選択中キャスト（selections）を初期同期 + Realtime 購読
-  try {
-    const sels = await loadSelections();
-    checkedCasts.clear();
-    for (const s of sels) {
-      const id = s.panel_id;
-      const c = s.color || 'yellow';
-      let set = checkedCasts.get(id);
-      if (!set) { set = new Set(); checkedCasts.set(id, set); }
-      set.add(c);
-    }
-    updateConfirmBtn();
-    await render();
-  } catch (e) { console.warn('selections fetch 失敗', e); }
-
-  startSelectionsRealtime({
-    onAdd: (id, color) => {
-      let s = checkedCasts.get(id);
-      if (!s) { s = new Set(); checkedCasts.set(id, s); }
-      s.add(color);
-      syncGridCheckbox(id);
-      const cur = visibleItems[currentIndex];
-      if (cur && cur.id === id && fullscreen.classList.contains('active')) showCurrentItem();
-      updateConfirmBtn();
-    },
-    onRemove: (id, color) => {
-      const s = checkedCasts.get(id);
-      if (!s) return;
-      if (color) s.delete(color);
-      else s.clear();
-      if (s.size === 0) checkedCasts.delete(id);
-      syncGridCheckbox(id);
-      const cur = visibleItems[currentIndex];
-      if (cur && cur.id === id && fullscreen.classList.contains('active')) showCurrentItem();
-      updateConfirmBtn();
-    },
-  });
+  // 確定前のチェック状態は端末ローカルのみで管理する（複数端末で干渉させないため）
+  // 起動時自動アップデートチェック（3秒遅延・6時間キャッシュ・新版があればバナー表示）
+  scheduleStartupCheck();
 })();
