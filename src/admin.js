@@ -607,6 +607,9 @@ function renderOrders() {
   }
 
   const VALID_COLORS = ['yellow', 'red', 'blue', 'green'];
+  const selfId = getSelfDeviceId();
+  // env-app（Capacitor アプリ版）は自端末送信のみ編集/削除可。Web は全権限。
+  const canModify = (o) => !IS_CAPACITOR || (o.deviceId && o.deviceId === selfId);
 
   orderList.innerHTML = orders
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -622,6 +625,11 @@ function renderOrders() {
       const memo = o.memo ? `<div class="order-memo">${escapeHtml(o.memo)}</div>` : '';
       const dev = o.deviceName ? `<span class="order-device">${escapeHtml(o.deviceName)}</span>` : '';
       const src = o.source === 'preview' ? '<span class="order-src-preview">PREVIEW</span>' : '';
+      const actions = canModify(o) ? `
+          <div class="order-card-actions">
+            <button class="btn-icon order-edit" title="編集">✎</button>
+            <button class="btn-icon danger order-delete" title="削除">✕</button>
+          </div>` : '';
       return `
         <div class="order-card color-${color}" data-id="${o.id}">
           <div class="order-card-header">
@@ -634,11 +642,7 @@ function renderOrders() {
             <span class="order-time">${time}</span>
           </div>
           <div class="order-casts">${castNames}</div>
-          ${memo}
-          <div class="order-card-actions">
-            <button class="btn-icon order-edit" title="編集">✎</button>
-            <button class="btn-icon danger order-delete" title="削除">✕</button>
-          </div>
+          ${memo}${actions}
         </div>
       `;
     })

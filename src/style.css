@@ -1700,3 +1700,6 @@ body.history-body { padding-bottom: 32px; }
 
 /* Capacitor アプリ版では通知トグルを非表示（Web Push 専用機能） */
 html.env-app #btn-toggle-notify { display: none !important; }
+
+/* env-app（Capacitor）では「全件クリア」ボタンを非表示（自端末の権限のみ） */
+html.env-app #btn-clear-orders { display: none !important; }
