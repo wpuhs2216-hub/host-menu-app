@@ -1,7 +1,11 @@
 // メインビューワー
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
-import { initialSync, startRealtime } from './sync.js';
+import {
+  initialSync, startRealtime,
+  syncSelectionUpsert, syncSelectionRemove, syncSelectionsClear,
+  loadSelections, startSelectionsRealtime,
+} from './sync.js';
 
 // === カラーピッカー ===
 let pickColor = 'yellow';
@@ -9,10 +13,7 @@ const COLOR_VALID = ['yellow', 'red', 'blue', 'green'];
 
 function applyPickColor(c) {
   pickColor = COLOR_VALID.includes(c) ? c : 'yellow';
-  // body のクラスを差し替え
-  document.body.classList.remove('pick-yellow', 'pick-red', 'pick-blue', 'pick-green');
-  document.body.classList.add(`pick-${pickColor}`);
-  // ボタンの active 切替
+  // ピッカーボタンの active 切替のみ。既存チェックの色は維持
   document.querySelectorAll('.color-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.color === pickColor);
   });
@@ -77,8 +78,14 @@ let currentIndex = 0;
 // 画像キャッシュ（id → base64）
 let imageCache = {};
 
-// チェック状態（キャストID → boolean）
+// チェック状態（キャストID → 色文字列）
 const checkedCasts = new Map();
+const COLOR_CLASSES = ['color-yellow', 'color-red', 'color-blue', 'color-green'];
+
+function setPanelColorClass(el, color) {
+  el.classList.remove(...COLOR_CLASSES);
+  if (color) el.classList.add(`color-${color}`);
+}
 
 // === 時計表示 ===
 const headerClock = document.getElementById('header-clock');
@@ -133,7 +140,10 @@ async function render() {
   visibleItems.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = `host-panel placeholder-bg-${i % 9}`;
-    if (checkedCasts.has(item.id)) el.classList.add('checked');
+    if (checkedCasts.has(item.id)) {
+      el.classList.add('checked');
+      setPanelColorClass(el, checkedCasts.get(item.id));
+    }
 
     const img = imageCache[item.id] || '';
     if (img) {
@@ -170,11 +180,17 @@ async function render() {
     if (isCast(item) && !locked) {
       const cb = document.createElement('label');
       cb.className = 'cast-checkbox';
-      cb.innerHTML = `<input type="checkbox" data-id="${item.id}" ${checkedCasts.has(item.id) ? 'checked' : ''} /><span class="cb-mark"></span>`;
+      const curColor = checkedCasts.get(item.id);
+      if (curColor) cb.classList.add(`color-${curColor}`);
+      cb.innerHTML = `<input type="checkbox" data-id="${item.id}" ${curColor ? 'checked' : ''} /><span class="cb-mark"></span>`;
       cb.addEventListener('click', (e) => e.stopPropagation());
       cb.querySelector('input').addEventListener('change', (e) => {
         toggleCheck(item.id, e.target.checked);
         el.classList.toggle('checked', e.target.checked);
+        const c = checkedCasts.get(item.id);
+        setPanelColorClass(el, c);
+        cb.classList.remove(...COLOR_CLASSES);
+        if (c) cb.classList.add(`color-${c}`);
       });
       el.appendChild(cb);
     }
@@ -187,9 +203,11 @@ async function render() {
 
 function toggleCheck(id, checked) {
   if (checked) {
-    checkedCasts.set(id, true);
+    checkedCasts.set(id, pickColor);
+    syncSelectionUpsert(id, pickColor);
   } else {
     checkedCasts.delete(id);
+    syncSelectionRemove(id);
   }
   updateConfirmBtn();
 }
@@ -198,6 +216,18 @@ function toggleCheck(id, checked) {
 
 function updateConfirmBtn() {
   const count = checkedCasts.size;
+  // 色の集合を取って 1色ならその色、2色以上は mixed（白）、0なら非表示
+  const distinctColors = new Set(checkedCasts.values());
+  let stateColor = null;
+  if (distinctColors.size === 1) stateColor = [...distinctColors][0];
+  else if (distinctColors.size >= 2) stateColor = 'mixed';
+
+  for (const btn of [confirmBtn, fsConfirmBtn]) {
+    if (!btn) continue;
+    btn.classList.remove(...COLOR_CLASSES, 'color-mixed');
+    if (stateColor) btn.classList.add(`color-${stateColor}`);
+  }
+
   if (count > 0) {
     confirmCount.textContent = count;
     confirmBtn.style.display = 'flex';
@@ -231,16 +261,26 @@ function openOrderModal() {
 function submitOrder(seat, name) {
   const data = loadData();
   const selected = data.items.filter((item) => checkedCasts.has(item.id));
+  const casts = selected.map((c) => ({
+    id: c.id,
+    name: c.name,
+    title: c.title,
+    color: checkedCasts.get(c.id) || 'yellow',
+  }));
+  const distinct = new Set(casts.map((c) => c.color));
+  const orderColor = distinct.size === 1 ? [...distinct][0] : 'mixed';
+
   const order = {
     id: generateId(),
     seat,
     customerName: name,
-    color: pickColor,
-    casts: selected.map((c) => ({ id: c.id, name: c.name, title: c.title })),
+    color: orderColor,
+    casts,
     createdAt: new Date().toISOString(),
   };
   saveOrder(order);
   checkedCasts.clear();
+  syncSelectionsClear();
   updateConfirmBtn();
   orderModal.classList.remove('active');
   render();
@@ -307,7 +347,10 @@ function showCurrentItem() {
   // 全画面チェックボックス（キャストかつ選択可のみ）
   if (isCast(item) && item.selectable !== false) {
     fsCheckbox.style.display = 'flex';
-    fsCheckInput.checked = checkedCasts.has(item.id);
+    const c = checkedCasts.get(item.id);
+    fsCheckInput.checked = !!c;
+    fsCheckbox.classList.remove(...COLOR_CLASSES);
+    if (c) fsCheckbox.classList.add(`color-${c}`);
   } else {
     fsCheckbox.style.display = 'none';
   }
@@ -325,7 +368,15 @@ function syncGridCheckbox(id, checked) {
   const gridCb = grid.querySelector(`input[data-id="${id}"]`);
   if (gridCb) {
     gridCb.checked = checked;
-    gridCb.closest('.host-panel').classList.toggle('checked', checked);
+    const panel = gridCb.closest('.host-panel');
+    panel.classList.toggle('checked', checked);
+    const c = checkedCasts.get(id);
+    setPanelColorClass(panel, c);
+    const cb = gridCb.closest('.cast-checkbox');
+    if (cb) {
+      cb.classList.remove(...COLOR_CLASSES);
+      if (c) cb.classList.add(`color-${c}`);
+    }
   }
 }
 
@@ -439,4 +490,51 @@ window.addEventListener('popstate', () => {
     console.warn('initialSync 失敗（オフライン継続）', e);
   }
   startRealtime(async () => { await render(); });
+
+  // 選択中キャスト（selections）を初期同期 + Realtime 購読
+  try {
+    const sels = await loadSelections();
+    checkedCasts.clear();
+    for (const s of sels) checkedCasts.set(s.id, s.color || 'yellow');
+    updateConfirmBtn();
+    await render();
+  } catch (e) { console.warn('selections fetch 失敗', e); }
+
+  startSelectionsRealtime({
+    onUpsert: (id, color) => {
+      checkedCasts.set(id, color);
+      // 該当パネルの DOM を更新
+      const cb = grid.querySelector(`input[data-id="${id}"]`);
+      if (cb) {
+        cb.checked = true;
+        const panel = cb.closest('.host-panel');
+        panel.classList.add('checked');
+        setPanelColorClass(panel, color);
+        const lbl = cb.closest('.cast-checkbox');
+        if (lbl) {
+          lbl.classList.remove(...COLOR_CLASSES);
+          lbl.classList.add(`color-${color}`);
+        }
+      }
+      // 全画面表示中のキャストなら更新
+      const cur = visibleItems[currentIndex];
+      if (cur && cur.id === id && fullscreen.classList.contains('active')) showCurrentItem();
+      updateConfirmBtn();
+    },
+    onDelete: (id) => {
+      checkedCasts.delete(id);
+      const cb = grid.querySelector(`input[data-id="${id}"]`);
+      if (cb) {
+        cb.checked = false;
+        const panel = cb.closest('.host-panel');
+        panel.classList.remove('checked');
+        setPanelColorClass(panel, null);
+        const lbl = cb.closest('.cast-checkbox');
+        if (lbl) lbl.classList.remove(...COLOR_CLASSES);
+      }
+      const cur = visibleItems[currentIndex];
+      if (cur && cur.id === id && fullscreen.classList.contains('active')) showCurrentItem();
+      updateConfirmBtn();
+    },
+  });
 })();

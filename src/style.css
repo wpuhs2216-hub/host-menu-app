@@ -726,27 +726,36 @@ body {
 }
 .color-btn:active { transform: scale(0.95); }
 
-/* 選択色を CSS 変数で全体に適用 */
-:root {
-  --pick-color: #d4af37;
-  --pick-color-soft: rgba(212, 175, 55, 0.5);
+/* チェック済みパネル: 個別の color クラスで枠色 */
+.host-panel.checked.color-yellow { box-shadow: inset 0 0 0 4px #d4af37; }
+.host-panel.checked.color-red    { box-shadow: inset 0 0 0 4px #e26d6d; }
+.host-panel.checked.color-blue   { box-shadow: inset 0 0 0 4px #6da5e2; }
+.host-panel.checked.color-green  { box-shadow: inset 0 0 0 4px #6ad080; }
+.host-panel.checked:not(.color-yellow):not(.color-red):not(.color-blue):not(.color-green) {
+  box-shadow: inset 0 0 0 4px #d4af37;
 }
-body.pick-yellow { --pick-color: #d4af37; --pick-color-soft: rgba(212, 175, 55, 0.5); }
-body.pick-red    { --pick-color: #e26d6d; --pick-color-soft: rgba(226, 109, 109, 0.5); }
-body.pick-blue   { --pick-color: #6da5e2; --pick-color-soft: rgba(109, 165, 226, 0.5); }
-body.pick-green  { --pick-color: #6ad080; --pick-color-soft: rgba(106, 208, 128, 0.5); }
 
-/* チェック済みパネル/全画面チェックボックスの色を選択中の色に */
-.host-panel.checked { box-shadow: inset 0 0 0 4px var(--pick-color); }
-.cast-checkbox input:checked ~ .cb-mark,
-.fs-checkbox input:checked ~ .fs-cb-mark {
-  background: var(--pick-color) !important;
-  border-color: var(--pick-color) !important;
-}
-.confirm-btn,
-.fs-confirm-btn {
-  background: linear-gradient(135deg, var(--pick-color), color-mix(in srgb, var(--pick-color) 70%, #000)) !important;
-}
+/* チェックボックスのチェック色 */
+.cast-checkbox.color-yellow input:checked ~ .cb-mark,
+.fs-checkbox.color-yellow input:checked ~ .fs-cb-mark { background: #d4af37 !important; border-color: #d4af37 !important; }
+.cast-checkbox.color-red    input:checked ~ .cb-mark,
+.fs-checkbox.color-red    input:checked ~ .fs-cb-mark { background: #e26d6d !important; border-color: #e26d6d !important; }
+.cast-checkbox.color-blue   input:checked ~ .cb-mark,
+.fs-checkbox.color-blue   input:checked ~ .fs-cb-mark { background: #6da5e2 !important; border-color: #6da5e2 !important; }
+.cast-checkbox.color-green  input:checked ~ .cb-mark,
+.fs-checkbox.color-green  input:checked ~ .fs-cb-mark { background: #6ad080 !important; border-color: #6ad080 !important; }
+
+/* 確定ボタン（0:非表示はJSで、1色:該当色、mixed:白） */
+.confirm-btn.color-yellow,
+.fs-confirm-btn.color-yellow { background: linear-gradient(135deg, #d4af37, #8e7320) !important; color: #0a0a0a !important; }
+.confirm-btn.color-red,
+.fs-confirm-btn.color-red    { background: linear-gradient(135deg, #e26d6d, #9c4a4a) !important; color: #fff !important; }
+.confirm-btn.color-blue,
+.fs-confirm-btn.color-blue   { background: linear-gradient(135deg, #6da5e2, #4a719c) !important; color: #fff !important; }
+.confirm-btn.color-green,
+.fs-confirm-btn.color-green  { background: linear-gradient(135deg, #6ad080, #4a9059) !important; color: #0a0a0a !important; }
+.confirm-btn.color-mixed,
+.fs-confirm-btn.color-mixed  { background: linear-gradient(135deg, #ffffff, #d0d0d0) !important; color: #0a0a0a !important; }
 
 /* 履歴カードの色マーキング（admin） */
 .order-card { border-left: 4px solid #d4af37; }
@@ -766,3 +775,6 @@ body.pick-green  { --pick-color: #6ad080; --pick-color-soft: rgba(106, 208, 128,
 .order-color-badge.color-red    { background: #e26d6d; }
 .order-color-badge.color-blue   { background: #6da5e2; }
 .order-color-badge.color-green  { background: #6ad080; }
+
+/* 混色注文の左ボーダー（白） */
+.order-card.color-mixed { border-left-color: #ffffff !important; }

@@ -345,6 +345,70 @@ export async function initialSync() {
   }
 }
 
+// === selections 同期（チェック中キャスト共有） ===
+
+export async function syncSelectionUpsert(id, color) {
+  try {
+    const { error } = await supabase
+      .from('selections')
+      .upsert({ id, color: color || 'yellow' });
+    if (error) throw error;
+  } catch (e) {
+    console.warn('selection upsert 失敗', e);
+  }
+}
+
+export async function syncSelectionRemove(id) {
+  try {
+    const { error } = await supabase.from('selections').delete().eq('id', id);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('selection remove 失敗', e);
+  }
+}
+
+export async function syncSelectionsClear() {
+  try {
+    // 全行削除（neq dummy で全件マッチ）
+    const { error } = await supabase.from('selections').delete().not('id', 'is', null);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('selections clear 失敗', e);
+  }
+}
+
+export async function loadSelections() {
+  try {
+    const { data, error } = await supabase.from('selections').select('id,color');
+    if (error) throw error;
+    return data || [];
+  } catch (e) {
+    console.warn('selections fetch 失敗', e);
+    return [];
+  }
+}
+
+let selectionsChannel = null;
+
+export function startSelectionsRealtime(handlers) {
+  if (selectionsChannel) return;
+  // handlers: { onUpsert(id, color), onDelete(id) }
+  selectionsChannel = supabase
+    .channel('selections-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'selections' }, (payload) => {
+      try {
+        if (payload.eventType === 'DELETE') {
+          const id = payload.old && payload.old.id;
+          if (id) handlers?.onDelete?.(id);
+        } else {
+          const row = payload.new;
+          if (row?.id) handlers?.onUpsert?.(row.id, row.color || 'yellow');
+        }
+      } catch (e) { console.warn('selection realtime apply 失敗', e); }
+    })
+    .subscribe();
+}
+
 // === クラウドバックアップ/復元（panels 同期とは独立） ===
 // Supabase Storage に backups/<タイムスタンプ>.json として全データを保存
 

@@ -62,6 +62,35 @@ insert into storage.buckets (id, name, public)
 values ('panel-images', 'panel-images', true)
 on conflict (id) do update set public = true;
 
+-- ===== selections テーブル（チェック中キャスト共有） =====
+create table if not exists public.selections (
+  id text primary key,             -- panel id
+  color text not null default 'yellow',
+  updated_at timestamptz default now()
+);
+
+drop trigger if exists trg_selections_touch on public.selections;
+create trigger trg_selections_touch
+  before update on public.selections
+  for each row execute function public.touch_updated_at();
+
+alter table public.selections enable row level security;
+
+drop policy if exists selections_anon_all on public.selections;
+create policy selections_anon_all on public.selections
+  for all to anon using (true) with check (true);
+
+-- Realtime publication （存在しない場合のみ追加）
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'selections'
+  ) then
+    execute 'alter publication supabase_realtime add table public.selections';
+  end if;
+end $$;
+
 -- バケット内オブジェクトに対する RLS（anon に全許可）
 drop policy if exists panel_images_anon_select on storage.objects;
 create policy panel_images_anon_select on storage.objects

@@ -584,8 +584,13 @@ function renderOrders() {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .map((o) => {
       const time = new Date(o.createdAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const castNames = o.casts.map((c) => `<span class="order-tag">${escapeHtml(c.name)}</span>`).join('');
-      const color = VALID_COLORS.includes(o.color) ? o.color : 'yellow';
+      const castNames = o.casts.map((c) => {
+        const cc = VALID_COLORS.includes(c.color) ? c.color : 'yellow';
+        return `<span class="order-tag color-${cc}">
+          <span class="order-color-badge color-${cc}"></span>${escapeHtml(c.name)}
+        </span>`;
+      }).join('');
+      const color = (o.color === 'mixed' || VALID_COLORS.includes(o.color)) ? o.color : 'yellow';
       return `
         <div class="order-card color-${color}" data-id="${o.id}">
           <div class="order-card-header">
