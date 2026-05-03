@@ -1703,3 +1703,29 @@ html.env-app #btn-toggle-notify { display: none !important; }
 
 /* env-app（Capacitor）では「全件クリア」ボタンを非表示（自端末の権限のみ） */
 html.env-app #btn-clear-orders { display: none !important; }
+
+/* === ヘッダのロゴを画像に切替（index.html / preview.html） === */
+.header h1.header-logo-img {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* テキスト用のスタイルを無効化 */
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+  background-clip: initial;
+  letter-spacing: 0;
+  padding: 0;
+}
+.header h1.header-logo-img img {
+  display: block;
+  height: 36px;
+  width: auto;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5));
+}
+
+/* スマホで小さくならないよう調整 */
+html.env-web .header h1.header-logo-img img { height: 32px; }
+@media (max-width: 480px) {
+  .header h1.header-logo-img img { height: 28px; }
+}
