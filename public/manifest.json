@@ -1,7 +1,7 @@
 {
-  "name": "GENTLY DIVA",
-  "short_name": "GENTLY DIVA",
-  "description": "GENTLY DIVA メニュー表",
+  "name": "Vパネル",
+  "short_name": "Vパネル",
+  "description": "Vパネル メニュー表",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

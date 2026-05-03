@@ -1,6 +1,6 @@
 {
   "appId": "com.gentlydiva.menu",
-  "appName": "GENTLY DIVA",
+  "appName": "Vパネル",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

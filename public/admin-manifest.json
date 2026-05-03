@@ -1,7 +1,7 @@
 {
-  "name": "GENTLY DIVA 管理",
-  "short_name": "GD 管理",
-  "description": "GENTLY DIVA メニュー表 管理画面",
+  "name": "Vパネル",
+  "short_name": "Vパネル",
+  "description": "Vパネル 管理画面",
   "start_url": "./admin.html",
   "scope": "./",
   "display": "standalone",
