@@ -96,6 +96,15 @@ if (isLoggedIn()) {
   pwInput.focus();
 }
 
+// APK 版: 「メニュー表示」リンクで戻る時は明示的にセッション削除（保険）
+if (IS_CAPACITOR) {
+  document.querySelectorAll('.header-link-app').forEach((a) => {
+    a.addEventListener('click', () => {
+      try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+    });
+  });
+}
+
 // APK 版: アプリがバックグラウンドに行ったり端末がスリープしたら自動ログアウト
 if (IS_CAPACITOR) {
   document.addEventListener('visibilitychange', () => {

@@ -3,6 +3,12 @@
 const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
 document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
+// APK 版: メニュー画面に到達した時点で admin セッションを破棄
+// （管理画面 → メニューに戻ったら毎回パスワード入力を要求）
+if (IS_CAPACITOR) {
+  try { localStorage.removeItem('host-menu-admin-session'); } catch { /* ignore */ }
+}
+
 // Web 環境では admin と同じセッションを要求（未ログインなら admin にリダイレクト）
 if (!IS_CAPACITOR) {
   const SESSION_KEY = 'host-menu-admin-session';
