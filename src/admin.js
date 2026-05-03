@@ -96,6 +96,28 @@ if (isLoggedIn()) {
   pwInput.focus();
 }
 
+// APK 版: アプリがバックグラウンドに行ったり端末がスリープしたら自動ログアウト
+if (IS_CAPACITOR) {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      // セッション破棄
+      try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+    } else if (document.visibilityState === 'visible') {
+      // 復帰時: 既にセッション無効ならパスワード画面に強制復帰
+      if (!isLoggedIn()) {
+        try { window.location.reload(); } catch { /* ignore */ }
+      }
+    }
+  });
+  // 画面ロック・アプリ切替の保険
+  window.addEventListener('pagehide', () => {
+    try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+  });
+  window.addEventListener('blur', () => {
+    try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+  });
+}
+
 // === 時計表示 ===
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 function updateAdminClock() {
@@ -768,6 +790,22 @@ document.getElementById('btn-clear-orders').addEventListener('click', async () =
   cloudOrdersCache = [];
   renderOrders();
   syncOrdersClear().catch(() => {});
+});
+
+// この端末で送信した履歴のみ一括削除（APK 版用）
+document.getElementById('btn-clear-own-orders')?.addEventListener('click', async () => {
+  const selfId = getSelfDeviceId();
+  const own = cloudOrdersCache.filter((o) => o.deviceId === selfId);
+  if (own.length === 0) {
+    await dlg.alert('この端末から送信した履歴はありません');
+    return;
+  }
+  if (!await dlg.confirm(`この端末で送信した ${own.length} 件の履歴を削除しますか？\n他端末からの履歴は残ります。`, { danger: true })) return;
+  for (const o of own) {
+    syncOrderDelete(o.id).catch(() => {});
+    cloudOrdersCache = cloudOrdersCache.filter((x) => x.id !== o.id);
+  }
+  renderOrders();
 });
 
 // === バックアップ/復元 ===

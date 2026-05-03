@@ -1878,3 +1878,9 @@ html.env-web .modal {
 }
 /* 画像アップロード領域は内部でスクロールしない（モーダル全体でスクロール） */
 html.env-web .image-upload-area { overflow: visible; }
+
+/* APK 版（env-app）はログアウトボタン非表示（自動ログアウトが効くため不要） */
+html.env-app #btn-logout { display: none !important; }
+
+/* APK 版でのみ「この端末分クリア」ボタン表示 */
+html.env-web #btn-clear-own-orders { display: none !important; }
