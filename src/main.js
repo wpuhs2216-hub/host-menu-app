@@ -81,8 +81,6 @@ const fsPlaceholder = document.getElementById('fs-placeholder');
 const fsTitle = document.getElementById('fs-title');
 const fsName = document.getElementById('fs-name');
 const fsClose = document.getElementById('fs-close');
-const fsPrev = document.getElementById('fs-prev');
-const fsNext = document.getElementById('fs-next');
 const fsCounter = document.getElementById('fs-counter');
 const fsSwipeArea = document.getElementById('fs-swipe-area');
 const fsNewBadge = document.getElementById('fs-new-badge');
@@ -311,7 +309,22 @@ function togglePickColor(id) {
 
 // === 確定ボタン制御 ===
 
+// 色ピッカーの各ボタンに「その色で選択中の人数」を表示
+function updateColorCounts() {
+  const counts = { yellow: 0, red: 0, blue: 0, green: 0 };
+  for (const s of checkedCasts.values()) {
+    for (const c of s) if (c in counts) counts[c]++;
+  }
+  for (const c of COLOR_ORDER) {
+    const el = document.querySelector(`[data-color-count="${c}"]`);
+    if (!el) continue;
+    el.textContent = counts[c];
+    el.classList.toggle('zero', counts[c] === 0);
+  }
+}
+
 function updateConfirmBtn() {
+  updateColorCounts();
   const count = checkedCasts.size;
   // 全キャストの色集合を統合して、1色なら該当色、2色以上は mixed
   const distinctColors = new Set();
@@ -476,9 +489,7 @@ function showCurrentItem() {
   fsNewBadge.style.display = item.isNewFace ? 'inline-block' : 'none';
   fsCounter.textContent = '';
 
-  // ナビボタンの表示制御
-  fsPrev.style.visibility = currentIndex > 0 ? 'visible' : 'hidden';
-  fsNext.style.visibility = currentIndex < visibleItems.length - 1 ? 'visible' : 'hidden';
+  // 矢印ボタンは廃止、スワイプとキーボードで移動
 
   // 全画面チェックボックス（キャストかつ選択可のみ）
   if (isCast(item) && item.selectable !== false) {
@@ -516,16 +527,6 @@ fsClose.addEventListener('click', closeFullscreen);
 
 fullscreen.addEventListener('click', (e) => {
   if (e.target === fullscreen) closeFullscreen();
-});
-
-fsPrev.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (currentIndex > 0) { currentIndex--; showCurrentItem(); }
-});
-
-fsNext.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (currentIndex < visibleItems.length - 1) { currentIndex++; showCurrentItem(); }
 });
 
 // スワイプ操作

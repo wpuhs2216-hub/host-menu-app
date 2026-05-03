@@ -1215,3 +1215,29 @@ html.env-web .app-dialog-box { width: min(440px, 100%); }
   .update-banner .ub-actions { justify-content: flex-end; }
   .update-banner .ub-text { white-space: normal; }
 }
+
+/* 色ボタンの人数バッジ */
+.color-btn { position: relative; }
+.color-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.85);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  letter-spacing: 0;
+  pointer-events: none;
+}
+/* 赤・青は色背景が暗めなので白文字 */
+.color-btn.color-red .color-count,
+.color-btn.color-blue .color-count {
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+}
+.color-count.zero { opacity: 0.45; }
+
+/* 拡大表示の左右矢印は削除済み（CSS でも非表示の保険） */
+.fs-nav-btn { display: none; }
