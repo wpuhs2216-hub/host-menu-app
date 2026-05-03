@@ -1265,3 +1265,9 @@ body.has-selection .color-picker { display: flex !important; }
 }
 .reset-btn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
 .reset-btn:active { transform: scale(0.95); }
+
+/* Web 環境では admin から「← メニュー表示」リンク非表示（メイン画面が存在しないため） */
+html.env-web .header-link[href="./"],
+html.env-web .header-link[href="/"] {
+  display: none !important;
+}
