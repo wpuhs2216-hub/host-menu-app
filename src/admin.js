@@ -646,32 +646,105 @@ function renderOrders() {
   });
 
   orderList.querySelectorAll('.order-edit').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const card = btn.closest('.order-card');
-      const id = card.dataset.id;
-      const current = (cloudOrdersCache.find((o) => o.id === id)) || loadOrders().find((o) => o.id === id);
-      if (!current) return;
-      const seat = await dlg.prompt('席番号', current.seat || '');
-      if (seat === null) return;
-      const name = await dlg.prompt('お客様名', current.customerName || '');
-      if (name === null) return;
-      const memo = await dlg.prompt('メモ', current.memo || '');
-      if (memo === null) return;
-      const colorChoice = await dlg.prompt('Color (yellow / red / blue / green)', current.color || 'yellow');
-      if (colorChoice === null) return;
-      const color = VALID_COLORS.includes(colorChoice.trim()) ? colorChoice.trim() : current.color;
-      const patch = {
-        seat: seat.trim(),
-        customerName: name.trim(),
-        memo: memo.trim(),
-        color,
-      };
-      updateOrder(id, patch);
-      const c = cloudOrdersCache.find((o) => o.id === id);
-      if (c) Object.assign(c, patch);
-      renderOrders();
-      syncOrderUpdate(id, patch).catch(() => {});
+      openOrderEditModal(card.dataset.id);
     });
+  });
+}
+
+// 履歴編集モーダル: 席選択リスト+お客様名+メモ+色選択リストを一括表示
+const ORDER_SEAT_OPTIONS = ['A', 'B-1', 'B-2', 'C-1', 'C-2', 'D', 'E-1', 'E-2', 'E-3'];
+const ORDER_COLOR_OPTIONS = [
+  { v: 'yellow', label: 'Yellow' },
+  { v: 'red',    label: 'Red' },
+  { v: 'blue',   label: 'Blue' },
+  { v: 'green',  label: 'Green' },
+  { v: 'mixed',  label: 'Mixed (複数色)' },
+];
+
+function openOrderEditModal(id) {
+  const current = (cloudOrdersCache.find((o) => o.id === id)) || loadOrders().find((o) => o.id === id);
+  if (!current) return;
+
+  const isStandardSeat = ORDER_SEAT_OPTIONS.includes(current.seat || '');
+  const seatInit = isStandardSeat ? current.seat : (current.seat ? 'other' : '');
+  const otherInit = (isStandardSeat || !current.seat) ? '' : current.seat;
+  const colorInit = ORDER_COLOR_OPTIONS.some((c) => c.v === current.color) ? current.color : 'yellow';
+
+  const root = document.createElement('div');
+  root.className = 'app-dialog-host';
+  root.style.display = 'block';
+  root.innerHTML = `
+    <div class="app-dialog-backdrop"><div class="app-dialog-box order-edit-box">
+      <h3 class="app-dialog-title">履歴を編集</h3>
+
+      <div class="form-group">
+        <label>席番</label>
+        <select id="ed-seat" class="app-dialog-input">
+          <option value="">未選択</option>
+          ${ORDER_SEAT_OPTIONS.map((s) => `<option value="${s}" ${s === seatInit ? 'selected' : ''}>${s}</option>`).join('')}
+          <option value="other" ${seatInit === 'other' ? 'selected' : ''}>その他（自由入力）</option>
+        </select>
+        <input id="ed-seat-other" class="app-dialog-input" placeholder="席番号を入力" style="display:${seatInit === 'other' ? 'block' : 'none'};margin-top:6px" value="${escapeHtml(otherInit)}" />
+      </div>
+
+      <div class="form-group">
+        <label>お客様名</label>
+        <input id="ed-name" class="app-dialog-input" value="${escapeHtml(current.customerName || '')}" />
+      </div>
+
+      <div class="form-group">
+        <label>メモ</label>
+        <textarea id="ed-memo" class="app-dialog-input" rows="3">${escapeHtml(current.memo || '')}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>色</label>
+        <select id="ed-color" class="app-dialog-input">
+          ${ORDER_COLOR_OPTIONS.map((c) => `<option value="${c.v}" ${c.v === colorInit ? 'selected' : ''}>${c.label}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="app-dialog-actions">
+        <button class="btn btn-secondary" id="ed-cancel">キャンセル</button>
+        <button class="btn btn-primary" id="ed-save">保存</button>
+      </div>
+    </div></div>
+  `;
+  document.body.appendChild(root);
+
+  const seatSel = root.querySelector('#ed-seat');
+  const seatOther = root.querySelector('#ed-seat-other');
+  seatSel.addEventListener('change', () => {
+    seatOther.style.display = seatSel.value === 'other' ? 'block' : 'none';
+    if (seatSel.value === 'other') seatOther.focus();
+  });
+
+  const close = () => root.remove();
+  root.querySelector('#ed-cancel').addEventListener('click', close);
+  root.querySelector('.app-dialog-backdrop').addEventListener('click', (e) => {
+    if (e.target.classList.contains('app-dialog-backdrop')) close();
+  });
+  document.addEventListener('keydown', function onKey(e) {
+    if (!root.isConnected) { document.removeEventListener('keydown', onKey); return; }
+    if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); close(); }
+  });
+
+  root.querySelector('#ed-save').addEventListener('click', () => {
+    const seatVal = seatSel.value === 'other' ? seatOther.value.trim() : seatSel.value;
+    const patch = {
+      seat: seatVal,
+      customerName: root.querySelector('#ed-name').value.trim(),
+      memo: root.querySelector('#ed-memo').value.trim(),
+      color: root.querySelector('#ed-color').value,
+    };
+    updateOrder(id, patch);
+    const c = cloudOrdersCache.find((o) => o.id === id);
+    if (c) Object.assign(c, patch);
+    renderOrders();
+    syncOrderUpdate(id, patch).catch(() => {});
+    close();
   });
 }
 

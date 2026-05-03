@@ -1585,3 +1585,28 @@ html.env-web .order-customer {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* 履歴編集モーダル: select 用スタイル */
+.order-edit-box .form-group { margin-bottom: 12px; }
+.order-edit-box .form-group label {
+  display: block;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+select.app-dialog-input {
+  appearance: auto;
+  -webkit-appearance: menulist;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 15px;
+  font-family: inherit;
+  margin-bottom: 0;
+}
+select.app-dialog-input option { background: #1a1a2e; color: #fff; }
+.order-edit-box textarea.app-dialog-input { min-height: 70px; resize: vertical; }
