@@ -399,6 +399,27 @@ function rowToOrder(row) {
 // 自端末 ID を外部公開（通知の重複防止用）
 export function getSelfDeviceId() { return deviceId(); }
 
+// === Web Push 購読情報の永続化 ===
+export async function syncPushSubscriptionUpsert(subscription) {
+  try {
+    const json = subscription.toJSON();
+    const { error } = await supabase.from('push_subscriptions').upsert({
+      endpoint: json.endpoint,
+      p256dh: json.keys.p256dh,
+      auth: json.keys.auth,
+      device_id: deviceId(),
+      device_name: getDeviceName(),
+    });
+    if (error) throw error;
+  } catch (e) { console.warn('push subscription upsert 失敗', e); }
+}
+export async function syncPushSubscriptionDelete(endpoint) {
+  try {
+    const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    if (error) throw error;
+  } catch (e) { console.warn('push subscription delete 失敗', e); }
+}
+
 export async function syncOrderInsert(order, source = 'main') {
   try {
     const { error } = await supabase.from('orders').insert(orderToRow(order, source));

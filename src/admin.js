@@ -14,7 +14,18 @@ import {
   cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
   loadOrdersCloud, startOrdersRealtime, syncOrderUpdate, syncOrderDelete, syncOrdersClear,
   getDeviceName, setDeviceName, getSelfDeviceId,
+  syncPushSubscriptionUpsert, syncPushSubscriptionDelete,
 } from './sync.js';
+
+const VAPID_PUBLIC_KEY = 'BKHpYZP-AyaG1CZOrG8I2nqL7dWZM1jiy6GHH1MBEl7e8RYbu1maw5TmkBkMZ5xxbmEZ0UMdEIYklFSMXL_wbd0';
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
 
 // === パスワード認証（30日ログイン保持） ===
 
@@ -1251,7 +1262,11 @@ const NOTIFY_KEY = 'host-menu-notify-enabled';
 const NOTIFY_COLOR_LABEL = { yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green' };
 const btnToggleNotify = document.getElementById('btn-toggle-notify');
 
-function notifySupported() { return typeof Notification !== 'undefined'; }
+function notifySupported() {
+  // Capacitor アプリ版は Web Push に対応しないので無効化
+  if (IS_CAPACITOR) return false;
+  return typeof Notification !== 'undefined';
+}
 
 function notifyEnabled() {
   return notifySupported()
@@ -1280,11 +1295,38 @@ function updateNotifyBtn() {
 }
 updateNotifyBtn();
 
-if (btnToggleNotify) {
+async function ensurePushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+  }
+  await syncPushSubscriptionUpsert(sub);
+  return sub;
+}
+
+async function removePushSubscription() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await syncPushSubscriptionDelete(sub.endpoint);
+      await sub.unsubscribe();
+    }
+  } catch (e) { console.warn('unsubscribe 失敗', e); }
+}
+
+if (btnToggleNotify && !IS_CAPACITOR) {
   btnToggleNotify.addEventListener('click', async () => {
     if (!notifySupported()) return;
     if (notifyEnabled()) {
       localStorage.setItem(NOTIFY_KEY, '0');
+      await removePushSubscription();
       updateNotifyBtn();
       return;
     }
@@ -1296,8 +1338,9 @@ if (btnToggleNotify) {
     if (perm !== 'granted') perm = await Notification.requestPermission();
     if (perm === 'granted') {
       localStorage.setItem(NOTIFY_KEY, '1');
+      try { await ensurePushSubscription(); } catch (e) { console.warn('push 購読失敗', e); }
       updateNotifyBtn();
-      try { new Notification('GENTLY DIVA', { body: '通知が有効になりました', icon: './icon-192.png' }); } catch { /* ignore */ }
+      try { new Notification('GENTLY DIVA', { body: '通知が有効になりました（バックグラウンドでも届きます）', icon: './icon-192.png' }); } catch { /* ignore */ }
     } else {
       updateNotifyBtn();
       dlg.alert('通知が許可されませんでした');
