@@ -74,6 +74,15 @@ document.getElementById('color-picker')?.addEventListener('click', (e) => {
   refreshAllCheckboxes();
 });
 
+// 選択リセット: 全クリア + 黄色に戻す
+function resetSelection() {
+  checkedCasts.clear();
+  applyPickColor('yellow');
+  updateConfirmBtn();
+  render();
+}
+document.getElementById('reset-btn')?.addEventListener('click', resetSelection);
+
 const grid = document.getElementById('grid');
 const fullscreen = document.getElementById('fullscreen');
 const fsImage = document.getElementById('fs-image');
@@ -326,6 +335,8 @@ function updateColorCounts() {
 function updateConfirmBtn() {
   updateColorCounts();
   const count = checkedCasts.size;
+  // 選択あり/なし状態を body に反映（CSS でピッカー・リセットボタンの表示制御）
+  document.body.classList.toggle('has-selection', count > 0);
   // 全キャストの色集合を統合して、1色なら該当色、2色以上は mixed
   const distinctColors = new Set();
   for (const s of checkedCasts.values()) for (const c of s) distinctColors.add(c);
@@ -432,6 +443,7 @@ function submitOrder() {
   });
 
   checkedCasts.clear();
+  applyPickColor('yellow');
   updateConfirmBtn();
   orderModal.classList.remove('active');
   render();

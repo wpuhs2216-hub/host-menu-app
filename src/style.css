@@ -1241,3 +1241,27 @@ html.env-web .app-dialog-box { width: min(440px, 100%); }
 
 /* 拡大表示の左右矢印は削除済み（CSS でも非表示の保険） */
 .fs-nav-btn { display: none; }
+
+/* 選択がない時はピッカー全体を非表示（クラスは body に付与） */
+.color-picker { display: none !important; }
+body.has-selection .color-picker { display: flex !important; }
+
+/* 0 カウントは数字自体を隠す */
+.color-count.zero { display: none; }
+
+/* 選択リセットボタン */
+.reset-btn {
+  margin-left: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.reset-btn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.reset-btn:active { transform: scale(0.95); }
