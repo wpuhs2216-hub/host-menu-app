@@ -37,28 +37,34 @@ const COLOR_VALID = ['yellow', 'red', 'blue', 'green'];
 
 function applyPickColor(c) {
   pickColor = COLOR_VALID.includes(c) ? c : 'yellow';
-  // ピッカーボタンの active 切替
+  // ピッカーボタンの active 切替（DOM のみ参照）
   document.querySelectorAll('.color-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.color === pickColor);
   });
-  // 既に描画済みのチェックボックスを再計算（チェック有無・表示色を pickColor に追従）
+}
+
+// チェックボックスの再計算は、初期化が終わった後に呼ぶ別関数として分離（TDZ 回避）
+function refreshAllCheckboxes() {
   document.querySelectorAll('.host-panel').forEach((panel) => {
     const input = panel.querySelector('.cast-checkbox input');
     if (!input) return;
-    const id = input.dataset.id;
     const cb = panel.querySelector('.cast-checkbox');
-    applyCheckboxStyle(cb, id);
+    applyCheckboxStyle(cb, input.dataset.id);
   });
-  // 全画面表示中のチェックボックスも更新
-  if (typeof fsCheckbox !== 'undefined' && fsCheckbox && visibleItems[currentIndex]) {
-    applyCheckboxStyle(fsCheckbox, visibleItems[currentIndex].id);
+  const fsCb = document.getElementById('fs-checkbox');
+  if (fsCb && visibleItems && visibleItems[currentIndex]) {
+    applyCheckboxStyle(fsCb, visibleItems[currentIndex].id);
   }
 }
+
+// 初期 active 表示だけを最初にやる（DOM のみ参照）
 applyPickColor('yellow');
 
 document.getElementById('color-picker')?.addEventListener('click', (e) => {
   const btn = e.target.closest('.color-btn');
-  if (btn && btn.dataset.color) applyPickColor(btn.dataset.color);
+  if (!btn || !btn.dataset.color) return;
+  applyPickColor(btn.dataset.color);
+  refreshAllCheckboxes();
 });
 
 const grid = document.getElementById('grid');
