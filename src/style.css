@@ -1395,3 +1395,94 @@ html.env-web .range-val {
   text-align: right;
 }
 html.env-web .font-size-controls { overflow: hidden; }
+
+/* ========================================
+   env-web 履歴カード レイアウト修正
+   時間と編集/削除ボタンの重なり解消、幅破綻防止
+======================================== */
+html.env-web .order-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "header"
+    "casts"
+    "memo"
+    "footer";
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+html.env-web .order-card-header {
+  grid-area: header;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+html.env-web .order-card-header .order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+html.env-web .order-card-header .order-time {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+html.env-web .order-casts {
+  grid-area: casts;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+html.env-web .order-memo { grid-area: memo; }
+
+html.env-web .order-card-actions {
+  grid-area: footer;
+  position: static;     /* 親の絶対配置をリセット */
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+}
+html.env-web .order-card-actions .btn-icon {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+}
+
+/* 既存の絶対配置がある場合の保険 */
+html.env-web .order-card .order-delete,
+html.env-web .order-card .order-edit {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+}
+
+html.env-web .order-tag {
+  font-size: 12px;
+  padding: 3px 8px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html.env-web .order-seat,
+html.env-web .order-customer {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

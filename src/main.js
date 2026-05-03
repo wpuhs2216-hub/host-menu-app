@@ -485,9 +485,9 @@ fsConfirmBtn.addEventListener('click', (e) => {
 
 // === 確定モーダル ===
 
-document.getElementById('order-submit').addEventListener('click', () => {
+document.getElementById('order-submit').addEventListener('click', async () => {
   submitOrder();
-  dlg.toast('送信しました', { type: 'success' });
+  await dlg.alert('送信しました', { title: '完了', okLabel: 'OK' });
 });
 
 document.getElementById('order-cancel').addEventListener('click', () => {
