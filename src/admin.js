@@ -74,8 +74,9 @@ document.getElementById('pw-cancel').addEventListener('click', () => {
 });
 
 // 既ログインなら自動で admin に入る、未ログインならパスワード画面を表示
+// queueMicrotask で遅延し、ファイル末尾の let/const 宣言（data 等）が評価された後に enterAdmin を呼ぶ（TDZ 回避）
 if (isLoggedIn()) {
-  enterAdmin();
+  queueMicrotask(() => enterAdmin());
 } else {
   pwInput.focus();
 }
