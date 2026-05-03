@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>プレビュー - GENTLY DIVA</title>
+  <link rel="icon" href="./icon-192.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body class="is-preview">
+  <header class="header">
+    <h1 id="header-logo">GENTLY DIVA <span class="preview-badge">プレビュー</span></h1>
+    <div class="color-picker" id="color-picker">
+      <button class="color-btn color-yellow active" data-color="yellow" aria-label="Yellow" title="Yellow"><span class="color-count" data-color-count="yellow">0</span></button>
+      <button class="color-btn color-red" data-color="red" aria-label="Red" title="Red"><span class="color-count" data-color-count="red">0</span></button>
+      <button class="color-btn color-blue" data-color="blue" aria-label="Blue" title="Blue"><span class="color-count" data-color-count="blue">0</span></button>
+      <button class="color-btn color-green" data-color="green" aria-label="Green" title="Green"><span class="color-count" data-color-count="green">0</span></button>
+      <button class="reset-btn" id="reset-btn" type="button">リセット</button>
+    </div>
+    <div class="header-right">
+      <div class="header-clock" id="header-clock"></div>
+      <a class="header-link" href="./admin.html">← 管理画面</a>
+    </div>
+  </header>
+
+  <main class="grid-container" id="grid"></main>
+
+  <button class="confirm-btn" id="confirm-btn" style="display:none">
+    確定<span class="confirm-badge" id="confirm-count">0</span>
+  </button>
+
+  <div class="fullscreen-overlay" id="fullscreen">
+    <button class="fs-close" id="fs-close">✕</button>
+    <div class="fs-swipe-area" id="fs-swipe-area">
+      <img id="fs-image" src="" alt="" />
+      <div class="fs-placeholder" id="fs-placeholder" style="display:none">♠</div>
+    </div>
+    <div class="fs-info">
+      <div class="fs-new-badge" id="fs-new-badge" style="display:none">NEW</div>
+      <div class="fs-title" id="fs-title"></div>
+      <div class="fs-name" id="fs-name"></div>
+    </div>
+    <div class="fs-action-area" id="fs-action-area">
+      <label class="fs-checkbox" id="fs-checkbox" style="display:none">
+        <input type="checkbox" id="fs-check-input" />
+        <span class="fs-cb-mark"></span>
+      </label>
+      <button class="fs-confirm-btn" id="fs-confirm-btn" style="display:none">
+        確定<span class="confirm-badge" id="fs-confirm-count">0</span>
+      </button>
+    </div>
+    <div class="fs-nav">
+      <div class="fs-counter" id="fs-counter"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal modal-orders">
+      <h3>確定（プレビュー送信）</h3>
+      <div id="order-cast-list" class="order-cast-list"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="order-cancel">キャンセル</button>
+        <button class="btn btn-primary" id="order-submit">送信</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

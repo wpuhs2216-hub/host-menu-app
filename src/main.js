@@ -3,6 +3,27 @@
 const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
 document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
+// Web 環境では admin と同じセッションを要求（未ログインなら admin にリダイレクト）
+if (!IS_CAPACITOR) {
+  const SESSION_KEY = 'host-menu-admin-session';
+  const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  let valid = false;
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.lastLoginAt && (Date.now() - obj.lastLoginAt) < SESSION_TTL_MS) {
+        valid = true;
+      }
+    }
+  } catch { /* ignore */ }
+  if (!valid) {
+    location.replace('./admin.html');
+    // 以降のスクリプト評価を最小化
+    throw new Error('Auth required');
+  }
+}
+
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import { initialSync, startRealtime } from './sync.js';
@@ -632,6 +653,6 @@ window.addEventListener('popstate', () => {
   }
   startRealtime(async () => { await render(); });
   // 確定前のチェック状態は端末ローカルのみで管理する（複数端末で干渉させないため）
-  // 起動時自動アップデートチェック（3秒遅延・6時間キャッシュ・新版があればバナー表示）
-  scheduleStartupCheck();
+  // 起動時自動アップデートチェック（APK アップデートはアプリ版のみ）
+  if (IS_CAPACITOR) scheduleStartupCheck();
 })();

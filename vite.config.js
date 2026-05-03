@@ -46,9 +46,10 @@ export default defineConfig({
   plugins: [pagesRedirectIndexPlugin()],
   build: {
     rollupOptions: {
-      // Pages では admin.html のみビルド対象（main.js バンドルも出さない）
+      // Pages では admin.html + preview.html（プレビュー）をビルド
+      // index.html はリダイレクト用 HTML をプラグインで上書き出力
       input: isPages
-        ? { admin: 'admin.html' }
+        ? { admin: 'admin.html', preview: 'preview.html' }
         : { main: 'index.html', admin: 'admin.html' },
     },
   },

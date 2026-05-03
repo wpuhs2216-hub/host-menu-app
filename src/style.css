@@ -1271,3 +1271,102 @@ html.env-web .header-link[href="./"],
 html.env-web .header-link[href="/"] {
   display: none !important;
 }
+
+/* ========================================
+   env 別: ヘッダリンクの出し分け
+======================================== */
+html.env-app .header-link-web { display: none !important; }
+html.env-web .header-link-app { display: none !important; }
+
+/* Web 環境では APK 関連 UI を非表示 */
+html.env-web #btn-check-update,
+html.env-web #app-version,
+html.env-web #update-status,
+html.env-web .update-banner {
+  display: none !important;
+}
+
+/* preview バッジ */
+.preview-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 10px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #d4af37;
+  border-radius: 999px;
+  -webkit-text-fill-color: #d4af37;
+  vertical-align: middle;
+}
+
+/* preview 画面では「テスト用」と分かるよう薄く罫線 */
+body.is-preview .grid-container::before {
+  content: 'プレビュー（送信テスト可・履歴は端末ローカルに保存）';
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: #888;
+  margin: 4px 0 8px;
+  letter-spacing: 1px;
+}
+
+/* ========================================
+   env-web 設定 UI 磨き込み
+======================================== */
+/* ヘッダの時計はスマホでは小さく */
+html.env-web .header-clock { font-size: 11px; opacity: 0.7; }
+html.env-web .header h1 { font-size: 17px; }
+
+/* admin の section をカード化 */
+html.env-web .section {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+html.env-web .section-title {
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #d4af37;
+  text-transform: uppercase;
+}
+
+/* バックアップ系のボタンを縦並びに */
+html.env-web .section .toolbar { gap: 8px; }
+html.env-web .section .toolbar .btn {
+  flex: 1 1 calc(50% - 4px);
+  min-height: 40px;
+  font-size: 13px;
+}
+
+/* 動作設定のチェックボックスを目立たせる */
+html.env-web .check-row .check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+html.env-web .check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #d4af37;
+}
+
+/* フォントサイズ設定をコンパクトに */
+html.env-web .fs-control { padding: 6px 0; }
+html.env-web .fs-control label { font-size: 12px; }
+
+/* 履歴カード上部に余白 */
+html.env-web .order-history-list { padding-top: 4px; }
+
+/* ログアウトボタンを目立たないように */
+html.env-web #btn-logout { font-size: 11px !important; opacity: 0.6; }
+html.env-web #btn-logout:hover { opacity: 1; }

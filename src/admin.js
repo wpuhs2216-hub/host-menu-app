@@ -1172,6 +1172,6 @@ async function init() {
     updateNewFaceBtn();
   });
 
-  // 起動時自動アップデートチェック
-  scheduleStartupCheck();
+  // 起動時自動アップデートチェック（APK アップデートはアプリ版のみ）
+  if (IS_CAPACITOR) scheduleStartupCheck();
 }
