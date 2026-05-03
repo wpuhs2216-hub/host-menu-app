@@ -638,7 +638,7 @@ function renderOrders() {
       if (name === null) return;
       const memo = prompt('メモ', current.memo || '');
       if (memo === null) return;
-      const colorChoice = prompt('色を選択（yellow / red / blue / green）', current.color || 'yellow');
+      const colorChoice = prompt('Color (yellow / red / blue / green)', current.color || 'yellow');
       if (colorChoice === null) return;
       const color = VALID_COLORS.includes(colorChoice.trim()) ? colorChoice.trim() : current.color;
       updateOrder(id, {

@@ -1000,3 +1000,48 @@ html.env-web .cloud-backup-item .cb-actions { width: 100%; justify-content: flex
   html.env-web .item-thumb img { width: 100px; height: 100px; }
   html.env-web .sortable-item { grid-template-columns: 100px 1fr auto; }
 }
+
+/* ========================================
+   メニュー画面（index.html）スマホWeb UI
+   Capacitor アプリでは未適用、ブラウザのみ縦1列
+======================================== */
+html.env-web .grid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  max-width: 100%;
+}
+html.env-web .host-panel {
+  aspect-ratio: 16 / 9;        /* 横長で1枚ずつ大きく表示 */
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+html.env-web .host-panel .host-name { font-size: 28px; letter-spacing: 3px; }
+html.env-web .host-panel .host-title { font-size: 14px; }
+html.env-web .selecting-badges { top: 10px; right: 10px; gap: 6px; }
+html.env-web .selecting-badge { font-size: 11px; padding: 4px 10px; }
+html.env-web .cast-checkbox { bottom: 12px; right: 12px; }
+html.env-web .cast-checkbox .cb-mark { width: 36px; height: 36px; }
+
+/* 768px 以上のブラウザ (PC・タブレット) では従来 grid に戻す */
+@media (min-width: 768px) {
+  html.env-web .grid-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  html.env-web .host-panel {
+    aspect-ratio: 3 / 4;
+  }
+}
+
+/* キャストカード色枠フォールバック: box-shadow が効かない環境でも border で色を出す */
+.host-panel.checked.color-yellow { border: 2px solid #d4af37; }
+.host-panel.checked.color-red    { border: 2px solid #e26d6d; }
+.host-panel.checked.color-blue   { border: 2px solid #6da5e2; }
+.host-panel.checked.color-green  { border: 2px solid #6ad080; }
+.host-panel.checked.color-mixed  { border: 2px solid #ffffff; }

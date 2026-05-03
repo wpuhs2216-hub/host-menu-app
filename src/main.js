@@ -1,4 +1,8 @@
 // メインビューワー
+// 実行環境を html に付与（Capacitor アプリ vs ブラウザ）
+const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
+document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
+
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import {
@@ -146,9 +150,9 @@ function applyPanelStyle(el, id) {
   el.style.boxShadow = buildBoxShadow(colors);
 }
 
-const COLOR_LABEL_JP = { yellow: '黄', red: '赤', blue: '青', green: '緑' };
+const COLOR_LABEL_EN = { yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green' };
 
-// 「黄で選択中」「赤で選択中」のバッジ列をパネル左上に表示
+// 「Yellow で選択中」のバッジ列をパネル左上に表示
 function updateSelectingBadges(el, id) {
   let host = el.querySelector('.selecting-badges');
   if (!host) {
@@ -160,7 +164,7 @@ function updateSelectingBadges(el, id) {
   if (colors.length === 0) { host.innerHTML = ''; return; }
   const sorted = COLOR_ORDER.filter((c) => colors.includes(c));
   host.innerHTML = sorted.map((c) =>
-    `<span class="selecting-badge color-${c}">${COLOR_LABEL_JP[c]}で選択中</span>`
+    `<span class="selecting-badge color-${c}">${COLOR_LABEL_EN[c]} で選択中</span>`
   ).join('');
 }
 
@@ -348,7 +352,7 @@ function groupCastsByColor() {
   return ordered;
 }
 
-const COLOR_LABEL = { yellow: '黄', red: '赤', blue: '青', green: '緑' };
+const COLOR_LABEL = COLOR_LABEL_EN;
 
 function openOrderModal() {
   const groups = groupCastsByColor();
@@ -366,7 +370,7 @@ function openOrderModal() {
     <div class="order-color-group color-${g.color}" data-color="${g.color}">
       <div class="order-group-header">
         <span class="order-color-badge color-${g.color}"></span>
-        <span class="order-color-label">${COLOR_LABEL[g.color]}グループ（${g.casts.length}名）</span>
+        <span class="order-color-label">${COLOR_LABEL[g.color]} グループ（${g.casts.length}名）</span>
       </div>
       <div class="order-group-casts">
         ${g.casts.map((c) => `<div class="order-cast-tag color-${g.color}"><span class="tag-title">${escapeHtml(c.title || '')}</span> ${escapeHtml(c.name)}</div>`).join('')}
