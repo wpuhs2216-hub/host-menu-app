@@ -372,31 +372,49 @@ document.addEventListener('touchmove', async (e) => {
   }
 }, { passive: false });
 
-document.addEventListener('touchend', async () => {
+// クリーンアップ: クローン削除 + フラグリセット。例外が出ても確実に呼べるよう独立関数化
+function cleanupTouchDrag() {
   if (touchLongPressTimer) {
     clearTimeout(touchLongPressTimer);
     touchLongPressTimer = null;
   }
-
-  if (!touchDragEl) return;
-
-  // ドロップ先を確定
-  const overItem = itemList.querySelector('.drag-over');
-  if (overItem) {
-    const fromId = touchDragId;
-    const toId = overItem.dataset.id;
-    reorderItem(fromId, toId);
-  }
-
-  // クリーンアップ
-  touchDragEl.classList.remove('dragging');
-  itemList.querySelectorAll('.drag-over').forEach((x) => x.classList.remove('drag-over'));
+  // body 直下のクローンを最優先で削除（renderList の影響を受けない）
   if (touchClone) {
-    touchClone.remove();
+    try { touchClone.remove(); } catch { /* ignore */ }
     touchClone = null;
   }
-  touchDragEl = null;
+  // 念のため二重生成された孤児クローンも全て掃除
+  document.querySelectorAll('.drag-clone').forEach((el) => { try { el.remove(); } catch { /* ignore */ } });
+  if (touchDragEl) {
+    try { touchDragEl.classList.remove('dragging'); } catch { /* ignore */ }
+    touchDragEl = null;
+  }
+  if (itemList) {
+    itemList.querySelectorAll('.drag-over').forEach((x) => x.classList.remove('drag-over'));
+  }
   touchDragId = null;
+}
+
+document.addEventListener('touchend', () => {
+  // 先にドロップ先を取得 → クリーンアップ → reorder（クローンを必ず先に消す）
+  let pending = null;
+  if (touchDragEl) {
+    const overItem = itemList && itemList.querySelector('.drag-over');
+    if (overItem) {
+      pending = { fromId: touchDragId, toId: overItem.dataset.id };
+    }
+  }
+  cleanupTouchDrag();
+  if (pending) {
+    try { reorderItem(pending.fromId, pending.toId); } catch (e) { console.warn('reorder 失敗', e); }
+  }
+});
+
+// touchcancel / blur / hidden などフォールバック経路でも必ず後始末
+document.addEventListener('touchcancel', cleanupTouchDrag);
+window.addEventListener('blur', cleanupTouchDrag);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') cleanupTouchDrag();
 });
 
 function reorderItem(fromId, toId) {
