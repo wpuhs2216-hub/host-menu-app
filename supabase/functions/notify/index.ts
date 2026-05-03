@@ -1,9 +1,6 @@
 // Supabase Edge Function: notify
-// orders INSERT を database webhook で受け取り、push_subscriptions の全端末へ Web Push を送信
-// secrets:
-//   VAPID_PUBLIC_KEY  - クライアントと同一の公開鍵
-//   VAPID_PRIVATE_KEY - 秘密鍵
-//   VAPID_SUBJECT     - mailto: のメールアドレス
+// orders INSERT / UPDATE を database trigger で受け取り、push_subscriptions の全端末へ Web Push を送信
+// secrets: VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT
 
 import webpush from 'https://esm.sh/web-push@3.6.7?bundle';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -23,8 +20,7 @@ const COLOR_LABEL: Record<string, string> = {
 Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
-    // Supabase Database Webhook payload: { type, table, record, old_record, schema }
-    // 直接呼び出しの場合は body 自体を order と扱う
+    const op: string = (body.type || 'INSERT').toUpperCase(); // 'INSERT' | 'UPDATE'
     const order = body.record || body;
     if (!order || !order.id) {
       return new Response(JSON.stringify({ ok: false, reason: 'no order' }), { status: 400 });
@@ -40,9 +36,14 @@ Deno.serve(async (req) => {
     const seat = order.seat ? `席 ${order.seat}` : '席未選択';
     const dev = order.device_name ? `[${order.device_name}] ` : '';
     const src = order.source === 'preview' ? '（プレビュー）' : '';
-    const title = `${dev}${seat}${src ? ' ' + src : ''}`.trim() || 'GENTLY DIVA';
+    const titleBase = op === 'UPDATE' ? '初回ピックアップ（更新）' : '初回ピックアップ';
+    const title = titleBase;
     const castNames = (order.casts || []).map((c: any) => c.name).filter(Boolean).join(', ');
-    const bodyText = `${colorLabel}${order.customer_name ? ' / ' + order.customer_name : ''}\n${castNames}`;
+    const bodyText = [
+      `${dev}${seat}${src}`.trim(),
+      `${colorLabel}${order.customer_name ? ' / ' + order.customer_name : ''}`,
+      castNames,
+    ].filter(Boolean).join('\n');
 
     const payload = JSON.stringify({
       title,
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
 
     const results = await Promise.allSettled(
       (subs || [])
-        .filter((s) => s.device_id !== senderDeviceId) // 送信端末には届けない
+        .filter((s) => s.device_id !== senderDeviceId) // 送信/編集元の端末には届けない
         .map(async (s) => {
           const subscription = {
             endpoint: s.endpoint,
@@ -66,7 +67,6 @@ Deno.serve(async (req) => {
           try {
             await webpush.sendNotification(subscription, payload);
           } catch (err: any) {
-            // 410 Gone / 404 -> 期限切れ。レコード削除
             if (err && (err.statusCode === 410 || err.statusCode === 404)) {
               await supabase.from('push_subscriptions').delete().eq('endpoint', s.endpoint);
             }
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
 
     const sent = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.filter((r) => r.status === 'rejected').length;
-    return new Response(JSON.stringify({ ok: true, sent, failed }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true, op, sent, failed }), { status: 200 });
   } catch (e: any) {
     return new Response(JSON.stringify({ ok: false, error: String(e?.message || e) }), { status: 500 });
   }
