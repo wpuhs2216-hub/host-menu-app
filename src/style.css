@@ -1370,3 +1370,28 @@ html.env-web .order-history-list { padding-top: 4px; }
 /* ログアウトボタンを目立たないように */
 html.env-web #btn-logout { font-size: 11px !important; opacity: 0.6; }
 html.env-web #btn-logout:hover { opacity: 1; }
+
+/* env-web フォントサイズ設定: スライダーが枠から飛び出すのを防ぐ */
+html.env-web .fs-control {
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+html.env-web .range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+html.env-web .range-row input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;          /* flex item の最小幅を0に（はみ出し防止） */
+  width: 100%;
+  max-width: 100%;
+}
+html.env-web .range-val {
+  flex: 0 0 auto;
+  min-width: 40px;
+  text-align: right;
+}
+html.env-web .font-size-controls { overflow: hidden; }

@@ -62,6 +62,41 @@ insert into storage.buckets (id, name, public)
 values ('panel-images', 'panel-images', true)
 on conflict (id) do update set public = true;
 
+-- ===== orders テーブル（注文履歴を全端末で共有） =====
+create table if not exists public.orders (
+  id text primary key,
+  seat text default '',
+  customer_name text default '',
+  memo text default '',
+  color text default 'yellow',
+  casts jsonb default '[]'::jsonb,
+  source text default 'main',         -- 'main' or 'preview'
+  device_id text default '',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+drop trigger if exists trg_orders_touch on public.orders;
+create trigger trg_orders_touch
+  before update on public.orders
+  for each row execute function public.touch_updated_at();
+
+alter table public.orders enable row level security;
+
+drop policy if exists orders_anon_all on public.orders;
+create policy orders_anon_all on public.orders
+  for all to anon using (true) with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'orders'
+  ) then
+    execute 'alter publication supabase_realtime add table public.orders';
+  end if;
+end $$;
+
 -- ===== selections テーブル（チェック中キャスト共有） =====
 -- 1キャストに複数色を許す: PK は (panel_id, color) 複合
 drop table if exists public.selections cascade;

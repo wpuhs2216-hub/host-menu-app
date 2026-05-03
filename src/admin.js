@@ -12,6 +12,7 @@ import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
   cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
+  loadOrdersCloud, startOrdersRealtime, syncOrderUpdate, syncOrderDelete, syncOrdersClear,
 } from './sync.js';
 
 // === パスワード認証（30日ログイン保持） ===
@@ -578,8 +579,16 @@ editModal.addEventListener('click', async (e) => {
 
 const orderList = document.getElementById('order-list');
 
+// クラウド注文キャッシュ（Realtime で更新）
+let cloudOrdersCache = [];
+
+async function refreshOrdersFromCloud() {
+  cloudOrdersCache = await loadOrdersCloud();
+  renderOrders();
+}
+
 function renderOrders() {
-  const orders = loadOrders();
+  const orders = cloudOrdersCache.length > 0 ? cloudOrdersCache : loadOrders();
   if (orders.length === 0) {
     orderList.innerHTML = '<div class="empty-msg">履歴はありません</div>';
     return;
@@ -624,8 +633,11 @@ function renderOrders() {
     btn.addEventListener('click', async () => {
       const card = btn.closest('.order-card');
       if (!await dlg.confirm('この履歴を削除しますか？')) return;
-      deleteOrder(card.dataset.id);
+      const id = card.dataset.id;
+      deleteOrder(id);
+      cloudOrdersCache = cloudOrdersCache.filter((o) => o.id !== id);
       renderOrders();
+      syncOrderDelete(id).catch(() => {});
     });
   });
 
@@ -633,7 +645,7 @@ function renderOrders() {
     btn.addEventListener('click', async () => {
       const card = btn.closest('.order-card');
       const id = card.dataset.id;
-      const current = loadOrders().find((o) => o.id === id);
+      const current = (cloudOrdersCache.find((o) => o.id === id)) || loadOrders().find((o) => o.id === id);
       if (!current) return;
       const seat = await dlg.prompt('席番号', current.seat || '');
       if (seat === null) return;
@@ -644,21 +656,27 @@ function renderOrders() {
       const colorChoice = await dlg.prompt('Color (yellow / red / blue / green)', current.color || 'yellow');
       if (colorChoice === null) return;
       const color = VALID_COLORS.includes(colorChoice.trim()) ? colorChoice.trim() : current.color;
-      updateOrder(id, {
+      const patch = {
         seat: seat.trim(),
         customerName: name.trim(),
         memo: memo.trim(),
         color,
-      });
+      };
+      updateOrder(id, patch);
+      const c = cloudOrdersCache.find((o) => o.id === id);
+      if (c) Object.assign(c, patch);
       renderOrders();
+      syncOrderUpdate(id, patch).catch(() => {});
     });
   });
 }
 
 document.getElementById('btn-clear-orders').addEventListener('click', async () => {
-  if (!await dlg.confirm('全ての履歴を削除しますか？')) return;
+  if (!await dlg.confirm('全ての履歴を削除しますか？\n（クラウドの注文履歴も削除されます）', { danger: true })) return;
   clearOrders();
+  cloudOrdersCache = [];
   renderOrders();
+  syncOrdersClear().catch(() => {});
 });
 
 // === バックアップ/復元 ===
@@ -1154,6 +1172,26 @@ async function init() {
   renderOrders();
   renderList();
   updateNewFaceBtn();
+
+  // クラウド注文を取得 + Realtime 購読
+  refreshOrdersFromCloud().catch(() => {});
+  startOrdersRealtime({
+    onInsert: (o) => {
+      // 既存にあれば差し替え、無ければ先頭に追加
+      const idx = cloudOrdersCache.findIndex((x) => x.id === o.id);
+      if (idx >= 0) cloudOrdersCache[idx] = o; else cloudOrdersCache.unshift(o);
+      renderOrders();
+    },
+    onUpdate: (o) => {
+      const idx = cloudOrdersCache.findIndex((x) => x.id === o.id);
+      if (idx >= 0) cloudOrdersCache[idx] = o;
+      renderOrders();
+    },
+    onDelete: (id) => {
+      cloudOrdersCache = cloudOrdersCache.filter((x) => x.id !== id);
+      renderOrders();
+    },
+  });
 
   // クラウド同期を開始（失敗しても admin の編集は続行可能）
   try {

@@ -345,6 +345,121 @@ export async function initialSync() {
   }
 }
 
+// === orders 同期（注文履歴を全端末で共有） ===
+
+// device_id（端末識別。クラッシュレポート用、user 区別はしない）
+function deviceId() {
+  let id = localStorage.getItem('host-menu-device-id');
+  if (!id) {
+    id = 'd-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    localStorage.setItem('host-menu-device-id', id);
+  }
+  return id;
+}
+
+function orderToRow(order, source = 'main') {
+  return {
+    id: order.id,
+    seat: order.seat || '',
+    customer_name: order.customerName || '',
+    memo: order.memo || '',
+    color: order.color || 'yellow',
+    casts: order.casts || [],
+    source,
+    device_id: deviceId(),
+    created_at: order.createdAt || new Date().toISOString(),
+  };
+}
+
+function rowToOrder(row) {
+  return {
+    id: row.id,
+    seat: row.seat || '',
+    customerName: row.customer_name || '',
+    memo: row.memo || '',
+    color: row.color || 'yellow',
+    casts: row.casts || [],
+    source: row.source || 'main',
+    createdAt: row.created_at || new Date().toISOString(),
+  };
+}
+
+export async function syncOrderInsert(order, source = 'main') {
+  try {
+    const { error } = await supabase.from('orders').insert(orderToRow(order, source));
+    if (error) throw error;
+  } catch (e) {
+    console.warn('order insert 失敗', e);
+  }
+}
+
+export async function syncOrderUpdate(id, patch) {
+  try {
+    const row = {};
+    if ('seat' in patch) row.seat = patch.seat || '';
+    if ('customerName' in patch) row.customer_name = patch.customerName || '';
+    if ('memo' in patch) row.memo = patch.memo || '';
+    if ('color' in patch) row.color = patch.color || 'yellow';
+    if (Object.keys(row).length === 0) return;
+    const { error } = await supabase.from('orders').update(row).eq('id', id);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('order update 失敗', e);
+  }
+}
+
+export async function syncOrderDelete(id) {
+  try {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('order delete 失敗', e);
+  }
+}
+
+export async function syncOrdersClear() {
+  try {
+    const { error } = await supabase.from('orders').delete().not('id', 'is', null);
+    if (error) throw error;
+  } catch (e) {
+    console.warn('orders clear 失敗', e);
+  }
+}
+
+export async function loadOrdersCloud() {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    return (data || []).map(rowToOrder);
+  } catch (e) {
+    console.warn('orders fetch 失敗', e);
+    return [];
+  }
+}
+
+let ordersChannel = null;
+export function startOrdersRealtime(handlers) {
+  if (ordersChannel) return;
+  ordersChannel = supabase
+    .channel('orders-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+      try {
+        if (payload.eventType === 'DELETE') {
+          handlers?.onDelete?.(payload.old?.id);
+        } else if (payload.eventType === 'INSERT') {
+          handlers?.onInsert?.(rowToOrder(payload.new));
+        } else if (payload.eventType === 'UPDATE') {
+          handlers?.onUpdate?.(rowToOrder(payload.new));
+        }
+      } catch (e) { console.warn('order realtime apply 失敗', e); }
+    })
+    .subscribe();
+}
+
 // === selections 同期（チェック中キャスト共有・複数色対応） ===
 // 1キャストに複数色を許す。PK は (panel_id, color)
 

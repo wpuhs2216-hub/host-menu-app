@@ -26,7 +26,7 @@ if (!IS_CAPACITOR) {
 
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
-import { initialSync, startRealtime } from './sync.js';
+import { initialSync, startRealtime, syncOrderInsert } from './sync.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck } from './updateCheck.js';
 // 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
@@ -355,7 +355,10 @@ function updateColorCounts() {
 
 function updateConfirmBtn() {
   updateColorCounts();
-  const count = checkedCasts.size;
+  // ボタン数字は「色の合計数」: 1キャストが2色なら2、3色なら3とカウント
+  let totalSelections = 0;
+  for (const s of checkedCasts.values()) totalSelections += s.size;
+  const count = totalSelections;
   // 選択あり/なし状態を body に反映（CSS でピッカー・リセットボタンの表示制御）
   document.body.classList.toggle('has-selection', count > 0);
   // 全キャストの色集合を統合して、1色なら該当色、2色以上は mixed
@@ -445,6 +448,8 @@ function submitOrder() {
   const groupEls = orderCastList.querySelectorAll('.order-color-group');
   const now = new Date().toISOString();
 
+  const isPreview = document.body.classList.contains('is-preview');
+  const source = isPreview ? 'preview' : 'main';
   groups.forEach((g) => {
     const el = [...groupEls].find((x) => x.dataset.color === g.color);
     const seat = (skip || !el) ? '' : (el.querySelector('.og-seat')?.value || '').trim();
@@ -459,8 +464,10 @@ function submitOrder() {
       color: g.color,
       casts: g.casts.map((c) => ({ ...c, color: g.color })),
       createdAt: now,
+      source,
     };
-    saveOrder(order);
+    saveOrder(order);                       // ローカルにも保存（オフラインキャッシュ）
+    syncOrderInsert(order, source).catch(() => {});  // Supabase へ送信（プレビュー含む全送信）
   });
 
   checkedCasts.clear();
