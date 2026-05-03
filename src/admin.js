@@ -1,4 +1,8 @@
 // 管理者画面（統一型）
+// 実行環境を html に付与（Capacitor アプリ vs ブラウザ）
+const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
+document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
+
 import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, getAdminPw, setAdminPw } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';

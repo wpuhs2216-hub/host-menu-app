@@ -271,10 +271,9 @@ body {
   display: block;
 }
 
-/* パネル選択状態 */
+/* パネル選択状態（枠色は color-XXX クラスまたは JS の box-shadow で動的に） */
 .host-panel.checked {
-  border: 2px solid #d4af37;
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+  border-color: transparent;
 }
 
 /* === 確定ボタン === */
@@ -844,4 +843,160 @@ body {
   color: #ccc;
   font-size: 0.85em;
   white-space: pre-wrap;
+}
+
+/* === 「○色で選択中」バッジ === */
+.selecting-badges {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 6;
+  pointer-events: none;
+}
+.selecting-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  color: #0a0a0a;
+  text-shadow: none;
+  border: 1px solid rgba(0,0,0,0.25);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.selecting-badge.color-yellow { background: #d4af37; }
+.selecting-badge.color-red    { background: #e26d6d; color: #fff; }
+.selecting-badge.color-blue   { background: #6da5e2; color: #fff; }
+.selecting-badge.color-green  { background: #6ad080; }
+
+/* チェックボックスは常に現在のピッカー色を反映 */
+.cast-checkbox.color-yellow .cb-mark { border-color: rgba(212, 175, 55, 0.7); }
+.cast-checkbox.color-red    .cb-mark { border-color: rgba(226, 109, 109, 0.7); }
+.cast-checkbox.color-blue   .cb-mark { border-color: rgba(109, 165, 226, 0.7); }
+.cast-checkbox.color-green  .cb-mark { border-color: rgba(106, 208, 128, 0.7); }
+
+/* ========================================
+   Web admin (html.env-web): スマホ向けUI
+   Capacitor アプリ (html.env-app) では未適用
+======================================== */
+html.env-web body {
+  font-size: 15px;
+}
+
+/* admin ヘッダ: スマホで縦に積む */
+html.env-web .header {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+}
+html.env-web .header h1 { font-size: 18px; letter-spacing: 2px; }
+html.env-web .header-right {
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+html.env-web .header-clock { font-size: 12px; }
+html.env-web .header-link {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+html.env-web .sync-status { font-size: 0.75em; padding: 3px 8px; }
+
+/* admin コンテンツ余白 */
+html.env-web .admin-content { padding: 12px 10px 24px; }
+html.env-web .section { margin-bottom: 16px; }
+html.env-web .section-title {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* パネル一覧: スマホでは縦1列スクロール、画像大きく表示 */
+html.env-web .sortable-list { gap: 8px; }
+html.env-web .sortable-item {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+}
+html.env-web .item-thumb {
+  width: 80px;
+  height: 80px;
+  flex: 0 0 80px;
+}
+html.env-web .item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+html.env-web .item-info { min-width: 0; }
+html.env-web .item-info .info-name { font-size: 15px; }
+html.env-web .item-info .info-title { font-size: 12px; }
+html.env-web .reorder-btns { display: none; } /* スマホは長押しドラッグ */
+html.env-web .item-actions { gap: 4px; }
+html.env-web .item-actions .btn-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+/* ボタン類: タップしやすく */
+html.env-web .toolbar {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+html.env-web .toolbar .btn {
+  font-size: 13px;
+  padding: 8px 12px;
+  flex: 1 1 calc(50% - 3px);
+  min-width: 0;
+}
+
+/* フォーム: 画面幅に合わせる */
+html.env-web .form-group input,
+html.env-web .form-group textarea,
+html.env-web .form-group select {
+  font-size: 15px;
+  padding: 8px 10px;
+}
+html.env-web .image-upload-area { min-height: 140px; }
+html.env-web .upload-preview { max-height: 200px; }
+
+/* モーダル: 画面ほぼ全面 */
+html.env-web .modal {
+  max-width: 100%;
+  width: 96%;
+  max-height: 90vh;
+  margin: 5vh auto;
+  padding: 16px;
+}
+
+/* フォントサイズ設定: スライダー幅最大 */
+html.env-web .fs-control { gap: 6px; }
+html.env-web .range-row input[type="range"] { flex: 1; }
+
+/* 履歴カード */
+html.env-web .order-card { padding: 8px 10px; }
+html.env-web .order-meta { flex-wrap: wrap; gap: 6px; }
+html.env-web .order-time { font-size: 11px; }
+html.env-web .order-tag { font-size: 12px; padding: 2px 8px; }
+
+/* クラウドバックアップ一覧: 縦並び寄り */
+html.env-web .cloud-backup-item {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+html.env-web .cloud-backup-item .cb-actions { width: 100%; justify-content: flex-end; }
+
+/* 768px以上ではPCっぽい表示に戻す（タブレット/PCで見ても破綻しない） */
+@media (min-width: 768px) {
+  html.env-web .toolbar .btn { flex: 0 0 auto; }
+  html.env-web .header-right { width: auto; }
+  html.env-web .modal { max-width: 720px; }
+  html.env-web .item-thumb,
+  html.env-web .item-thumb img { width: 100px; height: 100px; }
+  html.env-web .sortable-item { grid-template-columns: 100px 1fr auto; }
 }

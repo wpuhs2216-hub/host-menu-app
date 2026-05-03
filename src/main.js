@@ -37,10 +37,22 @@ const COLOR_VALID = ['yellow', 'red', 'blue', 'green'];
 
 function applyPickColor(c) {
   pickColor = COLOR_VALID.includes(c) ? c : 'yellow';
-  // ピッカーボタンの active 切替のみ。既存チェックの色は維持
+  // ピッカーボタンの active 切替
   document.querySelectorAll('.color-btn').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.color === pickColor);
   });
+  // 既に描画済みのチェックボックスを再計算（チェック有無・表示色を pickColor に追従）
+  document.querySelectorAll('.host-panel').forEach((panel) => {
+    const input = panel.querySelector('.cast-checkbox input');
+    if (!input) return;
+    const id = input.dataset.id;
+    const cb = panel.querySelector('.cast-checkbox');
+    applyCheckboxStyle(cb, id);
+  });
+  // 全画面表示中のチェックボックスも更新
+  if (typeof fsCheckbox !== 'undefined' && fsCheckbox && visibleItems[currentIndex]) {
+    applyCheckboxStyle(fsCheckbox, visibleItems[currentIndex].id);
+  }
 }
 applyPickColor('yellow');
 
@@ -112,6 +124,8 @@ function getColorsArr(id) {
 function applyPanelStyle(el, id) {
   const colors = getColorsArr(id);
   el.classList.remove(...COLOR_CLASSES);
+  // 色バッジを更新
+  updateSelectingBadges(el, id);
   if (colors.length === 0) {
     el.classList.remove('checked');
     el.style.boxShadow = '';
@@ -126,16 +140,34 @@ function applyPanelStyle(el, id) {
   el.style.boxShadow = buildBoxShadow(colors);
 }
 
+const COLOR_LABEL_JP = { yellow: '黄', red: '赤', blue: '青', green: '緑' };
+
+// 「黄で選択中」「赤で選択中」のバッジ列をパネル左上に表示
+function updateSelectingBadges(el, id) {
+  let host = el.querySelector('.selecting-badges');
+  if (!host) {
+    host = document.createElement('div');
+    host.className = 'selecting-badges';
+    el.appendChild(host);
+  }
+  const colors = getColorsArr(id);
+  if (colors.length === 0) { host.innerHTML = ''; return; }
+  const sorted = COLOR_ORDER.filter((c) => colors.includes(c));
+  host.innerHTML = sorted.map((c) =>
+    `<span class="selecting-badge color-${c}">${COLOR_LABEL_JP[c]}で選択中</span>`
+  ).join('');
+}
+
 function applyCheckboxStyle(cb, id) {
   if (!cb) return;
   const colors = getColorsArr(id);
   const input = cb.querySelector('input');
-  if (input) input.checked = colors.length > 0;
+  // チェック状態は「現在の pickColor がそのキャストに含まれているか」
+  const checkedNow = colors.includes(pickColor);
+  if (input) input.checked = checkedNow;
   cb.classList.remove(...COLOR_CLASSES);
-  // チェックボックスは現在の pickColor がそのキャストにも付いていればその色、なければ最初の色
-  if (colors.length === 0) return;
-  const showColor = colors.includes(pickColor) ? pickColor : colors[0];
-  cb.classList.add(`color-${showColor}`);
+  // チェックボックスのマーク色は常に現在の pickColor（次の選択色を予告）
+  cb.classList.add(`color-${pickColor}`);
 }
 
 // === 時計表示 ===
