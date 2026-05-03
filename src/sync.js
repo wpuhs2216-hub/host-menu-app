@@ -390,10 +390,14 @@ function rowToOrder(row) {
     color: row.color || 'yellow',
     casts: row.casts || [],
     source: row.source || 'main',
+    deviceId: row.device_id || '',
     deviceName: row.device_name || '',
     createdAt: row.created_at || new Date().toISOString(),
   };
 }
+
+// 自端末 ID を外部公開（通知の重複防止用）
+export function getSelfDeviceId() { return deviceId(); }
 
 export async function syncOrderInsert(order, source = 'main') {
   try {

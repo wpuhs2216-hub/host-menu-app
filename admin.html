@@ -32,7 +32,6 @@
         <div class="header-clock" id="admin-clock"></div>
         <a href="./" class="header-link header-link-app">← メニュー表示</a>
         <a href="./preview.html" class="header-link header-link-web">プレビュー</a>
-        <a href="./history.html" class="header-link header-link-web">履歴</a>
         <button class="header-link" id="btn-logout" style="background:none;border:0;color:#aaa;cursor:pointer;font-size:0.85em">ログアウト</button>
       </div>
     </header>
@@ -42,7 +41,10 @@
       <div class="section">
         <div class="section-title">
           <span>初回ピックアップ履歴</span>
-          <button class="btn-add" id="btn-clear-orders" style="background:rgba(220,53,69,0.15);color:#dc3545;border-color:rgba(220,53,69,0.3)">全件クリア</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn-add" id="btn-toggle-notify" type="button">通知 OFF</button>
+            <button class="btn-add" id="btn-clear-orders" style="background:rgba(220,53,69,0.15);color:#dc3545;border-color:rgba(220,53,69,0.3)">全件クリア</button>
+          </div>
         </div>
         <div id="order-list" class="order-history-list"></div>
       </div>

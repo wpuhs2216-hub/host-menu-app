@@ -46,10 +46,10 @@ export default defineConfig({
   plugins: [pagesRedirectIndexPlugin()],
   build: {
     rollupOptions: {
-      // Pages では admin / preview / history をビルド
+      // Pages では admin / preview をビルド
       // index.html はリダイレクト用 HTML をプラグインで上書き出力
       input: isPages
-        ? { admin: 'admin.html', preview: 'preview.html', history: 'history.html' }
+        ? { admin: 'admin.html', preview: 'preview.html' }
         : { main: 'index.html', admin: 'admin.html' },
     },
   },

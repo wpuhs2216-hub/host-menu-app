@@ -13,7 +13,7 @@ import {
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
   cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
   loadOrdersCloud, startOrdersRealtime, syncOrderUpdate, syncOrderDelete, syncOrdersClear,
-  getDeviceName, setDeviceName,
+  getDeviceName, setDeviceName, getSelfDeviceId,
 } from './sync.js';
 
 // === パスワード認証（30日ログイン保持） ===
@@ -1246,6 +1246,80 @@ if (btnCloudBackupList) {
   });
 }
 
+// === ブラウザ通知 ===
+const NOTIFY_KEY = 'host-menu-notify-enabled';
+const NOTIFY_COLOR_LABEL = { yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green' };
+const btnToggleNotify = document.getElementById('btn-toggle-notify');
+
+function notifySupported() { return typeof Notification !== 'undefined'; }
+
+function notifyEnabled() {
+  return notifySupported()
+    && Notification.permission === 'granted'
+    && localStorage.getItem(NOTIFY_KEY) === '1';
+}
+
+function updateNotifyBtn() {
+  if (!btnToggleNotify) return;
+  if (!notifySupported()) {
+    btnToggleNotify.textContent = '通知 非対応';
+    btnToggleNotify.disabled = true;
+    return;
+  }
+  if (notifyEnabled()) {
+    btnToggleNotify.textContent = '通知 ON';
+    btnToggleNotify.style.background = 'rgba(106, 208, 128, 0.18)';
+    btnToggleNotify.style.color = '#6ad080';
+    btnToggleNotify.style.borderColor = 'rgba(106, 208, 128, 0.5)';
+  } else {
+    btnToggleNotify.textContent = '通知 OFF';
+    btnToggleNotify.style.background = '';
+    btnToggleNotify.style.color = '';
+    btnToggleNotify.style.borderColor = '';
+  }
+}
+updateNotifyBtn();
+
+if (btnToggleNotify) {
+  btnToggleNotify.addEventListener('click', async () => {
+    if (!notifySupported()) return;
+    if (notifyEnabled()) {
+      localStorage.setItem(NOTIFY_KEY, '0');
+      updateNotifyBtn();
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      await dlg.alert('ブラウザ設定で通知が拒否されています。\nアドレスバー左の鍵アイコンから通知を「許可」に変更してください。');
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm !== 'granted') perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      localStorage.setItem(NOTIFY_KEY, '1');
+      updateNotifyBtn();
+      try { new Notification('GENTLY DIVA', { body: '通知が有効になりました', icon: './icon-192.png' }); } catch { /* ignore */ }
+    } else {
+      updateNotifyBtn();
+      dlg.alert('通知が許可されませんでした');
+    }
+  });
+}
+
+function fireNotification(o) {
+  if (!notifyEnabled()) return;
+  const colorLabel = NOTIFY_COLOR_LABEL[o.color] || '';
+  const seat = o.seat ? `席 ${o.seat}` : '席未選択';
+  const dev = o.deviceName ? `[${o.deviceName}] ` : '';
+  const src = o.source === 'preview' ? '（プレビュー）' : '';
+  const title = `${dev}${seat}${src ? ' ' + src : ''}`.trim();
+  const castNames = (o.casts || []).map((c) => c.name).join(', ');
+  const body = `${colorLabel}${o.customerName ? ' / ' + o.customerName : ''}\n${castNames}`;
+  try {
+    const n = new Notification(title || 'GENTLY DIVA', { body, icon: './icon-192.png', tag: o.id });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch { /* ignore */ }
+}
+
 // === 初期化 ===
 
 async function init() {
@@ -1266,6 +1340,8 @@ async function init() {
       const idx = cloudOrdersCache.findIndex((x) => x.id === o.id);
       if (idx >= 0) cloudOrdersCache[idx] = o; else cloudOrdersCache.unshift(o);
       renderOrders();
+      // 自端末で送ったものは通知しない（重複抑制）
+      if (o.deviceId !== getSelfDeviceId()) fireNotification(o);
     },
     onUpdate: (o) => {
       const idx = cloudOrdersCache.findIndex((x) => x.id === o.id);
@@ -1294,6 +1370,9 @@ async function init() {
     renderList();
     updateNewFaceBtn();
   });
+
+  // 通知ボタンの状態を最新化（permission が変わっている場合に追従）
+  updateNotifyBtn();
 
   // 起動時自動アップデートチェック（APK アップデートはアプリ版のみ）
   if (IS_CAPACITOR) scheduleStartupCheck();
