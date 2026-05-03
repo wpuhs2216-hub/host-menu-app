@@ -8,7 +8,7 @@ import {
   cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
 } from './sync.js';
 
-// === パスワード認証 ===
+// === パスワード認証（30日ログイン保持） ===
 
 const pwScreen = document.getElementById('pw-screen');
 const adminBody = document.getElementById('admin-body');
@@ -16,12 +16,46 @@ const pwInput = document.getElementById('pw-input');
 const pwSubmit = document.getElementById('pw-submit');
 const pwError = document.getElementById('pw-error');
 
+const SESSION_KEY = 'host-menu-admin-session';
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30日
+
+function isLoggedIn() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (!obj || !obj.lastLoginAt) return false;
+    const age = Date.now() - obj.lastLoginAt;
+    if (age < 0 || age > SESSION_TTL_MS) return false;
+    // パスワードが変わっていたら無効化
+    if (obj.pw && obj.pw !== getAdminPw()) return false;
+    return true;
+  } catch { return false; }
+}
+
+function setLoggedIn() {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    lastLoginAt: Date.now(),
+    pw: getAdminPw(),
+  }));
+}
+
+function logout() {
+  localStorage.removeItem(SESSION_KEY);
+  window.location.reload();
+}
+
+function enterAdmin() {
+  pwScreen.style.display = 'none';
+  adminBody.style.display = 'block';
+  pwError.textContent = '';
+  init();
+}
+
 function doLogin() {
   if (pwInput.value === getAdminPw()) {
-    pwScreen.style.display = 'none';
-    adminBody.style.display = 'block';
-    pwError.textContent = '';
-    init();
+    setLoggedIn();
+    enterAdmin();
   } else {
     pwError.textContent = 'パスワードが違います';
     pwInput.value = '';
@@ -32,9 +66,15 @@ function doLogin() {
 pwSubmit.addEventListener('click', doLogin);
 pwInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('pw-cancel').addEventListener('click', () => {
-  window.location.href = '/';
+  window.location.href = './';
 });
-pwInput.focus();
+
+// 既ログインなら自動で admin に入る、未ログインならパスワード画面を表示
+if (isLoggedIn()) {
+  enterAdmin();
+} else {
+  pwInput.focus();
+}
 
 // === 時計表示 ===
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -933,6 +973,13 @@ function renderSyncStatus(s) {
   syncStatusEl.className = `sync-status ${m.cls}`;
 }
 subscribeStatus(renderSyncStatus);
+
+const btnLogout = document.getElementById('btn-logout');
+if (btnLogout) {
+  btnLogout.addEventListener('click', () => {
+    if (confirm('ログアウトしますか？')) logout();
+  });
+}
 
 if (btnResync) {
   btnResync.addEventListener('click', async () => {

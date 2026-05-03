@@ -240,9 +240,57 @@ export async function syncPatchPanel(id, patch) {
   }
 }
 
-// === Realtime 購読 ===
+// === Realtime 購読（差分反映） ===
 
 let realtimeChannel = null;
+
+// payload を受け取って該当行だけローカルに反映
+async function applyRealtimePayload(payload) {
+  const { eventType } = payload;
+  if (eventType === 'DELETE') {
+    const id = (payload.old && payload.old.id) || null;
+    if (!id) return;
+    const cur = loadData();
+    cur.items = (cur.items || []).filter((it) => it.id !== id);
+    saveData(cur);
+    try { await deleteImage(id); } catch { /* ignore */ }
+    return;
+  }
+  // INSERT / UPDATE
+  const row = payload.new;
+  if (!row || !row.id) return;
+  const newItem = rowToItem(row);
+
+  const cur = loadData();
+  const items = cur.items || [];
+  const idx = items.findIndex((it) => it.id === newItem.id);
+
+  // 内部用フィールドを除外して保存
+  const { _imagePath, _updatedAt, ...clean } = newItem;
+  if (idx >= 0) items[idx] = { ...items[idx], ...clean };
+  else items.push(clean);
+  cur.items = items;
+  saveData(cur);
+
+  // 画像差分: hasImage で path が変わっていれば再 DL（INSERT も含む）
+  if (newItem.hasImage && newItem._imagePath) {
+    try {
+      const localImages = await getAllImages();
+      // ローカルに無い、または UPDATE で image_path が変わったら DL
+      const localKey = localImages[newItem.id];
+      const needFetch = !localKey || (eventType === 'UPDATE' && payload.old && payload.old.image_path !== row.image_path);
+      if (needFetch) {
+        const dataUrl = await downloadImageAsDataUrl(newItem._imagePath);
+        await saveImage(newItem.id, dataUrl);
+      }
+    } catch (e) {
+      console.warn('画像取得失敗', newItem.id, e);
+    }
+  } else if (!newItem.hasImage) {
+    // 画像が外された
+    try { await deleteImage(newItem.id); } catch { /* ignore */ }
+  }
+}
 
 export function startRealtime(onChange) {
   if (realtimeChannel) return;
@@ -250,10 +298,10 @@ export function startRealtime(onChange) {
     .channel('panels-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'panels' }, async (payload) => {
       try {
-        await pullAll();
+        await applyRealtimePayload(payload);
         if (onChange) onChange(payload);
       } catch (e) {
-        console.warn('realtime pull 失敗', e);
+        console.warn('realtime apply 失敗', e);
       }
     })
     .subscribe((s) => {

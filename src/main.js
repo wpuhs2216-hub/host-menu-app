@@ -105,7 +105,7 @@ headerClock.addEventListener('click', () => {
   clearTimeout(tapTimer);
   if (tapCount >= 3) {
     tapCount = 0;
-    window.location.href = '/admin.html';
+    window.location.href = 'admin.html';
   } else {
     tapTimer = setTimeout(() => { tapCount = 0; }, 1000);
   }

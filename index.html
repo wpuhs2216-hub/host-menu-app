@@ -7,9 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <title>GENTLY DIVA</title>
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="/icon-192.svg" />
-  <link rel="apple-touch-icon" href="/icon-192.svg" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon-192.svg" />
+  <link rel="apple-touch-icon" href="./icon-192.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/style.css" />
@@ -85,7 +85,7 @@
   <script type="module" src="/src/main.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
   </script>
 </body>
