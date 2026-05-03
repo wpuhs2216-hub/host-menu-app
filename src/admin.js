@@ -657,8 +657,9 @@ function renderOrders() {
 
   const VALID_COLORS = ['yellow', 'red', 'blue', 'green'];
   const selfId = getSelfDeviceId();
-  // env-app（Capacitor アプリ版）は自端末送信のみ編集/削除可。Web は全権限。
-  const canModify = (o) => !IS_CAPACITOR || (o.deviceId && o.deviceId === selfId);
+  // env-app（Capacitor アプリ版）は自端末送信 or deviceId 空の古い履歴のみ編集/削除可
+  // Web は全権限。
+  const canModify = (o) => !IS_CAPACITOR || !o.deviceId || o.deviceId === selfId;
 
   orderList.innerHTML = orders
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -820,18 +821,22 @@ document.getElementById('btn-clear-orders').addEventListener('click', async () =
 });
 
 // この端末で送信した履歴のみ一括削除（APK 版用）
+// + device_id 空の古い履歴（旧バージョン由来）もまとめて掃除する
 document.getElementById('btn-clear-own-orders')?.addEventListener('click', async () => {
   const selfId = getSelfDeviceId();
-  const own = cloudOrdersCache.filter((o) => o.deviceId === selfId);
-  if (own.length === 0) {
+  const targets = cloudOrdersCache.filter((o) => !o.deviceId || o.deviceId === selfId);
+  if (targets.length === 0) {
     await dlg.alert('この端末から送信した履歴はありません');
     return;
   }
-  if (!await dlg.confirm(`この端末で送信した ${own.length} 件の履歴を削除しますか？\n他端末からの履歴は残ります。`, { danger: true })) return;
-  for (const o of own) {
+  if (!await dlg.confirm(`この端末で送信した ${targets.length} 件の履歴を削除しますか？\n他端末からの履歴は残ります。`, { danger: true })) return;
+  const ids = new Set(targets.map((o) => o.id));
+  for (const o of targets) {
     syncOrderDelete(o.id).catch(() => {});
-    cloudOrdersCache = cloudOrdersCache.filter((x) => x.id !== o.id);
   }
+  cloudOrdersCache = cloudOrdersCache.filter((x) => !ids.has(x.id));
+  // ローカル localStorage の旧履歴も掃除
+  try { clearOrders(); } catch { /* ignore */ }
   renderOrders();
 });
 
@@ -1438,6 +1443,15 @@ async function init() {
   // 旧データの画像をIndexedDBに移行
   const migrated = await migrateFromLocalStorage(data.items);
   if (migrated) saveData(data);
+
+  // APK 版: 旧 localStorage 履歴は cloud に移行済みなので、ローカルキャッシュは破棄
+  // （これで「端末情報のない古い履歴」が再表示されなくなる）
+  if (IS_CAPACITOR) {
+    try {
+      const local = loadOrders();
+      if (local.length > 0) clearOrders();
+    } catch { /* ignore */ }
+  }
 
   initFontSettings();
   renderOrders();
