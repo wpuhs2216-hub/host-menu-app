@@ -32,7 +32,7 @@ if (!IS_CAPACITOR) {
 
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
-import { initialSync, startRealtime, syncOrderInsert } from './sync.js';
+import { initialSync, startRealtime, stopRealtime, forcePull, syncOrderInsert } from './sync.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck } from './updateCheck.js';
 // 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
@@ -736,3 +736,61 @@ window.addEventListener('popstate', () => {
   // 起動時自動アップデートチェック（APK アップデートはアプリ版のみ）
   if (IS_CAPACITOR) scheduleStartupCheck();
 })();
+
+// === 復帰時の自動同期（ロック解除/アプリ切替戻り） ===
+// 画面が見える状態に戻った際にクラウドから最新を引いて反映し、Realtime を貼り直す
+let resyncInFlight = false;
+async function resyncFromCloud({ silent = true } = {}) {
+  if (resyncInFlight) return;
+  resyncInFlight = true;
+  try {
+    await forcePull();
+    await render();
+    stopRealtime();
+    startRealtime(async () => { await render(); });
+    if (!silent) {
+      await dlg.alert('送信しました', { title: '完了', okLabel: 'OK' });
+    }
+  } catch (e) {
+    console.warn('再同期失敗', e);
+    if (!silent) {
+      await dlg.alert('同期に失敗しました\n' + (e?.message || e), { title: 'エラー', okLabel: 'OK' });
+    }
+  } finally {
+    resyncInFlight = false;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    resyncFromCloud({ silent: true });
+  }
+});
+window.addEventListener('pageshow', () => { resyncFromCloud({ silent: true }); });
+
+// Capacitor の App プラグインがあれば resume イベントでも同期
+if (IS_CAPACITOR) {
+  try {
+    const App = globalThis.Capacitor?.Plugins?.App;
+    if (App?.addListener) {
+      App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) resyncFromCloud({ silent: true });
+      });
+      App.addListener('resume', () => { resyncFromCloud({ silent: true }); });
+    }
+  } catch { /* ignore */ }
+}
+
+// === 店舗ロゴ：手動同期ボタン ===
+if (headerLogo) {
+  headerLogo.style.cursor = 'pointer';
+  headerLogo.addEventListener('click', async () => {
+    const ok = await dlg.confirm('クラウドから最新データを取得しますか？', {
+      title: '同期',
+      okLabel: '送信',
+      cancelLabel: 'キャンセル',
+    });
+    if (!ok) return;
+    await resyncFromCloud({ silent: false });
+  });
+}
