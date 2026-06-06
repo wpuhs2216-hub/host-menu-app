@@ -9,6 +9,7 @@ create table if not exists public.panels (
   title text default '',
   label text default '',
   image_path text default '',
+  image_version bigint default 0,
   img_x integer default 50,
   img_y integer default 50,
   img_scale integer default 100,
@@ -19,6 +20,9 @@ create table if not exists public.panels (
   has_image boolean default false,
   updated_at timestamptz default now()
 );
+
+-- 既存DB向けマイグレーション: 画像バージョン列（画像差し替え検知用）
+alter table public.panels add column if not exists image_version bigint default 0;
 
 -- updated_at 自動更新
 create or replace function public.touch_updated_at()

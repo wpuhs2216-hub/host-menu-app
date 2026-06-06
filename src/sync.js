@@ -48,6 +48,7 @@ function rowToItem(row) {
     isNewFace: !!row.is_new_face,
     selectable: row.selectable !== false,
     hasImage: !!row.has_image,
+    imageVersion: row.image_version ?? 0,   // 画像差し替え検知用
     _imagePath: row.image_path || '',       // 内部用
     _updatedAt: row.updated_at || null,
   };
@@ -61,6 +62,7 @@ function itemToRow(item) {
     title: item.title || '',
     label: item.label || '',
     image_path: item._imagePath || (item.hasImage ? `${item.id}.jpg` : ''),
+    image_version: Number(item.imageVersion ?? 0),
     img_x: Number(item.imgX ?? 50),
     img_y: Number(item.imgY ?? 50),
     img_scale: Number(item.imgScale ?? 100),
@@ -99,14 +101,17 @@ async function uploadImage(id, dataUrl) {
   const { error } = await supabase.storage.from(PANEL_BUCKET).upload(path, blob, {
     contentType: blob.type || 'image/jpeg',
     upsert: true,
+    cacheControl: '0',                       // 同一パス上書きで CDN が古い画像を返さないように
   });
   if (error) throw error;
   return path;
 }
 
-async function downloadImageAsDataUrl(path) {
+async function downloadImageAsDataUrl(path, version = '') {
   if (!path) return '';
-  const url = publicImageUrl(path) + `?t=${Date.now()}`;
+  // version をキャッシュキーに使う（CDN がクエリを無視する場合でも version 変化で別URL扱いになる）
+  const bust = version || Date.now();
+  const url = publicImageUrl(path) + `?v=${bust}`;
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`画像取得失敗: ${res.status}`);
   const blob = await res.blob();
@@ -131,12 +136,20 @@ async function pullAll() {
 
   const items = rows.map(rowToItem);
 
-  // ローカル画像が無いものだけ Storage からダウンロード
+  // ローカル画像が無い or バージョンが上がったものを Storage からダウンロード
   const localImages = await getAllImages();
+  const prevData = loadData();
+  const prevVersionById = {};
+  for (const it of (prevData.items || [])) prevVersionById[it.id] = it.imageVersion ?? 0;
+
   for (const item of items) {
-    if (item.hasImage && item._imagePath && !localImages[item.id]) {
+    if (item.hasImage && item._imagePath) {
+      const remoteVersion = item.imageVersion ?? 0;
+      const hasLocal = !!localImages[item.id];
+      const needFetch = !hasLocal || remoteVersion !== (prevVersionById[item.id] ?? -1);
+      if (!needFetch) continue;
       try {
-        const dataUrl = await downloadImageAsDataUrl(item._imagePath);
+        const dataUrl = await downloadImageAsDataUrl(item._imagePath, remoteVersion);
         await saveImage(item.id, dataUrl);
       } catch (e) {
         // 画像取得失敗は致命ではない、続行
@@ -265,6 +278,9 @@ async function applyRealtimePayload(payload) {
   const items = cur.items || [];
   const idx = items.findIndex((it) => it.id === newItem.id);
 
+  // マージ前にローカルが持つ画像バージョンを退避（差し替え検知用）
+  const prevVersion = idx >= 0 ? (items[idx].imageVersion ?? 0) : -1;
+
   // 内部用フィールドを除外して保存
   const { _imagePath, _updatedAt, ...clean } = newItem;
   if (idx >= 0) items[idx] = { ...items[idx], ...clean };
@@ -272,15 +288,15 @@ async function applyRealtimePayload(payload) {
   cur.items = items;
   saveData(cur);
 
-  // 画像差分: hasImage で path が変わっていれば再 DL（INSERT も含む）
+  // 画像差分: ローカルに無い or バージョンが上がっていれば再 DL（差し替え・INSERT を含む）
   if (newItem.hasImage && newItem._imagePath) {
     try {
       const localImages = await getAllImages();
-      // ローカルに無い、または UPDATE で image_path が変わったら DL
-      const localKey = localImages[newItem.id];
-      const needFetch = !localKey || (eventType === 'UPDATE' && payload.old && payload.old.image_path !== row.image_path);
+      const remoteVersion = newItem.imageVersion ?? 0;
+      const hasLocal = !!localImages[newItem.id];
+      const needFetch = !hasLocal || remoteVersion !== prevVersion;
       if (needFetch) {
-        const dataUrl = await downloadImageAsDataUrl(newItem._imagePath);
+        const dataUrl = await downloadImageAsDataUrl(newItem._imagePath, remoteVersion);
         await saveImage(newItem.id, dataUrl);
       }
     } catch (e) {

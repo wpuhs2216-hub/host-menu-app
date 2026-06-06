@@ -575,6 +575,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         await saveImage(id, pendingImage);
         imagesCached = null;
         item.hasImage = true;
+        item.imageVersion = Date.now();   // 画像差し替え→バージョン更新で他端末が再取得
         imageForSync = pendingImage;
       }
       savedItem = item;
@@ -590,6 +591,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       id: newId,
       name, ruby, title, label,
       hasImage: !!pendingImage,
+      imageVersion: pendingImage ? Date.now() : 0,
       imgX, imgY, imgScale,
       image: '',
       order: data.items.length,
