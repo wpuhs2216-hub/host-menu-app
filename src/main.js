@@ -186,7 +186,6 @@ const fsCounter = document.getElementById('fs-counter');
 const fsSwipeArea = document.getElementById('fs-swipe-area');
 const fsNewBadge = document.getElementById('fs-new-badge');
 const fsCheckbox = document.getElementById('fs-checkbox');
-const fsCheckInput = document.getElementById('fs-check-input');
 const confirmBtn = document.getElementById('confirm-btn');
 const confirmCount = document.getElementById('confirm-count');
 const fsConfirmBtn = document.getElementById('fs-confirm-btn');
@@ -614,7 +613,9 @@ function showCurrentItem() {
 }
 
 // 全画面チェックボックスの変更（自前 toggle）
-fsCheckInput.addEventListener('click', (e) => {
+// 注意: リスナーは input ではなく label に付ける。input の click を preventDefault すると
+// ブラウザがイベント処理後に checked を巻き戻し、ハンドラ内の代入が消えるため
+fsCheckbox.addEventListener('click', (e) => {
   const item = visibleItems[currentIndex];
   if (!item) return;
   e.preventDefault();
