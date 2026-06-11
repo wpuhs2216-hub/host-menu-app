@@ -103,6 +103,22 @@
   background: rgba(212, 175, 55, 0.25);
 }
 
+.section-title .title-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 移動モード ON 状態 */
+#btn-move-mode.active {
+  background: #d4af37;
+  color: #0a0a0a;
+}
+
+/* 移動モード中はリスト全体を金枠で示す */
+.sortable-list.move-mode .sortable-item {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
 /* 並び替えリスト */
 .sortable-list {
   display: flex;

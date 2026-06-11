@@ -1160,61 +1160,6 @@ html.env-web .app-dialog-box { width: min(440px, 100%); }
 .app-toast-warn    { border-color: rgba(212, 175, 55, 0.5); }
 .app-toast-error   { border-color: rgba(226, 109, 109, 0.5); }
 
-/* ========================================
-   起動時アップデートバナー（控えめ）
-======================================== */
-.update-banner {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%) translateY(20px);
-  z-index: 10500;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, #1a1a2e, #2a2a4a);
-  border: 1px solid rgba(212, 175, 55, 0.5);
-  border-radius: 999px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 13px;
-  opacity: 0;
-  transition: opacity 0.25s, transform 0.25s;
-  max-width: 92vw;
-}
-.update-banner.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-.update-banner .ub-text { color: #ddd; white-space: nowrap; }
-.update-banner .ub-text strong { color: #d4af37; }
-.update-banner .ub-actions { display: flex; align-items: center; gap: 6px; }
-.update-banner .btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  border-radius: 999px;
-}
-.update-banner .ub-close {
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-.update-banner .ub-close:hover { color: #fff; }
-
-@media (max-width: 480px) {
-  .update-banner {
-    flex-direction: column;
-    align-items: stretch;
-    border-radius: 12px;
-    width: 92vw;
-  }
-  .update-banner .ub-actions { justify-content: flex-end; }
-  .update-banner .ub-text { white-space: normal; }
-}
 
 /* 色ボタンの人数バッジ */
 .color-btn { position: relative; }
@@ -1281,8 +1226,7 @@ html.env-web .header-link-app { display: none !important; }
 /* Web 環境では APK 関連 UI を非表示 */
 html.env-web #btn-check-update,
 html.env-web #app-version,
-html.env-web #update-status,
-html.env-web .update-banner {
+html.env-web #update-status {
   display: none !important;
 }
 

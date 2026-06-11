@@ -4,6 +4,7 @@
 // - 新版検知でトースト表示。「更新する」「閉じる」「このバージョン無視」
 
 import * as dlg from './dialog.js';
+import './updateCheck.css';
 
 const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0');
 const REPO = 'wpuhs2216-hub/host-menu-app';

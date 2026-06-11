@@ -158,6 +158,17 @@ let touchClone = null;
 let touchCloneStartTop = 0;
 let touchLongPressTimer = null;
 
+// 移動モード（ON のときだけタッチドラッグ並び替えを許可。スクロール中の誤爆防止）
+let moveMode = false;
+const btnMoveMode = document.getElementById('btn-move-mode');
+btnMoveMode.addEventListener('click', () => {
+  moveMode = !moveMode;
+  btnMoveMode.classList.toggle('active', moveMode);
+  btnMoveMode.textContent = moveMode ? '移動モード ON' : '移動モード';
+  itemList.classList.toggle('move-mode', moveMode);
+  if (!moveMode) cleanupTouchDrag();
+});
+
 // 新人表示/非表示トグル
 const btnToggleNew = document.getElementById('btn-toggle-new');
 btnToggleNew.addEventListener('click', async () => {
@@ -317,6 +328,8 @@ function moveItem(id, direction) {
 
 function initTouchDrag(el, itemId) {
   el.addEventListener('touchstart', async (e) => {
+    // 移動モード OFF のときは並び替えしない（誤爆防止）
+    if (!moveMode) return;
     // ボタン類のタッチは無視
     if (e.target.closest('.item-actions, .reorder-btns')) return;
 

@@ -1,0 +1,68 @@
+/* ========================================
+   起動時アップデートバナー
+   updateCheck.js から import（index / admin 両画面で使うため
+   style.css ではなくここに置く）
+======================================== */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 10500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1a1a2e, #2a2a4a);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  max-width: 92vw;
+}
+.update-banner.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.update-banner .ub-text { color: #ddd; white-space: nowrap; }
+.update-banner .ub-text strong { color: #d4af37; }
+.update-banner .ub-actions { display: flex; align-items: center; gap: 6px; }
+.update-banner .btn {
+  flex: none; /* admin.css の .btn { flex: 1 } を打ち消す */
+  width: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.update-banner .ub-close {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.update-banner .ub-close:hover { color: #fff; }
+
+/* 幅が足りない画面（タブレット縦持ち含む）では縦積みに切替。
+   480px 区切りだと 600px 前後のタブレット縦持ちで横並びのまま
+   はみ出し、ボタンが縦書きに潰れるため 760px まで広げる */
+@media (max-width: 760px) {
+  .update-banner {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 12px;
+    width: 92vw;
+  }
+  .update-banner .ub-actions { justify-content: flex-end; }
+  .update-banner .ub-text { white-space: normal; }
+}
+
+/* Web 環境では APK 更新バナーを非表示 */
+html.env-web .update-banner {
+  display: none !important;
+}
