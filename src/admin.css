@@ -119,6 +119,20 @@
   border-color: rgba(212, 175, 55, 0.45);
 }
 
+/* 店舗切り替え行 */
+.store-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.store-row .current-store-name {
+  font-weight: 700;
+  color: #d4af37;
+  font-size: 15px;
+}
+.store-row .btn { flex: none; padding: 8px 16px; font-size: 13px; }
+
 /* 並び替えリスト */
 .sortable-list {
   display: flex;

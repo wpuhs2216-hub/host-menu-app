@@ -7,6 +7,7 @@
 import { supabase, PANEL_BUCKET, publicImageUrl } from './supabaseClient.js';
 import { loadData, saveData } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages } from './imageDB.js';
+import { getStoreId } from './storeContext.js';
 
 // === 状態管理 ===
 
@@ -57,6 +58,7 @@ function rowToItem(row) {
 function itemToRow(item) {
   return {
     id: item.id,
+    store_id: getStoreId(),
     name: item.name || '',
     ruby: item.ruby || '',
     title: item.title || '',
@@ -131,6 +133,7 @@ async function pullAll() {
   const { data: rows, error } = await supabase
     .from('panels')
     .select('*')
+    .eq('store_id', getStoreId())
     .order('order', { ascending: true });
   if (error) throw error;
 
@@ -214,7 +217,7 @@ export async function syncSavePanel(item, imageDataUrl = null) {
 export async function syncDeletePanel(id) {
   try {
     await deleteRemoteImage(`${id}.jpg`);
-    const { error } = await supabase.from('panels').delete().eq('id', id);
+    const { error } = await supabase.from('panels').delete().eq('id', id).eq('store_id', getStoreId());
     if (error) throw error;
     setStatus('connected');
   } catch (e) {
@@ -226,7 +229,8 @@ export async function syncDeletePanel(id) {
 // 並べ替え結果を一括反映
 export async function syncBulkUpdateOrder(items) {
   try {
-    const rows = items.map((it) => ({ id: it.id, order: Number(it.order ?? 0) }));
+    const sid = getStoreId();
+    const rows = items.map((it) => ({ id: it.id, store_id: sid, order: Number(it.order ?? 0) }));
     const { error } = await supabase.from('panels').upsert(rows);
     if (error) throw error;
     setStatus('connected');
@@ -244,7 +248,7 @@ export async function syncPatchPanel(id, patch) {
     if ('isNewFace' in patch) row.is_new_face = !!patch.isNewFace;
     if ('selectable' in patch) row.selectable = patch.selectable !== false;
     if (Object.keys(row).length === 0) return;
-    const { error } = await supabase.from('panels').update(row).eq('id', id);
+    const { error } = await supabase.from('panels').update(row).eq('id', id).eq('store_id', getStoreId());
     if (error) throw error;
     setStatus('connected');
   } catch (e) {
@@ -312,7 +316,7 @@ export function startRealtime(onChange) {
   if (realtimeChannel) return;
   realtimeChannel = supabase
     .channel('panels-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'panels' }, async (payload) => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'panels', filter: `store_id=eq.${getStoreId()}` }, async (payload) => {
       try {
         await applyRealtimePayload(payload);
         if (onChange) onChange(payload);
@@ -342,7 +346,8 @@ export async function initialSync() {
     setStatus('syncing', '同期確認中…');
     const { count, error } = await supabase
       .from('panels')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .eq('store_id', getStoreId());
     if (error) throw error;
 
     if ((count || 0) === 0) {
@@ -385,6 +390,7 @@ export function setDeviceName(name) {
 function orderToRow(order, source = 'main') {
   return {
     id: order.id,
+    store_id: getStoreId(),
     seat: order.seat || '',
     customer_name: order.customerName || '',
     memo: order.memo || '',
@@ -425,6 +431,7 @@ export async function syncPushSubscriptionUpsert(subscription) {
       auth: json.keys.auth,
       device_id: deviceId(),
       device_name: getDeviceName(),
+      store_id: getStoreId(),
     });
     if (error) throw error;
   } catch (e) { console.warn('push subscription upsert 失敗', e); }
@@ -453,7 +460,7 @@ export async function syncOrderUpdate(id, patch) {
     if ('memo' in patch) row.memo = patch.memo || '';
     if ('color' in patch) row.color = patch.color || 'yellow';
     if (Object.keys(row).length === 0) return;
-    const { error } = await supabase.from('orders').update(row).eq('id', id);
+    const { error } = await supabase.from('orders').update(row).eq('id', id).eq('store_id', getStoreId());
     if (error) throw error;
   } catch (e) {
     console.warn('order update 失敗', e);
@@ -462,7 +469,7 @@ export async function syncOrderUpdate(id, patch) {
 
 export async function syncOrderDelete(id) {
   try {
-    const { error } = await supabase.from('orders').delete().eq('id', id);
+    const { error } = await supabase.from('orders').delete().eq('id', id).eq('store_id', getStoreId());
     if (error) throw error;
   } catch (e) {
     console.warn('order delete 失敗', e);
@@ -471,7 +478,7 @@ export async function syncOrderDelete(id) {
 
 export async function syncOrdersClear() {
   try {
-    const { error } = await supabase.from('orders').delete().not('id', 'is', null);
+    const { error } = await supabase.from('orders').delete().eq('store_id', getStoreId());
     if (error) throw error;
   } catch (e) {
     console.warn('orders clear 失敗', e);
@@ -483,6 +490,7 @@ export async function loadOrdersCloud() {
     const { data, error } = await supabase
       .from('orders')
       .select('*')
+      .eq('store_id', getStoreId())
       .order('created_at', { ascending: false })
       .limit(500);
     if (error) throw error;
@@ -498,7 +506,7 @@ export function startOrdersRealtime(handlers) {
   if (ordersChannel) return;
   ordersChannel = supabase
     .channel('orders-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${getStoreId()}` }, (payload) => {
       try {
         if (payload.eventType === 'DELETE') {
           handlers?.onDelete?.(payload.old?.id);
@@ -519,7 +527,7 @@ export async function syncSelectionAdd(panelId, color) {
   try {
     const { error } = await supabase
       .from('selections')
-      .upsert({ panel_id: panelId, color: color || 'yellow' });
+      .upsert({ panel_id: panelId, color: color || 'yellow', store_id: getStoreId() });
     if (error) throw error;
   } catch (e) {
     console.warn('selection add 失敗', e);
@@ -528,7 +536,7 @@ export async function syncSelectionAdd(panelId, color) {
 
 export async function syncSelectionRemove(panelId, color) {
   try {
-    let q = supabase.from('selections').delete().eq('panel_id', panelId);
+    let q = supabase.from('selections').delete().eq('store_id', getStoreId()).eq('panel_id', panelId);
     if (color) q = q.eq('color', color);
     const { error } = await q;
     if (error) throw error;
@@ -539,7 +547,7 @@ export async function syncSelectionRemove(panelId, color) {
 
 export async function syncSelectionsClear() {
   try {
-    const { error } = await supabase.from('selections').delete().not('panel_id', 'is', null);
+    const { error } = await supabase.from('selections').delete().eq('store_id', getStoreId());
     if (error) throw error;
   } catch (e) {
     console.warn('selections clear 失敗', e);
@@ -548,7 +556,7 @@ export async function syncSelectionsClear() {
 
 export async function loadSelections() {
   try {
-    const { data, error } = await supabase.from('selections').select('panel_id,color');
+    const { data, error } = await supabase.from('selections').select('panel_id,color').eq('store_id', getStoreId());
     if (error) throw error;
     return data || [];
   } catch (e) {
@@ -564,7 +572,7 @@ export function startSelectionsRealtime(handlers) {
   // handlers: { onAdd(panelId, color), onRemove(panelId, color) }
   selectionsChannel = supabase
     .channel('selections-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'selections' }, (payload) => {
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'selections', filter: `store_id=eq.${getStoreId()}` }, (payload) => {
       try {
         if (payload.eventType === 'DELETE') {
           const o = payload.old || {};
@@ -581,7 +589,11 @@ export function startSelectionsRealtime(handlers) {
 // === クラウドバックアップ/復元（panels 同期とは独立） ===
 // Supabase Storage に backups/<タイムスタンプ>.json として全データを保存
 
-const BACKUP_FOLDER = 'backups';
+// バックアップは店舗ごとにフォルダを分ける（既存 GENTLY DIVA は backups/gently-diva/）
+const BACKUP_ROOT = 'backups';
+function backupFolder() {
+  return `${BACKUP_ROOT}/${getStoreId()}`;
+}
 
 export async function cloudBackup(label = '') {
   setStatus('syncing', 'バックアップ作成中…');
@@ -606,7 +618,7 @@ export async function cloudBackup(label = '') {
     };
 
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${BACKUP_FOLDER}/${ts}.json`;
+    const filename = `${backupFolder()}/${ts}.json`;
     const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
     const { error } = await supabase.storage.from(PANEL_BUCKET).upload(filename, blob, {
       contentType: 'application/json',
@@ -622,7 +634,7 @@ export async function cloudBackup(label = '') {
 }
 
 export async function cloudBackupList() {
-  const { data, error } = await supabase.storage.from(PANEL_BUCKET).list(BACKUP_FOLDER, {
+  const { data, error } = await supabase.storage.from(PANEL_BUCKET).list(backupFolder(), {
     limit: 100,
     sortBy: { column: 'created_at', order: 'desc' },
   });
@@ -633,7 +645,7 @@ export async function cloudBackupList() {
 export async function cloudBackupRestore(filename) {
   setStatus('syncing', 'バックアップから復元中…');
   try {
-    const path = filename.startsWith(BACKUP_FOLDER) ? filename : `${BACKUP_FOLDER}/${filename}`;
+    const path = filename.startsWith(BACKUP_ROOT) ? filename : `${backupFolder()}/${filename}`;
     const { data: blob, error } = await supabase.storage.from(PANEL_BUCKET).download(path);
     if (error) throw error;
     const text = await blob.text();
@@ -667,7 +679,7 @@ export async function cloudBackupRestore(filename) {
 }
 
 export async function cloudBackupDelete(filename) {
-  const path = filename.startsWith(BACKUP_FOLDER) ? filename : `${BACKUP_FOLDER}/${filename}`;
+  const path = filename.startsWith(BACKUP_ROOT) ? filename : `${backupFolder()}/${filename}`;
   const { error } = await supabase.storage.from(PANEL_BUCKET).remove([path]);
   if (error) throw error;
 }

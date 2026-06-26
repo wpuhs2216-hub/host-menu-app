@@ -3,11 +3,13 @@
 const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
 document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
-import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, getAdminPw, setAdminPw } from './store.js';
+import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
+import { getStoreName, getStorePassword, logoutStore } from './storeContext.js';
+import { ensureStoreFixed } from './storeLogin.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
@@ -46,8 +48,8 @@ function isLoggedIn() {
     if (!obj || !obj.lastLoginAt) return false;
     const age = Date.now() - obj.lastLoginAt;
     if (age < 0 || age > SESSION_TTL_MS) return false;
-    // パスワードが変わっていたら無効化
-    if (obj.pw && obj.pw !== getAdminPw()) return false;
+    // パスワード（＝店舗パスワード）が変わっていたら無効化
+    if (obj.pw && obj.pw !== getStorePassword()) return false;
     return true;
   } catch { return false; }
 }
@@ -55,7 +57,7 @@ function isLoggedIn() {
 function setLoggedIn() {
   localStorage.setItem(SESSION_KEY, JSON.stringify({
     lastLoginAt: Date.now(),
-    pw: getAdminPw(),
+    pw: getStorePassword(),
   }));
 }
 
@@ -72,7 +74,7 @@ function enterAdmin() {
 }
 
 function doLogin() {
-  if (pwInput.value === getAdminPw()) {
+  if (pwInput.value === getStorePassword()) {
     setLoggedIn();
     enterAdmin();
   } else {
@@ -88,13 +90,16 @@ document.getElementById('pw-cancel').addEventListener('click', async () => {
   window.location.href = './';
 });
 
-// 既ログインなら自動で admin に入る、未ログインならパスワード画面を表示
-// queueMicrotask で遅延し、ファイル末尾の let/const 宣言（data 等）が評価された後に enterAdmin を呼ぶ（TDZ 回避）
-if (isLoggedIn()) {
-  queueMicrotask(() => enterAdmin());
-} else {
-  pwInput.focus();
-}
+// まず店舗を固定（未固定ならパスワード画面。統一PWなので成功時は admin セッションも張られ二度打ち不要）。
+// その後、既ログインなら自動で admin に入る、未ログインならパスワード画面を表示。
+(async () => {
+  await ensureStoreFixed({ grantAdmin: true });
+  if (isLoggedIn()) {
+    enterAdmin();
+  } else {
+    pwInput.focus();
+  }
+})();
 
 // APK 版: 「メニュー表示」リンクで戻る時は明示的にセッション削除（保険）
 if (IS_CAPACITOR) {
@@ -635,8 +640,9 @@ document.getElementById('btn-add').addEventListener('click', async () => openMod
 
 document.getElementById('btn-reset').addEventListener('click', async () => {
   const pw = await dlg.prompt('データリセットにはパスワードが必要です');
+  /* 店舗パスワードで確認 */
   if (pw === null) return;
-  if (pw !== getAdminPw()) { dlg.alert('パスワードが違います'); return; }
+  if (pw !== getStorePassword()) { dlg.alert('パスワードが違います'); return; }
   if (!await dlg.confirm('全データを初期状態にリセットしますか？')) return;
   await clearImages();
   imagesCached = null;
@@ -931,19 +937,8 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
-// === パスワード変更 ===
-
-document.getElementById('btn-change-pw').addEventListener('click', async () => {
-  const current = await dlg.prompt('現在のパスワード');
-  if (current === null) return;
-  if (current !== getAdminPw()) { dlg.alert('パスワードが違います'); return; }
-  const newPw = await dlg.prompt('新しいパスワード');
-  if (newPw === null || newPw === '') { dlg.alert('パスワードを入力してください'); return; }
-  const confirm2 = await dlg.prompt('新しいパスワード（確認）');
-  if (newPw !== confirm2) { dlg.alert('パスワードが一致しません'); return; }
-  setAdminPw(newPw);
-  dlg.alert('パスワードを変更しました');
-});
+// パスワードは店舗ごとにハードコード（storeContext.js の STORES）のため、
+// アプリからの変更は不可。変更が必要なときはコードを直して再リリースする。
 
 // === 画像軽量化（一括圧縮） ===
 
@@ -1145,6 +1140,28 @@ function initFontSettings() {
     dnInput.addEventListener('change', persist);
     dnInput.addEventListener('blur', persist);
   }
+
+  // 店舗表示・切り替え
+  initStoreSwitch();
+}
+
+// === 店舗ログアウト（＝店舗切り替え） ===
+// ログアウトすると店舗固定が解除され、再起動時のパスワード画面で別店舗を選べる。
+function initStoreSwitch() {
+  const nameEl = document.getElementById('current-store-name');
+  if (nameEl) nameEl.textContent = getStoreName();
+
+  const btn = document.getElementById('btn-switch-store');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const ok = await dlg.confirm(
+      `この端末（${getStoreName()}）からログアウトして店舗を切り替えますか？\nログアウト後、別店舗のパスワードでログインしてください。`,
+      { title: '店舗ログアウト', okLabel: 'ログアウト', cancelLabel: 'キャンセル' }
+    );
+    if (!ok) return;
+    logoutStore();
+    window.location.reload();
+  });
 }
 
 Object.keys(fsSliders).forEach((key) => {

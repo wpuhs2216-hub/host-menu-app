@@ -1828,3 +1828,75 @@ html.env-app #btn-logout { display: none !important; }
 
 /* APK 版でのみ「この端末分クリア」ボタン表示 */
 html.env-web #btn-clear-own-orders { display: none !important; }
+
+/* ========================================
+   店舗ログイン（起動時パスワードで店舗固定）
+======================================== */
+.store-login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #1a1a2e, #0a0a0a 70%);
+  padding: 24px;
+}
+.store-login-box {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  text-align: center;
+}
+.store-login-logo img {
+  max-width: 180px;
+  max-height: 90px;
+  object-fit: contain;
+  margin: 0 auto 4px;
+}
+.store-login-title {
+  color: #d4af37;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin: 0;
+}
+.store-login-desc {
+  color: #aaa;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.6;
+}
+.store-login-input {
+  padding: 12px 14px;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+.store-login-input:focus {
+  outline: none;
+  border-color: #d4af37;
+}
+.store-login-error {
+  color: #e26d6d;
+  font-size: 13px;
+  min-height: 18px;
+}
+.store-login-submit {
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #0a0a0a;
+  background: linear-gradient(135deg, #d4af37, #b8941e);
+}

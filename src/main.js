@@ -5,29 +5,9 @@ document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
 // APK 版: メニュー画面に到達した時点で admin セッションを破棄
 // （管理画面 → メニューに戻ったら毎回パスワード入力を要求）
+// ※店舗の固定（host-menu-store-id）は別キーなので維持される
 if (IS_CAPACITOR) {
   try { localStorage.removeItem('host-menu-admin-session'); } catch { /* ignore */ }
-}
-
-// Web 環境では admin と同じセッションを要求（未ログインなら admin にリダイレクト）
-if (!IS_CAPACITOR) {
-  const SESSION_KEY = 'host-menu-admin-session';
-  const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-  let valid = false;
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) {
-      const obj = JSON.parse(raw);
-      if (obj && obj.lastLoginAt && (Date.now() - obj.lastLoginAt) < SESSION_TTL_MS) {
-        valid = true;
-      }
-    }
-  } catch { /* ignore */ }
-  if (!valid) {
-    location.replace('./admin.html');
-    // 以降のスクリプト評価を最小化
-    throw new Error('Auth required');
-  }
 }
 
 import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
@@ -35,6 +15,8 @@ import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import { initialSync, startRealtime, stopRealtime, forcePull, syncOrderInsert } from './sync.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck } from './updateCheck.js';
+import { ensureStoreFixed } from './storeLogin.js';
+import { logoutStore, getStoreName } from './storeContext.js';
 // 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
 // selections テーブル同期は main 側では使わない（複数端末で選択が干渉しないように）
 
@@ -725,6 +707,8 @@ window.addEventListener('popstate', () => {
 
 // 起動時にクラウドから最新を取得 → 反映 → リアルタイム購読
 (async () => {
+  // 店舗が未固定なら、まずパスワードで店舗を固定する（固定されるまでここで待つ）
+  await ensureStoreFixed();
   await render();
   try {
     await initialSync();
@@ -794,4 +778,34 @@ if (headerLogo) {
     if (!ok) return;
     await resyncFromCloud({ silent: false });
   });
+
+  // ロゴ長押し（800ms）で店舗ログアウト（＝店舗切り替え）
+  let logoLongPressTimer = null;
+  let logoLongPressed = false;
+  const startLogoPress = () => {
+    logoLongPressed = false;
+    logoLongPressTimer = setTimeout(async () => {
+      logoLongPressed = true;
+      const ok = await dlg.confirm(
+        `この端末（${getStoreName()}）からログアウトして店舗を切り替えますか？`,
+        { title: '店舗ログアウト', okLabel: 'ログアウト', cancelLabel: 'キャンセル' }
+      );
+      if (!ok) return;
+      logoutStore();
+      window.location.reload();
+    }, 800);
+  };
+  const cancelLogoPress = () => {
+    if (logoLongPressTimer) { clearTimeout(logoLongPressTimer); logoLongPressTimer = null; }
+  };
+  headerLogo.addEventListener('touchstart', startLogoPress, { passive: true });
+  headerLogo.addEventListener('touchend', cancelLogoPress);
+  headerLogo.addEventListener('touchmove', cancelLogoPress, { passive: true });
+  headerLogo.addEventListener('mousedown', startLogoPress);
+  headerLogo.addEventListener('mouseup', cancelLogoPress);
+  headerLogo.addEventListener('mouseleave', cancelLogoPress);
+  // 長押し成立時はクリック（同期確認）を抑制
+  headerLogo.addEventListener('click', (e) => {
+    if (logoLongPressed) { e.stopImmediatePropagation(); e.preventDefault(); logoLongPressed = false; }
+  }, true);
 }

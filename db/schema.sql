@@ -150,3 +150,20 @@ create policy panel_images_anon_update on storage.objects
 drop policy if exists panel_images_anon_delete on storage.objects;
 create policy panel_images_anon_delete on storage.objects
   for delete to anon using (bucket_id = 'panel-images');
+
+-- ===== マルチ店舗対応（方式A: store_id 列。詳細は db/migration-multistore.sql）=====
+-- 店舗マスタ（名前・パスワード）はアプリ側にハードコード（src/storeContext.js の STORES）。
+-- DB はデータ分離用の store_id 列のみ持つ。
+-- 各テーブルへ store_id（既存行は既定で gently-diva）
+alter table public.panels     add column if not exists store_id text not null default 'gently-diva';
+alter table public.orders     add column if not exists store_id text not null default 'gently-diva';
+alter table public.selections add column if not exists store_id text not null default 'gently-diva';
+
+create index if not exists idx_panels_store    on public.panels(store_id);
+create index if not exists idx_orders_store     on public.orders(store_id);
+create index if not exists idx_selections_store on public.selections(store_id);
+
+-- Realtime が DELETE/UPDATE でも store_id でフィルタできるように全列を流す
+alter table public.panels     replica identity full;
+alter table public.orders     replica identity full;
+alter table public.selections replica identity full;

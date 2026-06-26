@@ -73,6 +73,13 @@
       <div class="section">
         <div class="section-title"><span>動作設定</span></div>
         <div class="form-group">
+          <label>この端末の店舗</label>
+          <div class="store-row">
+            <span id="current-store-name" class="current-store-name">―</span>
+            <button class="btn btn-secondary" id="btn-switch-store">ログアウト（店舗切り替え）</button>
+          </div>
+        </div>
+        <div class="form-group">
           <label>端末名（履歴に表示されます。例: フロア / 受付 / 1階タブレット）</label>
           <input type="text" id="setting-device-name" placeholder="未設定" />
         </div>
@@ -151,7 +158,6 @@
         <div class="section-title"><span>その他</span></div>
         <div class="toolbar">
           <button class="btn btn-newface" id="btn-toggle-new">新人を非表示</button>
-          <button class="btn btn-secondary" id="btn-change-pw">パスワード変更</button>
           <button class="btn btn-danger" id="btn-reset">データリセット</button>
         </div>
       </div>
