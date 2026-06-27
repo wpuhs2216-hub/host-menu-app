@@ -1674,6 +1674,18 @@ html.env-web .header h1.header-logo-img img { height: 32px; }
   .header h1.header-logo-img img { height: 28px; }
 }
 
+/* GENTLY DIVA 以外の店舗はロゴの代わりに店舗名テキストを表示 */
+.header h1.header-logo-img .header-store-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #d4af37;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .header h1.header-logo-img .header-store-name { font-size: 18px; }
+}
+
 /* ========================================
    env-web パネル編集モーダル（admin の openModal）
    スマホでのレイアウト崩れを修正
@@ -1856,6 +1868,14 @@ html.env-web #btn-clear-own-orders { display: none !important; }
   max-height: 90px;
   object-fit: contain;
   margin: 0 auto 4px;
+}
+/* 初回案内のアプリ名（店舗未確定なのでロゴではなくアプリ名を表示） */
+.store-login-appname {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #d4af37;
+  margin: 0 auto 8px;
 }
 .store-login-title {
   color: #d4af37;

@@ -16,7 +16,7 @@ import { initialSync, startRealtime, stopRealtime, forcePull, syncOrderInsert } 
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck } from './updateCheck.js';
 import { ensureStoreFixed } from './storeLogin.js';
-import { logoutStore, getStoreName } from './storeContext.js';
+import { logoutStore, getStoreName, getStoreId } from './storeContext.js';
 // 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
 // selections テーブル同期は main 側では使わない（複数端末で選択が干渉しないように）
 
@@ -709,6 +709,14 @@ window.addEventListener('popstate', () => {
 (async () => {
   // 店舗が未固定なら、まずパスワードで店舗を固定する（固定されるまでここで待つ）
   await ensureStoreFixed();
+  // ヘッダーのブランディング: GENTLY DIVA のみロゴ画像、他店舗は店舗名テキスト
+  if (headerLogo && getStoreId() !== 'gently-diva') {
+    headerLogo.innerHTML = '';
+    const span = document.createElement('span');
+    span.className = 'header-store-name';
+    span.textContent = getStoreName();
+    headerLogo.appendChild(span);
+  }
   await render();
   try {
     await initialSync();
