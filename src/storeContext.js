@@ -8,8 +8,7 @@
 //   id は DB の store_id（panels.store_id 等）と一致させること。既存店舗は 'gently-diva'。
 export const STORES = [
   { id: 'gently-diva', name: 'GENTLY DIVA', password: '2020' },
-  // 例: 2店舗目を追加するときは下行のコメントを外し、name と password を設定する
-  // { id: 'store-2', name: '2号店', password: 'CHANGE_ME' },
+  { id: 'dears-lucia', name: "Dear's Lucia", password: '12345' },
 ];
 
 const STORE_ID_KEY = 'host-menu-store-id';
