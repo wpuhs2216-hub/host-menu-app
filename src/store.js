@@ -7,24 +7,9 @@ const SETTINGS_KEY = 'host-menu-settings';
 const PW_KEY = 'host-menu-admin-pw';
 const DEFAULT_PW = '2020';
 
-// 初期サンプルデータ
+// 初期データ（新店舗は空から始める。GENTLY DIVA はクラウドのデータを使うため影響なし）
 const DEFAULT_DATA = {
-  items: [
-    { id: 'item-1', name: '', ruby: '', title: '', image: '', label: '', order: 0, visible: true, isNewFace: false },
-    { id: 'item-2', name: '', ruby: '', title: '', image: '', label: '', order: 1, visible: true, isNewFace: false },
-    { id: 'item-3', name: '', ruby: '', title: '', image: '', label: '', order: 2, visible: true, isNewFace: false },
-    { id: 'item-4', name: '神木祐也', ruby: 'かみきゆうや', title: '取締役', image: '', label: '', order: 3, visible: true, isNewFace: false },
-    { id: 'item-5', name: '迅', ruby: 'じん', title: '総支配人', image: '', label: '', order: 4, visible: true, isNewFace: false },
-    { id: 'item-6', name: 'ちんす♡こう', ruby: '', title: '主任', image: '', label: '', order: 5, visible: true, isNewFace: false },
-    { id: 'item-7', name: 'クロム', ruby: '', title: '副主任', image: '', label: '', order: 6, visible: true, isNewFace: false },
-    { id: 'item-8', name: 'スバル', ruby: '', title: '', image: '', label: '', order: 7, visible: true, isNewFace: false },
-    { id: 'item-9', name: '琥', ruby: 'こはく', title: '', image: '', label: '', order: 8, visible: true, isNewFace: false },
-    { id: 'item-10', name: '寿里', ruby: 'じゅり', title: '', image: '', label: '', order: 9, visible: true, isNewFace: false },
-    { id: 'item-11', name: '夏目', ruby: 'なつめ', title: '', image: '', label: '', order: 10, visible: true, isNewFace: false },
-    { id: 'item-12', name: '雅', ruby: 'みやび', title: '', image: '', label: '', order: 11, visible: true, isNewFace: false },
-    { id: 'item-13', name: '狼恋', ruby: 'ろうれん', title: '', image: '', label: '', order: 12, visible: true, isNewFace: false },
-    { id: 'item-14', name: 'はると', ruby: '', title: '', image: '', label: '', order: 13, visible: true, isNewFace: false },
-  ],
+  items: [],
 };
 
 // データ読み込み
