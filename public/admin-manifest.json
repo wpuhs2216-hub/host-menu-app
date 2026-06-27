@@ -1,7 +1,7 @@
 {
-  "name": "Vパネル",
-  "short_name": "Vパネル",
-  "description": "Vパネル 管理画面",
+  "name": "初回案内",
+  "short_name": "初回案内",
+  "description": "初回案内 管理画面",
   "start_url": "./admin.html",
   "scope": "./",
   "display": "standalone",

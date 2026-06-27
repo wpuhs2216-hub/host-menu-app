@@ -1,7 +1,7 @@
 {
-  "name": "Vパネル",
-  "short_name": "Vパネル",
-  "description": "Vパネル メニュー表",
+  "name": "初回案内",
+  "short_name": "初回案内",
+  "description": "初回案内 メニュー表",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

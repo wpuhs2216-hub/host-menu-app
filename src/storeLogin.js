@@ -11,7 +11,7 @@ function buildOverlay() {
   el.className = 'store-login-overlay';
   el.innerHTML = `
     <div class="store-login-box">
-      <div class="store-login-appname">Vパネル</div>
+      <div class="store-login-appname">初回案内</div>
       <h2 class="store-login-title">店舗パスワード</h2>
       <p class="store-login-desc">この端末を使用する店舗のパスワードを入力してください</p>
       <input class="store-login-input" type="password" inputmode="numeric"
