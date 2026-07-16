@@ -17,6 +17,7 @@ import * as dlg from './dialog.js';
 import { scheduleStartupCheck } from './updateCheck.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import { logoutStore, getStoreName, getStoreId } from './storeContext.js';
+import { getSeatOptions, getColorLabel, pullStoreSettings } from './storeSettings.js';
 // 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
 // selections テーブル同期は main 側では使わない（複数端末で選択が干渉しないように）
 
@@ -94,7 +95,7 @@ function resetSelection() {
 document.getElementById('reset-btn')?.addEventListener('click', resetSelection);
 
 // === 席選択 ===
-const SEAT_OPTIONS = ['A', 'B-1', 'B-2', 'C-1', 'C-2', 'D', 'E-1', 'E-2', 'E-3'];
+// 卓番リストは店舗設定（storeSettings）から取得する
 let currentSeat = '';                  // '' or 'A' or ... or 任意文字列(other)
 
 function setCurrentSeat(seat) {
@@ -107,9 +108,10 @@ function setCurrentSeat(seat) {
 }
 
 async function openSeatPicker() {
-  // 「未選択 / A / B-1 ... / E-3 / その他(自由入力) / 解除」を縦リストで表示
+  // 「未選択 / 卓番リスト / その他(自由入力) / 解除」を縦リストで表示
   return new Promise((resolve) => {
     // ダイアログホストを利用（dialog.js の代替実装）
+    const seatOptions = getSeatOptions();
     const root = document.createElement('div');
     root.className = 'seat-picker-host';
     root.innerHTML = `
@@ -117,7 +119,7 @@ async function openSeatPicker() {
         <div class="seat-picker-box">
           <h3 class="seat-picker-title">席を選択</h3>
           <div class="seat-options">
-            ${SEAT_OPTIONS.map((s) => `<button class="seat-option ${currentSeat === s ? 'active' : ''}" data-seat="${s}">${s}</button>`).join('')}
+            ${seatOptions.map((s, i) => `<button class="seat-option ${currentSeat === s ? 'active' : ''}" data-seat-index="${i}">${escapeHtml(s)}</button>`).join('')}
             <button class="seat-option seat-other" data-action="other">その他…</button>
           </div>
           <div class="seat-picker-actions">
@@ -135,7 +137,7 @@ async function openSeatPicker() {
         if (e.target.classList.contains('seat-picker-backdrop')) finish(undefined);
         return;
       }
-      if (btn.dataset.seat) return finish(btn.dataset.seat);
+      if (btn.dataset.seatIndex !== undefined) return finish(seatOptions[Number(btn.dataset.seatIndex)] || '');
       if (btn.dataset.action === 'clear') return finish('');
       if (btn.dataset.action === 'cancel') return finish(undefined);
       if (btn.dataset.action === 'other') {
@@ -233,9 +235,22 @@ function applyPanelStyle(el, id) {
   el.style.boxShadow = buildBoxShadow(colors);
 }
 
-const COLOR_LABEL_EN = { yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green' };
+// 色ラベルは店舗設定（storeSettings.getColorLabel）から取得する
+// 色ピッカーの各ボタン下にラベル（壁側/通路側など）を表示
+function applyColorPickerLabels() {
+  document.querySelectorAll('#color-picker .color-btn').forEach((btn) => {
+    const c = btn.dataset.color;
+    if (!c) return;
+    const label = getColorLabel(c);
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    const labelEl = btn.parentElement?.querySelector('.color-btn-label');
+    if (labelEl) labelEl.textContent = label;
+  });
+}
+applyColorPickerLabels();
 
-// 「Yellow で選択中」のバッジ列をパネル左上に表示
+// 「壁側 で選択中」のバッジ列をパネル左上に表示
 // 表示条件: 複数色 または 現在のピッカーと違う色1つ で選択中の場合のみ
 function updateSelectingBadges(el, id) {
   let host = el.querySelector('.selecting-badges');
@@ -250,7 +265,7 @@ function updateSelectingBadges(el, id) {
   if (colors.length === 0 || onlyCurrent) { host.innerHTML = ''; return; }
   const sorted = COLOR_ORDER.filter((c) => colors.includes(c));
   host.innerHTML = sorted.map((c) =>
-    `<span class="selecting-badge color-${c}">${COLOR_LABEL_EN[c]} で選択中</span>`
+    `<span class="selecting-badge color-${c}">${escapeHtml(getColorLabel(c))} で選択中</span>`
   ).join('');
 }
 
@@ -457,8 +472,6 @@ function groupCastsByColor() {
   return ordered;
 }
 
-const COLOR_LABEL = COLOR_LABEL_EN;
-
 function openOrderModal() {
   const groups = groupCastsByColor();
   if (groups.length === 0) return;
@@ -475,7 +488,7 @@ function openOrderModal() {
     <div class="order-color-group color-${g.color}" data-color="${g.color}">
       <div class="order-group-header">
         <span class="order-color-badge color-${g.color}"></span>
-        <span class="order-color-label">${COLOR_LABEL[g.color]} グループ（${g.casts.length}名）</span>
+        <span class="order-color-label">${escapeHtml(getColorLabel(g.color))} グループ（${g.casts.length}名）</span>
       </div>
       <div class="order-group-casts">
         ${g.casts.map((c) => `<div class="order-cast-tag color-${g.color}"><span class="tag-title">${escapeHtml(c.title || '')}</span> ${escapeHtml(c.name)}</div>`).join('')}
@@ -717,6 +730,13 @@ window.addEventListener('popstate', () => {
     span.textContent = getStoreName();
     headerLogo.appendChild(span);
   }
+  // 店舗設定（卓番・色ラベル）をクラウドから取得して反映（失敗時はローカルキャッシュで継続）
+  try {
+    await pullStoreSettings();
+  } catch (e) {
+    console.warn('店舗設定取得失敗（キャッシュ継続）', e);
+  }
+  applyColorPickerLabels();
   await render();
   try {
     await initialSync();
@@ -737,6 +757,7 @@ async function resyncFromCloud({ silent = true } = {}) {
   if (resyncInFlight) return;
   resyncInFlight = true;
   try {
+    try { await pullStoreSettings(); applyColorPickerLabels(); } catch { /* 設定取得失敗は無視 */ }
     await forcePull();
     await render();
     stopRealtime();

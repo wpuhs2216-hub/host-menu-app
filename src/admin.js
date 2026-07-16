@@ -9,6 +9,7 @@ import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
 import { getStoreName, getStorePassword, logoutStore } from './storeContext.js';
+import { getSeatOptions, getColorLabel, getRawColorLabels, pullStoreSettings, saveStoreSettings } from './storeSettings.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
@@ -740,22 +741,19 @@ function renderOrders() {
 }
 
 // 履歴編集モーダル: 席選択リスト+お客様名+メモ+色選択リストを一括表示
-const ORDER_SEAT_OPTIONS = ['A', 'B-1', 'B-2', 'C-1', 'C-2', 'D', 'E-1', 'E-2', 'E-3'];
-const ORDER_COLOR_OPTIONS = [
-  { v: 'yellow', label: 'Yellow' },
-  { v: 'red',    label: 'Red' },
-  { v: 'blue',   label: 'Blue' },
-  { v: 'green',  label: 'Green' },
-];
+// 卓番リスト・色ラベルは店舗設定（storeSettings）から取得する
+const COLOR_KEYS = ['yellow', 'red', 'blue', 'green'];
 
 function openOrderEditModal(id) {
   const current = (cloudOrdersCache.find((o) => o.id === id)) || loadOrders().find((o) => o.id === id);
   if (!current) return;
 
-  const isStandardSeat = ORDER_SEAT_OPTIONS.includes(current.seat || '');
-  const seatInit = isStandardSeat ? current.seat : (current.seat ? 'other' : '');
-  const otherInit = (isStandardSeat || !current.seat) ? '' : current.seat;
-  const colorInit = ORDER_COLOR_OPTIONS.some((c) => c.v === current.color) ? current.color : 'yellow';
+  const seatOptions = getSeatOptions();
+  const colorOptions = COLOR_KEYS.map((v) => ({ v, label: getColorLabel(v) }));
+  const seatInitIndex = seatOptions.indexOf(current.seat || '');
+  const seatInit = seatInitIndex >= 0 ? String(seatInitIndex) : (current.seat ? 'other' : '');
+  const otherInit = (seatInitIndex >= 0 || !current.seat) ? '' : current.seat;
+  const colorInit = colorOptions.some((c) => c.v === current.color) ? current.color : 'yellow';
 
   const root = document.createElement('div');
   root.className = 'app-dialog-host';
@@ -768,7 +766,7 @@ function openOrderEditModal(id) {
         <label>席番</label>
         <select id="ed-seat" class="app-dialog-input">
           <option value="">未選択</option>
-          ${ORDER_SEAT_OPTIONS.map((s) => `<option value="${s}" ${s === seatInit ? 'selected' : ''}>${s}</option>`).join('')}
+          ${seatOptions.map((s, i) => `<option value="${i}" ${String(i) === seatInit ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('')}
           <option value="other" ${seatInit === 'other' ? 'selected' : ''}>その他（自由入力）</option>
         </select>
         <input id="ed-seat-other" class="app-dialog-input" placeholder="席番号を入力" style="display:${seatInit === 'other' ? 'block' : 'none'};margin-top:6px" value="${escapeHtml(otherInit)}" />
@@ -787,7 +785,7 @@ function openOrderEditModal(id) {
       <div class="form-group">
         <label>色</label>
         <select id="ed-color" class="app-dialog-input">
-          ${ORDER_COLOR_OPTIONS.map((c) => `<option value="${c.v}" ${c.v === colorInit ? 'selected' : ''}>${c.label}</option>`).join('')}
+          ${colorOptions.map((c) => `<option value="${c.v}" ${c.v === colorInit ? 'selected' : ''}>${escapeHtml(c.label)}</option>`).join('')}
         </select>
       </div>
 
@@ -817,7 +815,9 @@ function openOrderEditModal(id) {
   });
 
   root.querySelector('#ed-save').addEventListener('click', () => {
-    const seatVal = seatSel.value === 'other' ? seatOther.value.trim() : seatSel.value;
+    const seatVal = seatSel.value === 'other'
+      ? seatOther.value.trim()
+      : (seatSel.value === '' ? '' : (seatOptions[Number(seatSel.value)] || ''));
     const patch = {
       seat: seatVal,
       customerName: root.querySelector('#ed-name').value.trim(),
@@ -1145,6 +1145,55 @@ function initFontSettings() {
   initStoreSwitch();
 }
 
+// === 店舗設定 UI（卓番リスト・色ラベル。クラウド保存で全端末共有） ===
+function initStoreSettingsUI() {
+  const seatInput = document.getElementById('setting-seat-options');
+  const labelInputs = {};
+  for (const c of COLOR_KEYS) {
+    labelInputs[c] = document.getElementById(`setting-color-label-${c}`);
+  }
+  if (!seatInput) return;
+
+  const populate = () => {
+    seatInput.value = getSeatOptions().join(', ');
+    const labels = getRawColorLabels();
+    for (const c of COLOR_KEYS) {
+      if (labelInputs[c]) labelInputs[c].value = labels[c] || '';
+    }
+  };
+  populate();
+
+  const btnSave = document.getElementById('btn-save-store-settings');
+  const statusEl = document.getElementById('store-settings-status');
+  btnSave?.addEventListener('click', async () => {
+    const seatOptions = seatInput.value.split(/[,、]/).map((s) => s.trim()).filter(Boolean);
+    if (seatOptions.length === 0) {
+      await dlg.alert('卓番を1つ以上入力してください');
+      return;
+    }
+    const colorLabels = {};
+    for (const c of COLOR_KEYS) colorLabels[c] = (labelInputs[c]?.value || '').trim();
+    btnSave.disabled = true;
+    try {
+      await saveStoreSettings({ seatOptions, colorLabels });
+      if (statusEl) statusEl.textContent = '保存しました（全端末に反映されます）';
+      populate();
+    } catch (e) {
+      // ローカルには保存済み。クラウド反映のみ失敗
+      if (statusEl) statusEl.textContent = 'クラウド保存に失敗（この端末のみ反映）: ' + (e?.message || e);
+    } finally {
+      btnSave.disabled = false;
+    }
+  });
+
+  // クラウドの最新設定を反映（未編集時のみ上書き）
+  pullStoreSettings().then(() => {
+    if (document.activeElement !== seatInput && !COLOR_KEYS.some((c) => document.activeElement === labelInputs[c])) {
+      populate();
+    }
+  }).catch(() => {});
+}
+
 // === 店舗ログアウト（＝店舗切り替え） ===
 // ログアウトすると店舗固定が解除され、再起動時のパスワード画面で別店舗を選べる。
 function initStoreSwitch() {
@@ -1365,7 +1414,6 @@ if (btnCloudBackupList) {
 
 // === ブラウザ通知 ===
 const NOTIFY_KEY = 'host-menu-notify-enabled';
-const NOTIFY_COLOR_LABEL = { yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green' };
 const btnToggleNotify = document.getElementById('btn-toggle-notify');
 
 function notifySupported() {
@@ -1456,7 +1504,7 @@ if (btnToggleNotify && !IS_CAPACITOR) {
 
 function fireNotification(o) {
   if (!notifyEnabled()) return;
-  const colorLabel = NOTIFY_COLOR_LABEL[o.color] || '';
+  const colorLabel = COLOR_KEYS.includes(o.color) ? getColorLabel(o.color) : '';
   const seat = o.seat ? `席 ${o.seat}` : '席未選択';
   const dev = o.deviceName ? `[${o.deviceName}] ` : '';
   const src = o.source === 'preview' ? '（プレビュー）' : '';
@@ -1486,6 +1534,7 @@ async function init() {
   }
 
   initFontSettings();
+  initStoreSettingsUI();
   renderOrders();
   renderList();
   updateNewFaceBtn();

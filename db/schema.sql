@@ -167,3 +167,23 @@ create index if not exists idx_selections_store on public.selections(store_id);
 alter table public.panels     replica identity full;
 alter table public.orders     replica identity full;
 alter table public.selections replica identity full;
+
+-- ===== store_settings テーブル（店舗ごとの卓番リスト・色ラベル）=====
+-- 詳細・単体実行用は db/migration-store-settings.sql
+create table if not exists public.store_settings (
+  store_id text primary key,
+  seat_options jsonb not null default '[]'::jsonb,
+  color_labels jsonb not null default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+
+drop trigger if exists trg_store_settings_touch on public.store_settings;
+create trigger trg_store_settings_touch
+  before update on public.store_settings
+  for each row execute function public.touch_updated_at();
+
+alter table public.store_settings enable row level security;
+
+drop policy if exists store_settings_anon_all on public.store_settings;
+create policy store_settings_anon_all on public.store_settings
+  for all to anon using (true) with check (true);

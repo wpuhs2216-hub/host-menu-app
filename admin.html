@@ -91,6 +91,28 @@
         </div>
       </div>
 
+      <!-- 店舗設定（卓番・色ラベル。全端末共通） -->
+      <div class="section">
+        <div class="section-title"><span>店舗設定（全端末共通）</span></div>
+        <div class="form-group">
+          <label>卓番リスト（カンマ区切り。席選択に表示される順で入力。「その他」自由入力は常に選べます）</label>
+          <input type="text" id="setting-seat-options" placeholder="例: A, B-1, B-2, C-1" />
+        </div>
+        <div class="form-group">
+          <label>色ラベル（色選択ボタンの下に表示。空欄の場合は色名 Yellow/Red/Blue/Green を表示）</label>
+          <div class="color-label-rows">
+            <div class="color-label-row"><span class="order-color-badge color-yellow"></span><input type="text" id="setting-color-label-yellow" placeholder="Yellow" /></div>
+            <div class="color-label-row"><span class="order-color-badge color-red"></span><input type="text" id="setting-color-label-red" placeholder="Red" /></div>
+            <div class="color-label-row"><span class="order-color-badge color-blue"></span><input type="text" id="setting-color-label-blue" placeholder="Blue" /></div>
+            <div class="color-label-row"><span class="order-color-badge color-green"></span><input type="text" id="setting-color-label-green" placeholder="Green" /></div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btn-save-store-settings">店舗設定を保存</button>
+          <span id="store-settings-status" style="align-self:center;font-size:0.85em;opacity:0.7"></span>
+        </div>
+      </div>
+
       <!-- フォントサイズ設定（一番下） -->
       <div class="section">
         <div class="section-title"><span>フォントサイズ設定</span></div>

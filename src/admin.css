@@ -672,3 +672,32 @@
   min-width: 42px;
   text-align: right;
 }
+
+/* === 店舗設定（卓番・色ラベル） === */
+.color-label-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.color-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-label-row .order-color-badge {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-right: 0;
+}
+
+.color-label-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .color-label-rows { grid-template-columns: 1fr; }
+}

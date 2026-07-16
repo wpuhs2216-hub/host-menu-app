@@ -15,6 +15,7 @@ const STORE_ID_KEY = 'host-menu-store-id';
 const STORE_NAME_KEY = 'host-menu-store-name';
 const DATA_KEY = 'host-menu-data';            // パネルのローカルキャッシュ（店舗依存）
 const ADMIN_SESSION_KEY = 'host-menu-admin-session';
+const STORE_SETTINGS_CACHE_KEY = 'host-menu-store-settings'; // 店舗設定キャッシュ（storeSettings.js と同じキー）
 
 // 端末に固定された店舗ID。未固定なら ''（空＝どのデータにも一致しない安全側）
 export function getStoreId() {
@@ -60,4 +61,5 @@ export function logoutStore() {
   try { localStorage.removeItem(STORE_NAME_KEY); } catch { /* ignore */ }
   try { localStorage.removeItem(DATA_KEY); } catch { /* ignore */ }
   try { localStorage.removeItem(ADMIN_SESSION_KEY); } catch { /* ignore */ }
+  try { localStorage.removeItem(STORE_SETTINGS_CACHE_KEY); } catch { /* ignore */ }
 }
