@@ -1,0 +1,113 @@
+- generic [ref=f30e4]:
+  - generic [ref=f30e7]:
+    - img "Google" [ref=f30e9]
+    - generic [ref=f30e10]:
+      - heading "Couldn’t sign you in" [level=1] [ref=f30e13]
+      - generic [ref=f30e16]:
+        - generic [ref=f30e20]:
+          - paragraph [ref=f30e21]:
+            - text: This browser or app may not be secure.
+            - link "Learn more about about how to solve this issue on the Google support site. (external, opens in a new window)" [ref=f30e22] [cursor=pointer]:
+              - /url: https://support.google.com/accounts/answer/7675428?hl=en-US
+              - text: Learn more
+          - paragraph [ref=f30e23]: Try using a different browser. If you’re already using a supported browser, you can try again to sign in.
+        - link "Try again" [ref=f30e27] [cursor=pointer]:
+          - /url: /restart?app_domain=https://github.com&client_id=1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com&code_challenge=_ceqEGSz5qoiOe7bEzm1cU2yVFWWPLVJXPK0yyDFMx0&code_challenge_method=S256&continue=https://accounts.google.com/signin/oauth/legacy/consent?authuser%3Dunknown%26part%3DAJi8hANPUa-lPRRqNwGilFGDVYudN9WjT27cv6bo_fjPvRLgDPIDgeAeodmUW-rZXiy_McU4jRwn29a3bIsZCIKvI4WTs-0f6KhlJHm-EZPeJLlEE8jRws2w_uJpJTq6Yf-17_FwEB7uiR_lopIBIUrA0Zpqzc0bmviJqmyHARXwk7fMeKrQKFFEUNVKODYMpAGTdfVZoxJO0vxfALfYLpEZPdZsWEUb3YeLdMKhxEIcZnlFFQ3_VVfBrNnp95iH7azv6_GKMdWsa7CcVQ-TG3Lb5A2cjsNFqSZhfNriXcvbMTJK7p8tfE3INMqgOZ_ZriVKYZo8mbD4bexnMLche2qnfS8V9kkQh_rdGU2l0whWURHBNCdQCLTSEKSc5zoYj2azVasyL1N2K3EwESB6-gyJBdtFM79L3ncIH-8LZNPbqy3Zt9BRRqngq_wWuvRMFJnqCFqTG7DED9I7MyW3RfiYY4kn3mCD5Ow-Plo5bBw8M3i-PW9t8Bm59tnWLY-16Qos5tj_mKdEMvze8ygwVAyK4gIC301cvkCS2NEBT_hj6uIA0rpVAvwU6p5M9lIOgcZOzjvDkKAbdAEwh6g4hKiRpfJY-Wkf-ym_MarL6-PvcUYLalAgay7Na0lYyPkkjlLkov4-_UTL%26flowName%3DGeneralOAuthFlow%26as%3DS-835289440%253A1784287844574478%26client_id%3D1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com%23&dsh=S-835289440:1784287844574478&flowName=GeneralOAuthLite&nonce=a6512512382c8b6b85cc53c63fd4727a&o2v=2&opparams=%253F&prompt=select_account&rart=ANgoxcfDlfJpAYWlgQtMwwoPP6nCuM0MtbqflY54wB0HzmSRJr6I9jPReFtenoWo4BH0o3dINU6mJPiZj7aOLLO9YmYPOyIC01aHs0E1BLWN2Xv3OvH20bM&redirect_uri=https://github.com/sessions/social/google/callback&response_type=code&scope=openid+email+profile&service=lso&state=d9edb444df30e8ce7c0f01fe8f34aa8b
+  - contentinfo [ref=f30e28]:
+    - combobox [ref=f30e31] [cursor=pointer]:
+      - option "Afrikaans"
+      - option "azərbaycan"
+      - option "bosanski"
+      - option "català"
+      - option "Čeština"
+      - option "Cymraeg"
+      - option "Dansk"
+      - option "Deutsch"
+      - option "eesti"
+      - option "English (United Kingdom)"
+      - option "English (United States)" [selected]
+      - option "Español (España)"
+      - option "Español (Latinoamérica)"
+      - option "euskara"
+      - option "Filipino"
+      - option "Français (Canada)"
+      - option "Français (France)"
+      - option "Gaeilge"
+      - option "galego"
+      - option "Hrvatski"
+      - option "Indonesia"
+      - option "isiZulu"
+      - option "íslenska"
+      - option "Italiano"
+      - option "Kiswahili"
+      - option "latviešu"
+      - option "lietuvių"
+      - option "magyar"
+      - option "Melayu"
+      - option "Nederlands"
+      - option "norsk"
+      - option "o‘zbek"
+      - option "polski"
+      - option "Português (Brasil)"
+      - option "Português (Portugal)"
+      - option "română"
+      - option "shqip"
+      - option "Slovenčina"
+      - option "slovenščina"
+      - option "srpski (latinica)"
+      - option "Suomi"
+      - option "Svenska"
+      - option "Tiếng Việt"
+      - option "Türkçe"
+      - option "Ελληνικά"
+      - option "беларуская"
+      - option "български"
+      - option "кыргызча"
+      - option "қазақ тілі"
+      - option "македонски"
+      - option "монгол"
+      - option "Русский"
+      - option "српски (ћирилица)"
+      - option "Українська"
+      - option "ქართული"
+      - option "հայերեն"
+      - option "‫עברית‬‎"
+      - option "‫اردو‬‎"
+      - option "‫العربية‬‎"
+      - option "‫فارسی‬‎"
+      - option "አማርኛ"
+      - option "नेपाली"
+      - option "मराठी"
+      - option "हिन्दी"
+      - option "অসমীয়া"
+      - option "বাংলা"
+      - option "ਪੰਜਾਬੀ"
+      - option "ગુજરાતી"
+      - option "ଓଡ଼ିଆ"
+      - option "தமிழ்"
+      - option "తెలుగు"
+      - option "ಕನ್ನಡ"
+      - option "മലയാളം"
+      - option "සිංහල"
+      - option "ไทย"
+      - option "ລາວ"
+      - option "မြန်မာ"
+      - option "ខ្មែរ"
+      - option "한국어"
+      - option "中文（香港）"
+      - option "日本語"
+      - option "简体中文"
+      - option "繁體中文"
+    - list [ref=f30e32]:
+      - listitem [ref=f30e33]:
+        - link "Open Google Account Help Center (external, opens in a new window)" [ref=f30e34] [cursor=pointer]:
+          - /url: https://support.google.com/accounts?hl=en-US&p=account_iph
+          - text: Help
+      - listitem [ref=f30e35]:
+        - link "Privacy Policy (external, opens in a new window)" [ref=f30e36] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=JP&hl=en-US&privacy=true
+          - text: Privacy
+      - listitem [ref=f30e37]:
+        - link "Google Terms of Service (external, opens in a new window)" [ref=f30e38] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=JP&hl=en-US
+          - text: Terms

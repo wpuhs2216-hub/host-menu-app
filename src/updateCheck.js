@@ -3,8 +3,13 @@
 // - 6時間キャッシュ（lastUpdateCheckAt）
 // - 新版検知でトースト表示。「更新する」「閉じる」「このバージョン無視」
 
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import * as dlg from './dialog.js';
 import './updateCheck.css';
+
+// アプリ内アップデート用ネイティブプラグイン（APK 版のみ実体あり）
+const ApkInstaller = registerPlugin('ApkInstaller');
+const IS_CAPACITOR = !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 
 const APP_VERSION = (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0');
 const REPO = 'wpuhs2216-hub/host-menu-app';
@@ -56,7 +61,12 @@ function showUpdateBanner({ latest, url }) {
   setTimeout(() => el.classList.add('show'), 30);
 
   el.querySelector('.ub-update').addEventListener('click', () => {
-    try { window.open(url, '_system'); } catch { window.open(url, '_blank'); }
+    // APK 版かつ .apk アセットがあればアプリ内でDL＆インストール、それ以外はブラウザ
+    if (IS_CAPACITOR && /\.apk$/i.test(url)) {
+      startInAppUpdate(el, url);
+    } else {
+      try { window.open(url, '_system'); } catch { window.open(url, '_blank'); }
+    }
   });
   el.querySelector('.ub-skip').addEventListener('click', () => {
     const cache = loadCache();
@@ -69,6 +79,49 @@ function showUpdateBanner({ latest, url }) {
     el.classList.remove('show');
     setTimeout(() => el.remove(), 300);
   });
+}
+
+// アプリ内アップデート（APK ダウンロード→インストール）。進捗はバナー本文に表示する。
+async function startInAppUpdate(el, url) {
+  const btn = el.querySelector('.ub-update');
+  const skipBtn = el.querySelector('.ub-skip');
+  const textEl = el.querySelector('.ub-text');
+  const origText = textEl.innerHTML;
+  let listener;
+  try {
+    btn.disabled = true;
+    if (skipBtn) skipBtn.disabled = true;
+    btn.textContent = 'ダウンロード中…';
+    textEl.textContent = 'ダウンロード中… 0%';
+
+    listener = await ApkInstaller.addListener('downloadProgress', (e) => {
+      const pct = Math.max(0, Math.min(100, Number(e?.progress) || 0));
+      textEl.textContent = `ダウンロード中… ${pct}%`;
+    });
+
+    await ApkInstaller.install({ url });
+    textEl.textContent = 'インストールを開始します…';
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    if (msg.includes('PERMISSION_REQUIRED')) {
+      // 提供元不明アプリの許可画面を開いた状態。許可後に再度押してもらう。
+      textEl.textContent = 'この端末で「提供元不明アプリのインストール」を許可し、もう一度「更新する」を押してください';
+      btn.disabled = false;
+      if (skipBtn) skipBtn.disabled = false;
+      btn.textContent = '更新する';
+    } else {
+      textEl.innerHTML = origText;
+      const ok = await dlg.confirm('アプリ内更新に失敗しました。\nブラウザでダウンロードページを開きますか？', {
+        title: '更新エラー', okLabel: '開く', cancelLabel: '閉じる',
+      });
+      if (ok) { try { window.open(url, '_system'); } catch { window.open(url, '_blank'); } }
+      btn.disabled = false;
+      if (skipBtn) skipBtn.disabled = false;
+      btn.textContent = '更新する';
+    }
+  } finally {
+    if (listener && listener.remove) { try { await listener.remove(); } catch { /* ignore */ } }
+  }
 }
 
 async function check({ force = false } = {}) {

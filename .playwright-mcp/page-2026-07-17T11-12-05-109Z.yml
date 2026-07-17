@@ -1,0 +1,30 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - heading [level=1] [ref=e3] [cursor=pointer]:
+      - img "GENTLY DIVA" [ref=e4]
+    - button "席：未選択" [ref=e5] [cursor=pointer]
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - button "壁側" [ref=e8] [cursor=pointer]:
+          - generic: "0"
+        - generic: 壁側
+      - generic [ref=e9]:
+        - button "通路側" [ref=e10] [cursor=pointer]:
+          - generic: "0"
+        - generic: 通路側
+      - generic [ref=e11]:
+        - button "Blue" [ref=e12] [cursor=pointer]:
+          - generic: "0"
+        - generic: Blue
+      - generic [ref=e13]:
+        - button "Green" [ref=e14] [cursor=pointer]:
+          - generic: "0"
+        - generic: Green
+    - generic [ref=e15]: 2026/07/17(金) 20:12
+  - main [ref=e16]
+  - generic [ref=e18]:
+    - generic [ref=e19]: 初回案内
+    - heading "店舗パスワード" [level=2] [ref=e20]
+    - paragraph [ref=e21]: この端末を使用する店舗のパスワードを入力してください
+    - textbox "パスワード" [active] [ref=e22]
+    - button "ログイン" [ref=e24] [cursor=pointer]

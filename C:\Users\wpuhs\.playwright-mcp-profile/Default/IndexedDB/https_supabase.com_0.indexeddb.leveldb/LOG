@@ -1,0 +1,7 @@
+2026/07/17-20:30:30.260 b89de Reusing MANIFEST /home/wpuhs/dev/biz-apps/host-menu-app/C:\Users\wpuhs\.playwright-mcp-profile/Default/IndexedDB/https_supabase.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/07/17-20:30:30.260 b89de Recovering log #3
+2026/07/17-20:30:30.261 b89de Reusing old log /home/wpuhs/dev/biz-apps/host-menu-app/C:\Users\wpuhs\.playwright-mcp-profile/Default/IndexedDB/https_supabase.com_0.indexeddb.leveldb/000003.log 
+2026/07/17-20:30:33.366 b89df Level-0 table #5: started
+2026/07/17-20:30:33.369 b89df Level-0 table #5: 863 bytes OK
+2026/07/17-20:30:33.374 b89df Delete type=0 #3
+2026/07/17-20:30:33.375 b89df Manual compaction at level-0 from (begin) .. (end); will stop at (end)

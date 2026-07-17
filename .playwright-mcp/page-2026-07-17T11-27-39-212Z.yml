@@ -1,0 +1,127 @@
+- generic [ref=f14e4]:
+  - generic [ref=f14e7]:
+    - generic [ref=f14e10]:
+      - img "Google" [ref=f14e12]
+      - generic [ref=f14e13]: Sign in with Google
+    - generic [ref=f14e15]:
+      - generic [ref=f14e17]:
+        - heading "2-Step Verification" [level=1] [ref=f14e18]
+        - paragraph [ref=f14e19]: To help keep your account safe, Google wants to make sure it’s really you trying to sign in
+        - generic [ref=f14e20]: wpuhs2216@gmail.com
+      - generic [ref=f14e31]:
+        - generic [ref=f14e34]:
+          - generic [ref=f14e38]:
+            - generic [ref=f14e39]:
+              - heading "Open the Google app on Apple iPhone 16" [level=2] [ref=f14e41]
+              - generic [ref=f14e43]:
+                - paragraph [ref=f14e44]:
+                  - text: Google sent a notification to your Apple iPhone 16. Open the Google app and tap
+                  - strong [ref=f14e45]: "Yes"
+                  - text: on the prompt to verify it’s you.
+                - paragraph
+            - text: Need help?
+            - button "Learn more about how to complete a device prompt to sign in (external, opens in a new window)" [ref=f14e46] [cursor=pointer]: Learn more about Google prompts
+          - generic [ref=f14e50]:
+            - checkbox "Don’t ask again on this device" [checked] [ref=f14e51] [cursor=pointer]
+            - generic [ref=f14e52] [cursor=pointer]: Don’t ask again on this device
+        - generic [ref=f14e55]:
+          - button "Try another way" [ref=f14e59]
+          - button "Resend it" [ref=f14e61]
+  - contentinfo [ref=f14e62]:
+    - combobox [ref=f14e65] [cursor=pointer]:
+      - option "Afrikaans"
+      - option "azərbaycan"
+      - option "bosanski"
+      - option "català"
+      - option "Čeština"
+      - option "Cymraeg"
+      - option "Dansk"
+      - option "Deutsch"
+      - option "eesti"
+      - option "English (United Kingdom)"
+      - option "English (United States)" [selected]
+      - option "Español (España)"
+      - option "Español (Latinoamérica)"
+      - option "euskara"
+      - option "Filipino"
+      - option "Français (Canada)"
+      - option "Français (France)"
+      - option "Gaeilge"
+      - option "galego"
+      - option "Hrvatski"
+      - option "Indonesia"
+      - option "isiZulu"
+      - option "íslenska"
+      - option "Italiano"
+      - option "Kiswahili"
+      - option "latviešu"
+      - option "lietuvių"
+      - option "magyar"
+      - option "Melayu"
+      - option "Nederlands"
+      - option "norsk"
+      - option "o‘zbek"
+      - option "polski"
+      - option "Português (Brasil)"
+      - option "Português (Portugal)"
+      - option "română"
+      - option "shqip"
+      - option "Slovenčina"
+      - option "slovenščina"
+      - option "srpski (latinica)"
+      - option "Suomi"
+      - option "Svenska"
+      - option "Tiếng Việt"
+      - option "Türkçe"
+      - option "Ελληνικά"
+      - option "беларуская"
+      - option "български"
+      - option "кыргызча"
+      - option "қазақ тілі"
+      - option "македонски"
+      - option "монгол"
+      - option "Русский"
+      - option "српски (ћирилица)"
+      - option "Українська"
+      - option "ქართული"
+      - option "հայերեն"
+      - option "‫עברית‬‎"
+      - option "‫اردو‬‎"
+      - option "‫العربية‬‎"
+      - option "‫فارسی‬‎"
+      - option "አማርኛ"
+      - option "नेपाली"
+      - option "मराठी"
+      - option "हिन्दी"
+      - option "অসমীয়া"
+      - option "বাংলা"
+      - option "ਪੰਜਾਬੀ"
+      - option "ગુજરાતી"
+      - option "ଓଡ଼ିଆ"
+      - option "தமிழ்"
+      - option "తెలుగు"
+      - option "ಕನ್ನಡ"
+      - option "മലയാളം"
+      - option "සිංහල"
+      - option "ไทย"
+      - option "ລາວ"
+      - option "မြန်မာ"
+      - option "ខ្មែរ"
+      - option "한국어"
+      - option "中文（香港）"
+      - option "日本語"
+      - option "简体中文"
+      - option "繁體中文"
+    - list [ref=f14e66]:
+      - listitem [ref=f14e67]:
+        - link "Open Google Account Help Center (external, opens in a new window)" [ref=f14e68] [cursor=pointer]:
+          - /url: https://support.google.com/accounts?hl=en-US&p=account_iph
+          - text: Help
+      - listitem [ref=f14e69]:
+        - link "Privacy Policy (external, opens in a new window)" [ref=f14e70] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=JP&hl=en-US&privacy=true
+          - text: Privacy
+      - listitem [ref=f14e71]:
+        - link "Google Terms of Service (external, opens in a new window)" [ref=f14e72] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=JP&hl=en-US
+          - text: Terms

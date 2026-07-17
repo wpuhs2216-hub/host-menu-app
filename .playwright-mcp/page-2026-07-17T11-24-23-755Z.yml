@@ -1,0 +1,134 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e4]:
+    - link "Skip to content" [ref=f1e5] [cursor=pointer]:
+      - /url: "#main"
+    - banner [ref=f1e7]:
+      - generic [ref=f1e8]:
+        - generic [ref=f1e9]:
+          - link "Supabase Back to organization home" [ref=f1e10] [cursor=pointer]:
+            - /url: /dashboard/organizations
+            - img "Supabase" [ref=f1e11]
+            - generic [ref=f1e12]: Back to organization home
+          - button "Connect" [disabled] [ref=f1e20]
+        - generic [ref=f1e25]:
+          - button "Feedback" [ref=f1e26] [cursor=pointer]
+          - generic [ref=f1e28]:
+            - button [ref=f1e29]:
+              - paragraph [ref=f1e34]: Search...
+              - generic [ref=f1e35]: Ctrl K
+            - button "Help" [ref=f1e37] [cursor=pointer]
+            - button "Advisor Center" [ref=f1e44] [cursor=pointer]
+            - button "SQL Editor" [ref=f1e49] [cursor=pointer]
+            - button "AI Assistant" [ref=f1e54] [cursor=pointer]
+          - button [ref=f1e62] [cursor=pointer]
+    - generic [ref=f1e67]:
+      - generic [ref=f1e71]:
+        - navigation [ref=f1e73]:
+          - list [ref=f1e75]:
+            - listitem [ref=f1e76]:
+              - link "Project Overview" [ref=f1e77] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc
+            - listitem [ref=f1e80]:
+              - button "Table Editor" [disabled]
+            - listitem [ref=f1e81]:
+              - button "SQL Editor" [disabled]
+          - list [ref=f1e83]:
+            - listitem [ref=f1e84]:
+              - button "Database" [disabled]
+            - listitem [ref=f1e85]:
+              - button "Authentication" [disabled]
+            - listitem [ref=f1e86]:
+              - button "Storage" [disabled]
+            - listitem [ref=f1e87]:
+              - link "Edge Functions" [ref=f1e88] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc/functions
+            - listitem [ref=f1e94]:
+              - button "Realtime" [disabled]
+          - list [ref=f1e96]:
+            - listitem [ref=f1e97]:
+              - button "Advisors" [disabled]
+            - listitem [ref=f1e98]:
+              - button "Observability" [disabled]
+            - listitem [ref=f1e99]:
+              - link "Logs" [ref=f1e100] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc/logs/explorer
+            - listitem [ref=f1e102]:
+              - button "Integrations" [disabled]
+          - list [ref=f1e104]:
+            - listitem [ref=f1e105]:
+              - link "Project Settings" [ref=f1e106] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc/settings/general
+        - button "Sidebar control" [ref=f1e112] [cursor=pointer]
+      - main [ref=f1e119]:
+        - main [ref=f1e124]:
+          - generic [ref=f1e125]:
+            - generic [ref=f1e139]:
+              - generic [ref=f1e150]:
+                - generic [ref=f1e151]: Status
+                - generic [ref=f1e152]: Checking...
+              - generic [ref=f1e159]:
+                - generic [ref=f1e160]: Compute
+                - paragraph [ref=f1e163]: Unknown
+              - generic [ref=f1e164]: GitHub
+              - link "Recent branch" [ref=f1e173] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc/branches
+              - link "Last migration" [ref=f1e184] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc/database/migrations
+              - link "Last backup" [ref=f1e195] [cursor=pointer]:
+                - /url: /dashboard/project/ktvenszzbejbioafiilc/database/backups/scheduled
+            - generic [ref=f1e212]:
+              - generic [ref=f1e214]:
+                - button "Drag to reorder section" [ref=f1e215]
+                - generic [ref=f1e224]:
+                  - generic [ref=f1e225]:
+                    - generic [ref=f1e226]:
+                      - generic [ref=f1e227]: "0"
+                      - generic [ref=f1e228]: Total Requests
+                    - button "Last 24 hours" [ref=f1e229] [cursor=pointer]
+                  - region "Horizontally scrollable content" [ref=f1e235]:
+                    - generic [ref=f1e236]:
+                      - generic [ref=f1e238]:
+                        - generic [ref=f1e241]:
+                          - heading [level=3] [ref=f1e242]:
+                            - link "Database requests" [ref=f1e243] [cursor=pointer]:
+                              - /url: /dashboard/project/ktvenszzbejbioafiilc/editor
+                          - generic [ref=f1e244]: "0"
+                        - paragraph [ref=f1e252]: No data for selected period
+                      - generic [ref=f1e256]:
+                        - generic [ref=f1e259]:
+                          - heading [level=3] [ref=f1e260]:
+                            - link "Auth requests" [ref=f1e261] [cursor=pointer]:
+                              - /url: /dashboard/project/ktvenszzbejbioafiilc/auth/users
+                          - generic [ref=f1e262]: "0"
+                        - paragraph [ref=f1e270]: No data for selected period
+                      - generic [ref=f1e274]:
+                        - generic [ref=f1e277]:
+                          - heading [level=3] [ref=f1e278]:
+                            - link "Storage requests" [ref=f1e279] [cursor=pointer]:
+                              - /url: /dashboard/project/ktvenszzbejbioafiilc/storage/buckets
+                          - generic [ref=f1e280]: "0"
+                        - paragraph [ref=f1e288]: No data for selected period
+                      - generic [ref=f1e292]:
+                        - generic [ref=f1e295]:
+                          - heading [level=3] [ref=f1e296]:
+                            - link "Realtime requests" [ref=f1e297] [cursor=pointer]:
+                              - /url: /dashboard/project/ktvenszzbejbioafiilc/realtime/inspector
+                          - generic [ref=f1e298]: "0"
+                        - paragraph [ref=f1e306]: No data for selected period
+              - generic [ref=f1e310]:
+                - button "Drag to reorder section" [ref=f1e311]
+                - generic [ref=f1e320]:
+                  - generic [ref=f1e321]:
+                    - heading "Advisor found no issues" [level=2] [ref=f1e322]
+                    - button "Ask Assistant" [ref=f1e323] [cursor=pointer]
+                  - paragraph [ref=f1e335]: No security or performance issues found
+              - generic [ref=f1e337]:
+                - button "Drag to reorder section" [ref=f1e338]
+                - generic [ref=f1e347]:
+                  - heading "Reports" [level=3] [ref=f1e349]
+                  - generic [ref=f1e351]:
+                    - heading "Build a custom report" [level=4] [ref=f1e352]
+                    - paragraph [ref=f1e353]: Keep track of your most important metrics
+                    - paragraph [ref=f1e354]: No charts set up yet in report
+              - status [ref=f1e355]
+  - alert [ref=f1e356]: Supabase

@@ -1,0 +1,129 @@
+- generic [ref=f27e4]:
+  - generic [ref=f27e7]:
+    - generic [ref=f27e10]:
+      - img "Google" [ref=f27e12]
+      - generic [ref=f27e13]: Sign in with Google
+    - generic [ref=f27e15]:
+      - generic [ref=f27e17]:
+        - heading "Sign in" [level=1] [ref=f27e18]
+        - paragraph [ref=f27e19]:
+          - text: to continue to
+          - button "GitHub" [ref=f27e20] [cursor=pointer]
+      - generic [ref=f27e23]:
+        - generic [ref=f27e26]:
+          - generic [ref=f27e31]:
+            - textbox "Email or phone" [active] [ref=f27e32]
+            - generic: Email or phone
+          - paragraph [ref=f27e33]:
+            - link "Forgot email?" [ref=f27e34] [cursor=pointer]:
+              - /url: /signin/v2/usernamerecovery?app_domain=https://github.com&client_id=1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com&code_challenge=_ceqEGSz5qoiOe7bEzm1cU2yVFWWPLVJXPK0yyDFMx0&code_challenge_method=S256&continue=https://accounts.google.com/signin/oauth/legacy/consent?authuser%3Dunknown%26part%3DAJi8hANPUa-lPRRqNwGilFGDVYudN9WjT27cv6bo_fjPvRLgDPIDgeAeodmUW-rZXiy_McU4jRwn29a3bIsZCIKvI4WTs-0f6KhlJHm-EZPeJLlEE8jRws2w_uJpJTq6Yf-17_FwEB7uiR_lopIBIUrA0Zpqzc0bmviJqmyHARXwk7fMeKrQKFFEUNVKODYMpAGTdfVZoxJO0vxfALfYLpEZPdZsWEUb3YeLdMKhxEIcZnlFFQ3_VVfBrNnp95iH7azv6_GKMdWsa7CcVQ-TG3Lb5A2cjsNFqSZhfNriXcvbMTJK7p8tfE3INMqgOZ_ZriVKYZo8mbD4bexnMLche2qnfS8V9kkQh_rdGU2l0whWURHBNCdQCLTSEKSc5zoYj2azVasyL1N2K3EwESB6-gyJBdtFM79L3ncIH-8LZNPbqy3Zt9BRRqngq_wWuvRMFJnqCFqTG7DED9I7MyW3RfiYY4kn3mCD5Ow-Plo5bBw8M3i-PW9t8Bm59tnWLY-16Qos5tj_mKdEMvze8ygwVAyK4gIC301cvkCS2NEBT_hj6uIA0rpVAvwU6p5M9lIOgcZOzjvDkKAbdAEwh6g4hKiRpfJY-Wkf-ym_MarL6-PvcUYLalAgay7Na0lYyPkkjlLkov4-_UTL%26flowName%3DGeneralOAuthFlow%26as%3DS-835289440%253A1784287844574478%26client_id%3D1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com%23&dsh=S-835289440:1784287844574478&flowName=GeneralOAuthLite&nonce=a6512512382c8b6b85cc53c63fd4727a&o2v=2&opparams=%253F&prompt=select_account&rart=ANgoxcfDlfJpAYWlgQtMwwoPP6nCuM0MtbqflY54wB0HzmSRJr6I9jPReFtenoWo4BH0o3dINU6mJPiZj7aOLLO9YmYPOyIC01aHs0E1BLWN2Xv3OvH20bM&redirect_uri=https://github.com/sessions/social/google/callback&response_type=code&scope=openid+email+profile&service=lso&state=d9edb444df30e8ce7c0f01fe8f34aa8b
+        - paragraph [ref=f27e37]:
+          - text: Before using this app, you can review GitHub’s
+          - link "Privacy Policy" [ref=f27e38] [cursor=pointer]:
+            - /url: https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement
+          - text: and
+          - link "Terms of Service" [ref=f27e39] [cursor=pointer]:
+            - /url: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+          - text: .
+        - generic [ref=f27e41]:
+          - button "Next" [ref=f27e43]
+          - link "Create account" [ref=f27e45] [cursor=pointer]:
+            - /url: /lifecycle/flows/signup?app_domain=https://github.com&client_id=1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com&code_challenge=_ceqEGSz5qoiOe7bEzm1cU2yVFWWPLVJXPK0yyDFMx0&code_challenge_method=S256&continue=https://accounts.google.com/signin/oauth/legacy/consent?authuser%3Dunknown%26part%3DAJi8hANPUa-lPRRqNwGilFGDVYudN9WjT27cv6bo_fjPvRLgDPIDgeAeodmUW-rZXiy_McU4jRwn29a3bIsZCIKvI4WTs-0f6KhlJHm-EZPeJLlEE8jRws2w_uJpJTq6Yf-17_FwEB7uiR_lopIBIUrA0Zpqzc0bmviJqmyHARXwk7fMeKrQKFFEUNVKODYMpAGTdfVZoxJO0vxfALfYLpEZPdZsWEUb3YeLdMKhxEIcZnlFFQ3_VVfBrNnp95iH7azv6_GKMdWsa7CcVQ-TG3Lb5A2cjsNFqSZhfNriXcvbMTJK7p8tfE3INMqgOZ_ZriVKYZo8mbD4bexnMLche2qnfS8V9kkQh_rdGU2l0whWURHBNCdQCLTSEKSc5zoYj2azVasyL1N2K3EwESB6-gyJBdtFM79L3ncIH-8LZNPbqy3Zt9BRRqngq_wWuvRMFJnqCFqTG7DED9I7MyW3RfiYY4kn3mCD5Ow-Plo5bBw8M3i-PW9t8Bm59tnWLY-16Qos5tj_mKdEMvze8ygwVAyK4gIC301cvkCS2NEBT_hj6uIA0rpVAvwU6p5M9lIOgcZOzjvDkKAbdAEwh6g4hKiRpfJY-Wkf-ym_MarL6-PvcUYLalAgay7Na0lYyPkkjlLkov4-_UTL%26flowName%3DGeneralOAuthFlow%26as%3DS-835289440%253A1784287844574478%26client_id%3D1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com%23&dsh=S-835289440:1784287844574478&flowEntry=SignUp&flowName=GlifWebSignIn&nonce=a6512512382c8b6b85cc53c63fd4727a&o2v=2&opparams=%253F&prompt=select_account&rart=ANgoxcfDlfJpAYWlgQtMwwoPP6nCuM0MtbqflY54wB0HzmSRJr6I9jPReFtenoWo4BH0o3dINU6mJPiZj7aOLLO9YmYPOyIC01aHs0E1BLWN2Xv3OvH20bM&redirect_uri=https://github.com/sessions/social/google/callback&response_type=code&scope=openid+email+profile&service=lso&signInUrl=https://accounts.google.com/signin/oauth?app_domain%3Dhttps://github.com%26client_id%3D1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com%26code_challenge%3D_ceqEGSz5qoiOe7bEzm1cU2yVFWWPLVJXPK0yyDFMx0%26code_challenge_method%3DS256%26continue%3Dhttps://accounts.google.com/signin/oauth/legacy/consent?authuser%253Dunknown%2526part%253DAJi8hANPUa-lPRRqNwGilFGDVYudN9WjT27cv6bo_fjPvRLgDPIDgeAeodmUW-rZXiy_McU4jRwn29a3bIsZCIKvI4WTs-0f6KhlJHm-EZPeJLlEE8jRws2w_uJpJTq6Yf-17_FwEB7uiR_lopIBIUrA0Zpqzc0bmviJqmyHARXwk7fMeKrQKFFEUNVKODYMpAGTdfVZoxJO0vxfALfYLpEZPdZsWEUb3YeLdMKhxEIcZnlFFQ3_VVfBrNnp95iH7azv6_GKMdWsa7CcVQ-TG3Lb5A2cjsNFqSZhfNriXcvbMTJK7p8tfE3INMqgOZ_ZriVKYZo8mbD4bexnMLche2qnfS8V9kkQh_rdGU2l0whWURHBNCdQCLTSEKSc5zoYj2azVasyL1N2K3EwESB6-gyJBdtFM79L3ncIH-8LZNPbqy3Zt9BRRqngq_wWuvRMFJnqCFqTG7DED9I7MyW3RfiYY4kn3mCD5Ow-Plo5bBw8M3i-PW9t8Bm59tnWLY-16Qos5tj_mKdEMvze8ygwVAyK4gIC301cvkCS2NEBT_hj6uIA0rpVAvwU6p5M9lIOgcZOzjvDkKAbdAEwh6g4hKiRpfJY-Wkf-ym_MarL6-PvcUYLalAgay7Na0lYyPkkjlLkov4-_UTL%2526flowName%253DGeneralOAuthFlow%2526as%253DS-835289440%25253A1784287844574478%2526client_id%253D1078992815106-brpsupgvhheqg35tupphbh0qk9c32nq8.apps.googleusercontent.com%2523%26dsh%3DS-835289440:1784287844574478%26flowName%3DGeneralOAuthLite%26nonce%3Da6512512382c8b6b85cc53c63fd4727a%26o2v%3D2%26opparams%3D%25253F%26prompt%3Dselect_account%26rart%3DANgoxcfDlfJpAYWlgQtMwwoPP6nCuM0MtbqflY54wB0HzmSRJr6I9jPReFtenoWo4BH0o3dINU6mJPiZj7aOLLO9YmYPOyIC01aHs0E1BLWN2Xv3OvH20bM%26redirect_uri%3Dhttps://github.com/sessions/social/google/callback%26response_type%3Dcode%26scope%3Dopenid%2Bemail%2Bprofile%26service%3Dlso%26state%3Dd9edb444df30e8ce7c0f01fe8f34aa8b&state=d9edb444df30e8ce7c0f01fe8f34aa8b
+  - contentinfo [ref=f27e46]:
+    - combobox [ref=f27e49] [cursor=pointer]:
+      - option "Afrikaans"
+      - option "azərbaycan"
+      - option "bosanski"
+      - option "català"
+      - option "Čeština"
+      - option "Cymraeg"
+      - option "Dansk"
+      - option "Deutsch"
+      - option "eesti"
+      - option "English (United Kingdom)"
+      - option "English (United States)" [selected]
+      - option "Español (España)"
+      - option "Español (Latinoamérica)"
+      - option "euskara"
+      - option "Filipino"
+      - option "Français (Canada)"
+      - option "Français (France)"
+      - option "Gaeilge"
+      - option "galego"
+      - option "Hrvatski"
+      - option "Indonesia"
+      - option "isiZulu"
+      - option "íslenska"
+      - option "Italiano"
+      - option "Kiswahili"
+      - option "latviešu"
+      - option "lietuvių"
+      - option "magyar"
+      - option "Melayu"
+      - option "Nederlands"
+      - option "norsk"
+      - option "o‘zbek"
+      - option "polski"
+      - option "Português (Brasil)"
+      - option "Português (Portugal)"
+      - option "română"
+      - option "shqip"
+      - option "Slovenčina"
+      - option "slovenščina"
+      - option "srpski (latinica)"
+      - option "Suomi"
+      - option "Svenska"
+      - option "Tiếng Việt"
+      - option "Türkçe"
+      - option "Ελληνικά"
+      - option "беларуская"
+      - option "български"
+      - option "кыргызча"
+      - option "қазақ тілі"
+      - option "македонски"
+      - option "монгол"
+      - option "Русский"
+      - option "српски (ћирилица)"
+      - option "Українська"
+      - option "ქართული"
+      - option "հայերեն"
+      - option "‫עברית‬‎"
+      - option "‫اردو‬‎"
+      - option "‫العربية‬‎"
+      - option "‫فارسی‬‎"
+      - option "አማርኛ"
+      - option "नेपाली"
+      - option "मराठी"
+      - option "हिन्दी"
+      - option "অসমীয়া"
+      - option "বাংলা"
+      - option "ਪੰਜਾਬੀ"
+      - option "ગુજરાતી"
+      - option "ଓଡ଼ିଆ"
+      - option "தமிழ்"
+      - option "తెలుగు"
+      - option "ಕನ್ನಡ"
+      - option "മലയാളം"
+      - option "සිංහල"
+      - option "ไทย"
+      - option "ລາວ"
+      - option "မြန်မာ"
+      - option "ខ្មែរ"
+      - option "한국어"
+      - option "中文（香港）"
+      - option "日本語"
+      - option "简体中文"
+      - option "繁體中文"
+    - list [ref=f27e50]:
+      - listitem [ref=f27e51]:
+        - link "Open Google Account Help Center (external, opens in a new window)" [ref=f27e52] [cursor=pointer]:
+          - /url: https://support.google.com/accounts?hl=en-US&p=account_iph
+          - text: Help
+      - listitem [ref=f27e53]:
+        - link "Privacy Policy (external, opens in a new window)" [ref=f27e54] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=JP&hl=en-US&privacy=true
+          - text: Privacy
+      - listitem [ref=f27e55]:
+        - link "Google Terms of Service (external, opens in a new window)" [ref=f27e56] [cursor=pointer]:
+          - /url: https://accounts.google.com/TOS?loc=JP&hl=en-US
+          - text: Terms
