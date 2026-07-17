@@ -251,7 +251,7 @@ function applyColorPickerLabels() {
 applyColorPickerLabels();
 
 // 「壁側 で選択中」のバッジ列をパネル左上に表示
-// 表示条件: 複数色 または 現在のピッカーと違う色1つ で選択中の場合のみ
+// 選択があるパネルには常に表示する（一覧でどの色ラベルか一目で分かるように）
 function updateSelectingBadges(el, id) {
   let host = el.querySelector('.selecting-badges');
   if (!host) {
@@ -260,9 +260,7 @@ function updateSelectingBadges(el, id) {
     el.appendChild(host);
   }
   const colors = getColorsArr(id);
-  // 単色かつ現在のピッカー色と一致 → 表示しない（通常運用で邪魔にならないように）
-  const onlyCurrent = colors.length === 1 && colors[0] === pickColor;
-  if (colors.length === 0 || onlyCurrent) { host.innerHTML = ''; return; }
+  if (colors.length === 0) { host.innerHTML = ''; return; }
   const sorted = COLOR_ORDER.filter((c) => colors.includes(c));
   host.innerHTML = sorted.map((c) =>
     `<span class="selecting-badge color-${c}">${escapeHtml(getColorLabel(c))} で選択中</span>`

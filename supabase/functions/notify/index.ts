@@ -13,7 +13,12 @@ const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@example.com
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
-const COLOR_LABEL: Record<string, string> = {
+// 色ラベルのデフォルト（store_settings に行が無い/未設定の店舗用）
+const DEFAULT_COLOR_LABELS: Record<string, string> = {
+  yellow: '壁側', red: '通路側', blue: '', green: '',
+};
+// 空欄時のフォールバック（従来の英語色名）
+const COLOR_NAME_FALLBACK: Record<string, string> = {
   yellow: 'Yellow', red: 'Red', blue: 'Blue', green: 'Green',
 };
 
@@ -27,12 +32,24 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: subs, error } = await supabase.from('push_subscriptions').select('*');
+    const storeId = order.store_id || 'gently-diva';
+    // 同一店舗の購読端末のみに配信する（マルチ店舗の越境配信を防ぐ）
+    const { data: subs, error } = await supabase
+      .from('push_subscriptions').select('*').eq('store_id', storeId);
     if (error) {
       return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 500 });
     }
 
-    const colorLabel = COLOR_LABEL[order.color] || '';
+    // 店舗設定の色ラベル（壁側/通路側など）を取得。無ければデフォルト → 空欄は英語色名
+    let labels = { ...DEFAULT_COLOR_LABELS };
+    try {
+      const { data: st } = await supabase
+        .from('store_settings').select('color_labels').eq('store_id', storeId).maybeSingle();
+      if (st?.color_labels && typeof st.color_labels === 'object') {
+        labels = { ...labels, ...st.color_labels };
+      }
+    } catch { /* 設定取得失敗時はデフォルトで続行 */ }
+    const colorLabel = (labels[order.color] || '').trim() || COLOR_NAME_FALLBACK[order.color] || '';
     const seat = order.seat ? `席 ${order.seat}` : '席未選択';
     const dev = order.device_name ? `[${order.device_name}] ` : '';
     const src = order.source === 'preview' ? '（プレビュー）' : '';

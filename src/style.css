@@ -1206,9 +1206,9 @@ html.env-web .app-dialog-box { width: min(440px, 100%); }
 /* 拡大表示の左右矢印は削除済み（CSS でも非表示の保険） */
 .fs-nav-btn { display: none; }
 
-/* 選択がない時はピッカー全体を非表示（クラスは body に付与） */
-.color-picker { display: none !important; }
-body.has-selection .color-picker { display: flex !important; }
+/* ピッカーは常時表示（未選択でも色を変更できる）。リセットは選択がある時のみ表示 */
+.reset-btn { display: none; }
+body.has-selection .reset-btn { display: inline-block; }
 
 /* 0 カウントは数字自体を隠す */
 .color-count.zero { display: none; }

@@ -44,8 +44,22 @@ export function loadStoreSettings() {
   return normalize(null);
 }
 
+// Service Worker（Web Push 通知本文の色ラベル書き換え）から参照できるよう
+// Cache Storage にも保存する（sw は localStorage を読めないため）
+function saveSwCache(settings) {
+  try {
+    if (typeof caches === 'undefined') return;
+    caches.open('hm-store-settings').then((cache) =>
+      cache.put('/__store-settings', new Response(JSON.stringify(settings), {
+        headers: { 'Content-Type': 'application/json' },
+      }))
+    ).catch(() => {});
+  } catch { /* ignore */ }
+}
+
 function saveLocal(settings) {
   localStorage.setItem(STORE_SETTINGS_KEY, JSON.stringify(settings));
+  saveSwCache(settings);
 }
 
 // 卓番リスト（選択肢。自由入力「その他」は常に別途表示される）
@@ -72,7 +86,12 @@ export async function pullStoreSettings() {
     .eq('store_id', getStoreId())
     .maybeSingle();
   if (error) throw error;
-  if (!data) return loadStoreSettings();
+  if (!data) {
+    // 行が無い店舗もデフォルトラベルを sw 用キャッシュに反映しておく
+    const current = loadStoreSettings();
+    saveSwCache(current);
+    return current;
+  }
   const settings = normalize({ seatOptions: data.seat_options, colorLabels: data.color_labels });
   saveLocal(settings);
   return settings;
