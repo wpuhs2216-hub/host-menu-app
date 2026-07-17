@@ -73,8 +73,19 @@ Deno.serve(async (req) => {
 
     const senderDeviceId = order.device_id || '';
 
+    // 同一端末が複数 endpoint を登録している場合、最新の1件のみに送る（通知の重複防止）
+    // endpoint 単位 upsert のため、再購読で古い endpoint 行が残ると同じ端末に複数届いてしまう
+    const latestByDevice = new Map<string, any>();
+    for (const s of subs || []) {
+      const key = s.device_id || s.endpoint; // device_id 不明な古い行は endpoint 単位で残す
+      const cur = latestByDevice.get(key);
+      if (!cur || new Date(s.created_at || 0) > new Date(cur.created_at || 0)) {
+        latestByDevice.set(key, s);
+      }
+    }
+
     const results = await Promise.allSettled(
-      (subs || [])
+      [...latestByDevice.values()]
         .filter((s) => s.device_id !== senderDeviceId) // 送信/編集元の端末には届けない
         .map(async (s) => {
           const subscription = {
