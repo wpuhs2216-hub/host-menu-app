@@ -1957,21 +1957,25 @@ html.env-web #btn-clear-own-orders { display: none !important; }
 }
 .fs-thumb {
   flex: 0 0 auto;
-  width: 52px;
-  height: 52px;
+  height: 56px;
+  width: auto;
   border-radius: 8px;
   border: 2px solid rgba(255, 255, 255, 0.4);
   overflow: hidden;
   padding: 0;
   background: rgba(0, 0, 0, 0.4);
   cursor: pointer;
+  line-height: 0;
 }
 .fs-thumb.active {
   border-color: #d4af37;
 }
+/* 画像ごとの形（アスペクト比）を保つ: 高さ固定・幅は成り行き */
 .fs-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: 56px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
   pointer-events: none;
+  display: block;
 }

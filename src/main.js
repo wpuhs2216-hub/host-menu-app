@@ -182,6 +182,17 @@ const headerLogo = document.getElementById('header-logo');
 // キャスト判定（nameがあればキャスト）
 function isCast(item) { return !!item.name; }
 
+// 選択不可パネル（拡大・スワイプ対象から除外する）
+function isLockedItem(item) { return isCast(item) && item.selectable === false; }
+
+// start から dir 方向で最初の「拡大可能（選択不可でない）」インデックスを返す。無ければ -1
+function findViewableIndex(start, dir) {
+  for (let i = start; i >= 0 && i < visibleItems.length; i += dir) {
+    if (!isLockedItem(visibleItems[i])) return i;
+  }
+  return -1;
+}
+
 // ルビ付きHTML生成
 function rubyHtml(name, ruby) {
   const escaped = escapeHtml(name);
@@ -383,8 +394,10 @@ async function render() {
       el.appendChild(cb);
     }
 
-    // タップで全画面表示
-    el.addEventListener('click', () => openFullscreen(i));
+    // タップで全画面表示（選択不可パネルは拡大しない）
+    if (!locked) {
+      el.addEventListener('click', () => openFullscreen(i));
+    }
     grid.appendChild(el);
   });
 }
@@ -704,20 +717,23 @@ fsSwipeArea.addEventListener('touchend', () => {
   swiping = false;
 
   const threshold = 60;
-  if (touchDeltaX < -threshold && currentIndex < visibleItems.length - 1) {
+  // 選択不可パネルはスキップして次/前の拡大可能パネルへ
+  const nextIdx = touchDeltaX < -threshold ? findViewableIndex(currentIndex + 1, +1) : -1;
+  const prevIdx = touchDeltaX > threshold ? findViewableIndex(currentIndex - 1, -1) : -1;
+  if (nextIdx !== -1) {
     fsSwipeArea.style.transition = 'transform 0.2s ease';
     fsSwipeArea.style.transform = 'translateX(-100%)';
     setTimeout(() => {
-      currentIndex++;
+      currentIndex = nextIdx;
       showCurrentItem();
       fsSwipeArea.style.transition = 'none';
       fsSwipeArea.style.transform = '';
     }, 200);
-  } else if (touchDeltaX > threshold && currentIndex > 0) {
+  } else if (prevIdx !== -1) {
     fsSwipeArea.style.transition = 'transform 0.2s ease';
     fsSwipeArea.style.transform = 'translateX(100%)';
     setTimeout(() => {
-      currentIndex--;
+      currentIndex = prevIdx;
       showCurrentItem();
       fsSwipeArea.style.transition = 'none';
       fsSwipeArea.style.transform = '';
@@ -732,8 +748,14 @@ fsSwipeArea.addEventListener('touchend', () => {
 // キーボード操作（PC用）
 document.addEventListener('keydown', (e) => {
   if (!fullscreen.classList.contains('active')) return;
-  if (e.key === 'ArrowLeft' && currentIndex > 0) { currentIndex--; showCurrentItem(); }
-  if (e.key === 'ArrowRight' && currentIndex < visibleItems.length - 1) { currentIndex++; showCurrentItem(); }
+  if (e.key === 'ArrowLeft') {
+    const p = findViewableIndex(currentIndex - 1, -1);
+    if (p !== -1) { currentIndex = p; showCurrentItem(); }
+  }
+  if (e.key === 'ArrowRight') {
+    const n = findViewableIndex(currentIndex + 1, +1);
+    if (n !== -1) { currentIndex = n; showCurrentItem(); }
+  }
   if (e.key === 'Escape') closeFullscreen();
 });
 

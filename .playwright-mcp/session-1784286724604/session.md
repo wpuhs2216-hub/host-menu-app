@@ -911,3 +911,81 @@
   "events": "- New console entries: .playwright-mcp/console-2026-07-18T12-37-39-832Z.log#L3"
 }
 ```
+
+### Tool call: browser_navigate
+- Args
+```json
+{
+  "url": "http://localhost:5199/"
+}
+```
+- Result
+```json
+{
+  "code": "await page.goto('http://localhost:5199/');",
+  "page": "- Page URL: http://localhost:5199/\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings",
+  "snapshot": "- generic [active] [ref=f40e1]:\n  - banner [ref=f40e2]:\n    - heading [level=1] [ref=f40e3] [cursor=pointer]:\n      - img \"GENTLY DIVA\" [ref=f40e4]\n    - button \"席：未選択\" [ref=f40e5] [cursor=pointer]\n    - generic [ref=f40e6]:\n      - generic [ref=f40e7]:\n        - button \"壁側\" [ref=f40e8] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: 壁側\n      - generic [ref=f40e9]:\n        - button \"通路側\" [ref=f40e10] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: 通路側\n      - generic [ref=f40e11]:\n        - button \"Blue\" [ref=f40e12] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: Blue\n      - generic [ref=f40e13]:\n        - button \"Green\" [ref=f40e14] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: Green\n    - generic [ref=f40e15]: 2026/07/18(土) 21:51\n  - main [ref=f40e16]",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-18T12-51-07-076Z.log#L1"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const ov = document.querySelector('.store-login-input');\n  if (ov) { ov.value='2020'; document.querySelector('.store-login-submit').click(); }\n  await new Promise(r => setTimeout(r, 2500));\n  // 選択不可パネルを特定\n  const panels = [...document.querySelectorAll('.host-panel')];\n  const info = panels.map((p,i) => ({\n    i,\n    name: (p.querySelector('.host-name')?.textContent||'').trim(),\n    locked: p.classList.contains('panel-locked'),\n  }));\n  return info;\n}"
+}
+```
+- Result
+```json
+{
+  "result": "[\n  {\n    \"i\": 0,\n    \"name\": \"\",\n    \"locked\": false\n  },\n  {\n    \"i\": 1,\n    \"name\": \"\",\n    \"locked\": false\n  },\n  {\n    \"i\": 2,\n    \"name\": \"\",\n    \"locked\": false\n  },\n  {\n    \"i\": 3,\n    \"name\": \"ちんす♡こう\",\n    \"locked\": false\n  },\n  {\n    \"i\": 4,\n    \"name\": \"神木祐也(かみきゆうや)\",\n    \"locked\": false\n  },\n  {\n    \"i\": 5,\n    \"name\": \"迅(じん)\",\n    \"locked\": false\n  },\n  {\n    \"i\": 6,\n    \"name\": \"クロム\",\n    \"locked\": false\n  },\n  {\n    \"i\": 7,\n    \"name\": \"雅(みやび)\",\n    \"locked\": true\n  },\n  {\n    \"i\": 8,\n    \"name\": \"スバル\",\n    \"locked\": false\n  },\n  {\n    \"i\": 9,\n    \"name\": \"寿里(じゅり)\",\n    \"locked\": false\n  },\n  {\n    \"i\": 10,\n    \"name\": \"紫月(しづき)\",\n    \"locked\": false\n  },\n  {\n    \"i\": 11,\n    \"name\": \"綾人(あやと)\",\n    \"locked\": true\n  },\n  {\n    \"i\": 12,\n    \"name\": \"輝(てる)\",\n    \"locked\": false\n  }\n]",
+  "code": "await page.evaluate('async () => {\\n  const ov = document.querySelector(\\'.store-login-input\\');\\n  if (ov) { ov.value=\\'2020\\'; document.querySelector(\\'.store-login-submit\\').click(); }\\n  await new Promise(r => setTimeout(r, 2500));\\n  // 選択不可パネルを特定\\n  const panels = [...document.querySelectorAll(\\'.host-panel\\')];\\n  const info = panels.map((p,i) => ({\\n    i,\\n    name: (p.querySelector(\\'.host-name\\')?.textContent||\\'\\').trim(),\\n    locked: p.classList.contains(\\'panel-locked\\'),\\n  }));\\n  return info;\\n}');",
+  "page": "- Page URL: http://localhost:5199/\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const panels = [...document.querySelectorAll('.host-panel')];\n  // 1) 選択不可(雅 idx7)をクリック → 全画面が開かないこと\n  panels[7].click();\n  await new Promise(r => setTimeout(r, 300));\n  const lockedOpensFs = document.querySelector('#fullscreen').classList.contains('active');\n  // 2) 通常(クロム idx6)を開いて右スワイプ相当 → 雅(7)をスキップしてスバル(8)へ\n  panels[6].click();\n  await new Promise(r => setTimeout(r, 300));\n  return { lockedOpensFs, openedAfterNormal: document.querySelector('#fullscreen').classList.contains('active') };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"lockedOpensFs\": false,\n  \"openedAfterNormal\": true\n}",
+  "code": "await page.evaluate('async () => {\\n  const panels = [...document.querySelectorAll(\\'.host-panel\\')];\\n  // 1) 選択不可(雅 idx7)をクリック → 全画面が開かないこと\\n  panels[7].click();\\n  await new Promise(r => setTimeout(r, 300));\\n  const lockedOpensFs = document.querySelector(\\'#fullscreen\\').classList.contains(\\'active\\');\\n  // 2) 通常(クロム idx6)を開いて右スワイプ相当 → 雅(7)をスキップしてスバル(8)へ\\n  panels[6].click();\\n  await new Promise(r => setTimeout(r, 300));\\n  return { lockedOpensFs, openedAfterNormal: document.querySelector(\\'#fullscreen\\').classList.contains(\\'active\\') };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  // クロム(6)を開いた状態。全画面で右矢印→雅(7)スキップしてスバル(8)になるはず\n  const fsName = () => (document.querySelector('#fs-name')?.textContent||'').trim();\n  const results = [];\n  results.push({ step: 'クロムを開いた直後', name: fsName() });\n  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));\n  await new Promise(r => setTimeout(r, 200));\n  results.push({ step: '→（雅スキップ→スバル期待）', name: fsName() });\n  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));\n  await new Promise(r => setTimeout(r, 200));\n  results.push({ step: '←（雅スキップ→クロム期待）', name: fsName() });\n  return results;\n}"
+}
+```
+- Result
+```json
+{
+  "result": "[\n  {\n    \"step\": \"クロムを開いた直後\",\n    \"name\": \"クロム\"\n  },\n  {\n    \"step\": \"→（雅スキップ→スバル期待）\",\n    \"name\": \"スバル\"\n  },\n  {\n    \"step\": \"←（雅スキップ→クロム期待）\",\n    \"name\": \"クロム\"\n  }\n]",
+  "code": "await page.evaluate('async () => {\\n  // クロム(6)を開いた状態。全画面で右矢印→雅(7)スキップしてスバル(8)になるはず\\n  const fsName = () => (document.querySelector(\\'#fs-name\\')?.textContent||\\'\\').trim();\\n  const results = [];\\n  results.push({ step: \\'クロムを開いた直後\\', name: fsName() });\\n  document.dispatchEvent(new KeyboardEvent(\\'keydown\\', { key: \\'ArrowRight\\' }));\\n  await new Promise(r => setTimeout(r, 200));\\n  results.push({ step: \\'→（雅スキップ→スバル期待）\\', name: fsName() });\\n  document.dispatchEvent(new KeyboardEvent(\\'keydown\\', { key: \\'ArrowLeft\\' }));\\n  await new Promise(r => setTimeout(r, 200));\\n  results.push({ step: \\'←（雅スキップ→クロム期待）\\', name: fsName() });\\n  return results;\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "() => {\n  // .fs-thumb img の適用CSSを検証（縦長・横長画像で形が変わるか）\n  const wrap = document.querySelector('#fs-thumbs');\n  wrap.style.display = 'flex';\n  wrap.innerHTML = `\n    <button class=\"fs-thumb\"><img id=\"t-portrait\" style=\"\" /></button>\n    <button class=\"fs-thumb\"><img id=\"t-land\" style=\"\" /></button>`;\n  // 縦長(30x60) と 横長(60x30) のダミー\n  const port = document.querySelector('#t-portrait');\n  const land = document.querySelector('#t-land');\n  // naturalサイズを持たせるためにcanvasデータURL\n  const mk = (w,h) => { const c=document.createElement('canvas'); c.width=w; c.height=h; return c.toDataURL(); };\n  port.src = mk(30,60); land.src = mk(60,30);\n  return new Promise(res => {\n    let n=0; const done=()=>{ if(++n<2) return;\n      const cs = getComputedStyle(port);\n      res({\n        imgHeight: cs.height, imgObjectFit: cs.objectFit,\n        portraitBox: { w: port.getBoundingClientRect().width.toFixed(1), h: port.getBoundingClientRect().height.toFixed(1) },\n        landBox: { w: land.getBoundingClientRect().width.toFixed(1), h: land.getBoundingClientRect().height.toFixed(1) },\n      });\n    };\n    port.onload=done; land.onload=done;\n  });\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"imgHeight\": \"56px\",\n  \"imgObjectFit\": \"contain\",\n  \"portraitBox\": {\n    \"w\": \"28.0\",\n    \"h\": \"56.0\"\n  },\n  \"landBox\": {\n    \"w\": \"112.0\",\n    \"h\": \"56.0\"\n  }\n}",
+  "code": "await page.evaluate('() => {\\n  // .fs-thumb img の適用CSSを検証（縦長・横長画像で形が変わるか）\\n  const wrap = document.querySelector(\\'#fs-thumbs\\');\\n  wrap.style.display = \\'flex\\';\\n  wrap.innerHTML = `\\n    <button class=\"fs-thumb\"><img id=\"t-portrait\" style=\"\" /></button>\\n    <button class=\"fs-thumb\"><img id=\"t-land\" style=\"\" /></button>`;\\n  // 縦長(30x60) と 横長(60x30) のダミー\\n  const port = document.querySelector(\\'#t-portrait\\');\\n  const land = document.querySelector(\\'#t-land\\');\\n  // naturalサイズを持たせるためにcanvasデータURL\\n  const mk = (w,h) => { const c=document.createElement(\\'canvas\\'); c.width=w; c.height=h; return c.toDataURL(); };\\n  port.src = mk(30,60); land.src = mk(60,30);\\n  return new Promise(res => {\\n    let n=0; const done=()=>{ if(++n<2) return;\\n      const cs = getComputedStyle(port);\\n      res({\\n        imgHeight: cs.height, imgObjectFit: cs.objectFit,\\n        portraitBox: { w: port.getBoundingClientRect().width.toFixed(1), h: port.getBoundingClientRect().height.toFixed(1) },\\n        landBox: { w: land.getBoundingClientRect().width.toFixed(1), h: land.getBoundingClientRect().height.toFixed(1) },\\n      });\\n    };\\n    port.onload=done; land.onload=done;\\n  });\\n}');"
+}
+```
