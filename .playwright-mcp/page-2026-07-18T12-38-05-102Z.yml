@@ -1,0 +1,218 @@
+- generic [ref=f38e2]:
+  - banner [ref=f38e3]:
+    - heading "管理者画面" [level=1] [ref=f38e4]
+    - generic [ref=f38e5]:
+      - generic [ref=f38e6]: "同期: 接続中 ✓"
+      - generic [ref=f38e7]: 2026/07/18(土) 21:38
+      - link "プレビュー" [ref=f38e8] [cursor=pointer]:
+        - /url: ./preview.html
+      - button "ログアウト" [ref=f38e9] [cursor=pointer]
+  - generic [ref=f38e10]:
+    - generic [ref=f38e11]:
+      - generic [ref=f38e12]:
+        - generic [ref=f38e13]: 初回ピックアップ履歴
+        - generic [ref=f38e14]:
+          - button "通知 OFF" [ref=f38e15] [cursor=pointer]
+          - button "全件クリア" [ref=f38e16] [cursor=pointer]
+      - generic [ref=f38e17]:
+        - generic [ref=f38e108]:
+          - generic [ref=f38e109]:
+            - generic [ref=f38e110]:
+              - generic [ref=f38e112]: "席: -"
+              - generic [ref=f38e113]: "-"
+              - generic [ref=f38e114]: タブレット1
+            - generic [ref=f38e115]: 7/18 20:55
+          - generic [ref=f38e116]:
+            - generic [ref=f38e117]: ちんす♡こう
+            - generic [ref=f38e119]: クロム
+          - generic [ref=f38e121]:
+            - button "✎" [ref=f38e122] [cursor=pointer]
+            - button "✕" [ref=f38e123] [cursor=pointer]
+        - generic [ref=f38e124]:
+          - generic [ref=f38e125]:
+            - generic [ref=f38e126]:
+              - generic [ref=f38e128]: "席: -"
+              - generic [ref=f38e129]: "-"
+              - generic [ref=f38e130]: タブレット1
+            - generic [ref=f38e131]: 7/18 20:55
+          - generic [ref=f38e132]:
+            - generic [ref=f38e133]: 神木祐也
+            - generic [ref=f38e135]: 迅
+          - generic [ref=f38e137]:
+            - button "✎" [ref=f38e138] [cursor=pointer]
+            - button "✕" [ref=f38e139] [cursor=pointer]
+    - generic [ref=f38e19]:
+      - generic [ref=f38e20]:
+        - generic [ref=f38e21]: メニューパネル一覧
+        - generic [ref=f38e22]:
+          - button "移動モード" [ref=f38e23] [cursor=pointer]
+          - button "＋ 追加" [ref=f38e24] [cursor=pointer]
+      - generic [ref=f38e140]:
+        - generic [ref=f38e309]:
+          - generic [ref=f38e311]: （未設定）
+          - generic [ref=f38e313]:
+            - button "👁" [ref=f38e314] [cursor=pointer]
+            - button "✎" [ref=f38e315] [cursor=pointer]
+            - button "✕" [ref=f38e316] [cursor=pointer]
+        - generic [ref=f38e317]:
+          - generic [ref=f38e319]: （未設定）
+          - generic [ref=f38e321]:
+            - button "👁" [ref=f38e322] [cursor=pointer]
+            - button "✎" [ref=f38e323] [cursor=pointer]
+            - button "✕" [ref=f38e324] [cursor=pointer]
+        - generic [ref=f38e325]:
+          - generic [ref=f38e327]: （未設定）
+          - generic [ref=f38e329]:
+            - button "👁" [ref=f38e330] [cursor=pointer]
+            - button "✎" [ref=f38e331] [cursor=pointer]
+            - button "✕" [ref=f38e332] [cursor=pointer]
+        - generic [ref=f38e333]:
+          - generic [ref=f38e335]:
+            - generic [ref=f38e336]: ちんす♡こう
+            - generic [ref=f38e337]: 支配人
+          - generic [ref=f38e338]:
+            - button "✓" [ref=f38e339] [cursor=pointer]
+            - button "👁" [ref=f38e340] [cursor=pointer]
+            - button "✎" [ref=f38e341] [cursor=pointer]
+            - button "✕" [ref=f38e342] [cursor=pointer]
+        - generic [ref=f38e343]:
+          - generic [ref=f38e345]:
+            - generic [ref=f38e346]: 神木祐也
+            - generic [ref=f38e347]: 取締役
+          - generic [ref=f38e348]:
+            - button "✓" [ref=f38e349] [cursor=pointer]
+            - button "👁" [ref=f38e350] [cursor=pointer]
+            - button "✎" [ref=f38e351] [cursor=pointer]
+            - button "✕" [ref=f38e352] [cursor=pointer]
+        - generic [ref=f38e353]:
+          - generic [ref=f38e355]:
+            - generic [ref=f38e356]: 迅
+            - generic [ref=f38e357]: 総支配人
+          - generic [ref=f38e358]:
+            - button "✓" [ref=f38e359] [cursor=pointer]
+            - button "👁" [ref=f38e360] [cursor=pointer]
+            - button "✎" [ref=f38e361] [cursor=pointer]
+            - button "✕" [ref=f38e362] [cursor=pointer]
+        - generic [ref=f38e363]:
+          - generic [ref=f38e365]:
+            - generic [ref=f38e366]: クロム
+            - generic [ref=f38e367]: 主任
+          - generic [ref=f38e368]:
+            - button "✓" [ref=f38e369] [cursor=pointer]
+            - button "👁" [ref=f38e370] [cursor=pointer]
+            - button "✎" [ref=f38e371] [cursor=pointer]
+            - button "✕" [ref=f38e372] [cursor=pointer]
+        - generic [ref=f38e373]:
+          - generic [ref=f38e375]: 雅 （選択不可）
+          - generic [ref=f38e377]:
+            - button "🚫" [ref=f38e378] [cursor=pointer]
+            - button "👁" [ref=f38e379] [cursor=pointer]
+            - button "✎" [ref=f38e380] [cursor=pointer]
+            - button "✕" [ref=f38e381] [cursor=pointer]
+        - generic [ref=f38e382]:
+          - generic [ref=f38e384]: スバル
+          - generic [ref=f38e386]:
+            - button "✓" [ref=f38e387] [cursor=pointer]
+            - button "👁" [ref=f38e388] [cursor=pointer]
+            - button "✎" [ref=f38e389] [cursor=pointer]
+            - button "✕" [ref=f38e390] [cursor=pointer]
+        - generic [ref=f38e391]:
+          - generic [ref=f38e393]: 寿里
+          - generic [ref=f38e395]:
+            - button "✓" [ref=f38e396] [cursor=pointer]
+            - button "👁" [ref=f38e397] [cursor=pointer]
+            - button "✎" [ref=f38e398] [cursor=pointer]
+            - button "✕" [ref=f38e399] [cursor=pointer]
+        - generic [ref=f38e400]:
+          - generic [ref=f38e402]: 紫月
+          - generic [ref=f38e404]:
+            - button "✓" [ref=f38e405] [cursor=pointer]
+            - button "👁" [ref=f38e406] [cursor=pointer]
+            - button "✎" [ref=f38e407] [cursor=pointer]
+            - button "✕" [ref=f38e408] [cursor=pointer]
+        - generic [ref=f38e409]:
+          - generic [ref=f38e412]:
+            - text: 綾人
+            - generic [ref=f38e413]: NEW
+            - text: （選択不可）
+          - generic [ref=f38e414]:
+            - button "🚫" [ref=f38e415] [cursor=pointer]
+            - button "👁" [ref=f38e416] [cursor=pointer]
+            - button "✎" [ref=f38e417] [cursor=pointer]
+            - button "✕" [ref=f38e418] [cursor=pointer]
+        - generic [ref=f38e419]:
+          - generic [ref=f38e422]:
+            - text: 輝
+            - generic [ref=f38e423]: NEW
+          - generic [ref=f38e424]:
+            - button "✓" [ref=f38e425] [cursor=pointer]
+            - button "👁" [ref=f38e426] [cursor=pointer]
+            - button "✎" [ref=f38e427] [cursor=pointer]
+            - button "✕" [ref=f38e428] [cursor=pointer]
+    - generic [ref=f38e25]:
+      - generic [ref=f38e26]: 動作設定
+      - generic [ref=f38e28]:
+        - generic [ref=f38e29]: この端末の店舗
+        - generic [ref=f38e30]:
+          - generic [ref=f38e31]: GENTLY DIVA
+          - button "ログアウト（店舗切り替え）" [ref=f38e32] [cursor=pointer]
+      - generic [ref=f38e33]:
+        - generic [ref=f38e34]: "端末名（履歴に表示されます。例: フロア / 受付 / 1階タブレット）"
+        - textbox "未設定" [ref=f38e35]
+      - generic [ref=f38e37] [cursor=pointer]:
+        - checkbox "確定時に席番・お客様名の入力をスキップ（後から編集可）" [ref=f38e38]
+        - generic [ref=f38e39]: 確定時に席番・お客様名の入力をスキップ（後から編集可）
+    - generic [ref=f38e40]:
+      - generic [ref=f38e41]: 店舗設定（全端末共通）
+      - generic [ref=f38e43]:
+        - generic [ref=f38e44]: 卓番リスト（カンマ区切り。席選択に表示される順で入力。「その他」自由入力は常に選べます）
+        - 'textbox "例: A, B-1, B-2, C-1" [ref=f38e45]': A, B-1, B-2, C-1, C-2, D, E-1, E-2, E-3
+      - generic [ref=f38e46]:
+        - generic [ref=f38e47]: 色ラベル（色選択ボタンの下に表示。空欄の場合は色名 Yellow/Red/Blue/Green を表示）
+        - generic [ref=f38e48]:
+          - textbox "Yellow" [ref=f38e51]: 壁側
+          - textbox "Red" [ref=f38e54]: 通路側
+          - textbox "Blue" [ref=f38e57]
+          - textbox "Green" [ref=f38e60]
+      - button "店舗設定を保存" [ref=f38e62] [cursor=pointer]
+    - generic [ref=f38e63]:
+      - generic [ref=f38e64]: フォントサイズ設定
+      - generic [ref=f38e66]:
+        - generic [ref=f38e67]:
+          - generic [ref=f38e68]: サムネイル 源氏名
+          - generic [ref=f38e69]:
+            - slider [ref=f38e70]: "20"
+            - generic [ref=f38e71]: 20px
+        - generic [ref=f38e72]:
+          - generic [ref=f38e73]: サムネイル 役職
+          - generic [ref=f38e74]:
+            - slider [ref=f38e75]: "14"
+            - generic [ref=f38e76]: 14px
+        - generic [ref=f38e77]:
+          - generic [ref=f38e78]: 全画面 源氏名
+          - generic [ref=f38e79]:
+            - slider [ref=f38e80]: "44"
+            - generic [ref=f38e81]: 44px
+        - generic [ref=f38e82]:
+          - generic [ref=f38e83]: 全画面 役職
+          - generic [ref=f38e84]:
+            - slider [ref=f38e85]: "24"
+            - generic [ref=f38e86]: 24px
+    - generic [ref=f38e87]:
+      - generic [ref=f38e88]: メンテナンス
+      - generic [ref=f38e90]:
+        - button "画像を軽量化" [ref=f38e91] [cursor=pointer]
+        - button "クラウド再同期" [ref=f38e92] [cursor=pointer]
+        - button "この端末で上書き" [ref=f38e93] [cursor=pointer]
+    - generic [ref=f38e94]:
+      - generic [ref=f38e95]: バックアップ
+      - generic [ref=f38e97]:
+        - button "クラウドにバックアップ" [ref=f38e98] [cursor=pointer]
+        - button "クラウド履歴を表示" [ref=f38e99] [cursor=pointer]
+        - button "JSONで保存" [ref=f38e100] [cursor=pointer]
+        - button "JSONから復元" [ref=f38e101] [cursor=pointer]
+    - generic [ref=f38e102]:
+      - generic [ref=f38e103]: その他
+      - generic [ref=f38e105]:
+        - button "新人を非表示" [ref=f38e106] [cursor=pointer]
+        - button "データリセット" [ref=f38e107] [cursor=pointer]

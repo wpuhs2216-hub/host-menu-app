@@ -1,0 +1,6 @@
+- generic [ref=f36e3]:
+  - heading "管理者パスワード" [level=2] [ref=f36e4]
+  - textbox "パスワードを入力" [active] [ref=f36e5]
+  - generic [ref=f36e6]:
+    - button "キャンセル" [ref=f36e7] [cursor=pointer]
+    - button "ログイン" [ref=f36e8] [cursor=pointer]

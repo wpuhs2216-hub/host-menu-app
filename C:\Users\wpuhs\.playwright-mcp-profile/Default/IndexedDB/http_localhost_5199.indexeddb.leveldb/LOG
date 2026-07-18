@@ -1,2 +1,3 @@
-2026/07/17-20:12:06.198 b89de Creating DB /home/wpuhs/dev/biz-apps/host-menu-app/C:\Users\wpuhs\.playwright-mcp-profile/Default/IndexedDB/http_localhost_5199.indexeddb.leveldb since it was missing.
-2026/07/17-20:12:06.214 b89de Reusing MANIFEST /home/wpuhs/dev/biz-apps/host-menu-app/C:\Users\wpuhs\.playwright-mcp-profile/Default/IndexedDB/http_localhost_5199.indexeddb.leveldb/MANIFEST-000001
+2026/07/18-21:37:40.376 b89df Reusing MANIFEST /home/wpuhs/dev/biz-apps/host-menu-app/C:\Users\wpuhs\.playwright-mcp-profile/Default/IndexedDB/http_localhost_5199.indexeddb.leveldb/MANIFEST-000001
+2026/07/18-21:37:40.376 b89df Recovering log #4
+2026/07/18-21:37:40.376 b89df Reusing old log /home/wpuhs/dev/biz-apps/host-menu-app/C:\Users\wpuhs\.playwright-mcp-profile/Default/IndexedDB/http_localhost_5199.indexeddb.leveldb/000004.log 

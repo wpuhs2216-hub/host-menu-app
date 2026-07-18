@@ -14,6 +14,7 @@ import { ensureStoreFixed } from './storeLogin.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
+  uploadPanelImage, deletePanelImageByKey,
   cloudBackup, cloudBackupList, cloudBackupRestore, cloudBackupDelete,
   loadOrdersCloud, startOrdersRealtime, syncOrderUpdate, syncOrderDelete, syncOrdersClear,
   getDeviceName, setDeviceName, getSelfDeviceId,
@@ -301,10 +302,13 @@ function createSortableItem(item, imageSrc) {
     const label = item.name || item.label || '（未設定）';
     if (!await dlg.confirm(`「${label}」を削除しますか？`)) return;
     await deleteImage(item.id);
+    // 追加画像もローカルから削除
+    const extras = item.extraImages || [];
+    for (const e of extras) { try { await deleteImage(e.key); } catch { /* ignore */ } }
     imagesCached = null;
     data.items = data.items.filter((x) => x.id !== item.id);
     saveData(data);
-    syncDeletePanel(item.id).catch(() => {});
+    syncDeletePanel(item.id, extras).catch(() => {});
     renderList();
   });
 
@@ -482,7 +486,42 @@ const imgPosPreviewImg = document.getElementById('img-pos-preview-img');
 const editImgX = document.getElementById('edit-img-x');
 const editImgY = document.getElementById('edit-img-y');
 const editImgScale = document.getElementById('edit-img-scale');
+const extraImagesEl = document.getElementById('extra-images');
+const extraInput = document.getElementById('extra-image-input');
+const btnAddExtra = document.getElementById('btn-add-extra');
 let pendingImage = null;
+// 追加画像の編集状態: [{ key|null, data, v, isNew }]（key=null は新規）
+let pendingExtras = [];
+// モーダルを開いた時点の追加画像 [{key,v}]（保存時の削除掃除に使う）
+let originalExtras = [];
+
+function renderExtras() {
+  if (!extraImagesEl) return;
+  extraImagesEl.innerHTML = pendingExtras.map((e, i) =>
+    `<div class="extra-thumb"><img src="${e.data}" alt="" /><button type="button" class="extra-del" data-extra-index="${i}" aria-label="削除">×</button></div>`
+  ).join('');
+}
+
+extraImagesEl?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.extra-del');
+  if (!btn) return;
+  const i = Number(btn.dataset.extraIndex);
+  pendingExtras.splice(i, 1);
+  renderExtras();
+});
+
+btnAddExtra?.addEventListener('click', () => extraInput?.click());
+
+extraInput?.addEventListener('change', async (e) => {
+  const files = [...(e.target.files || [])];
+  for (const file of files) {
+    let data;
+    try { data = await compressImage(file); } catch { data = await fileToBase64(file); }
+    pendingExtras.push({ key: null, data, v: 0, isNew: true });
+  }
+  extraInput.value = '';
+  renderExtras();
+});
 
 // プレビュー更新
 function updateImgPosPreview() {
@@ -508,6 +547,14 @@ async function openModal(item = null) {
 
     const img = await getImage(item.id);
     pendingImage = img || null;
+    // 追加画像を読み込む
+    originalExtras = (item.extraImages || []).map((e) => ({ key: e.key, v: e.v ?? 0 }));
+    pendingExtras = [];
+    for (const e of (item.extraImages || [])) {
+      const d = await getImage(e.key);
+      if (d) pendingExtras.push({ key: e.key, data: d, v: e.v ?? 0, isNew: false });
+    }
+    renderExtras();
     editImgX.value = item.imgX ?? 50;
     editImgY.value = item.imgY ?? 50;
     editImgScale.value = item.imgScale ?? 100;
@@ -533,6 +580,9 @@ async function openModal(item = null) {
     editLabel.value = '';
     editNewFace.checked = false;
     pendingImage = null;
+    originalExtras = [];
+    pendingExtras = [];
+    renderExtras();
     editImgX.value = 50;
     editImgY.value = 50;
     editImgScale.value = 100;
@@ -621,9 +671,43 @@ document.getElementById('modal-save').addEventListener('click', async () => {
     data.items.push(savedItem);
   }
 
+  // 追加画像を確定（新規はローカル保存＋キー採番、削除分はローカルから掃除）
+  const extraUploads = [];   // storage へ上げる新規追加画像 {key, data}
+  const removedKeys = [];    // storage から消す削除済み追加画像 key
+  if (savedItem) {
+    const panelId = savedItem.id;
+    const finalExtras = [];
+    for (const e of pendingExtras) {
+      if (e.isNew || !e.key) {
+        const key = `${panelId}__${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+        await saveImage(key, e.data);
+        finalExtras.push({ key, v: Date.now() });
+        extraUploads.push({ key, data: e.data });
+      } else {
+        finalExtras.push({ key: e.key, v: e.v ?? 0 });
+      }
+    }
+    const keepKeys = new Set(finalExtras.map((x) => x.key));
+    for (const e of originalExtras) {
+      if (!keepKeys.has(e.key)) {
+        try { await deleteImage(e.key); } catch { /* ignore */ }
+        removedKeys.push(e.key);
+      }
+    }
+    savedItem.extraImages = finalExtras;
+    imagesCached = null;
+  }
+
   saveData(data);
   if (savedItem) {
-    syncSavePanel(savedItem, imageForSync).catch(() => {});
+    // 追加画像は storage へ先に上げてから panels 行を upsert（他端末の取得漏れ防止）
+    (async () => {
+      for (const u of extraUploads) {
+        try { await uploadPanelImage(u.key, u.data); } catch { /* ignore */ }
+      }
+      syncSavePanel(savedItem, imageForSync).catch(() => {});
+      for (const k of removedKeys) deletePanelImageByKey(k).catch(() => {});
+    })();
   }
   editModal.classList.remove('active');
   renderList();

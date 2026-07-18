@@ -50,6 +50,10 @@ function rowToItem(row) {
     selectable: row.selectable !== false,
     hasImage: !!row.has_image,
     imageVersion: row.image_version ?? 0,   // 画像差し替え検知用
+    // 追加画像 [{ key, v }]（メイン画像とは別。全画面でサムネ切替表示）
+    extraImages: Array.isArray(row.extra_images)
+      ? row.extra_images.filter((e) => e && e.key).map((e) => ({ key: e.key, v: Number(e.v ?? 0) }))
+      : [],
     _imagePath: row.image_path || '',       // 内部用
     _updatedAt: row.updated_at || null,
   };
@@ -73,6 +77,9 @@ function itemToRow(item) {
     is_new_face: !!item.isNewFace,
     selectable: item.selectable !== false,
     has_image: !!item.hasImage,
+    extra_images: (item.extraImages || [])
+      .filter((e) => e && e.key)
+      .map((e) => ({ key: e.key, v: Number(e.v ?? 0) })),
   };
 }
 
@@ -125,6 +132,48 @@ async function deleteRemoteImage(path) {
   await supabase.storage.from(PANEL_BUCKET).remove([path]);
 }
 
+// 追加画像を storage → IndexedDB 同期。
+// - ローカルに無い or バージョン変化した追加画像を DL
+// - リストから消えた追加画像はローカルからも削除
+// prevExtras: この端末が前回保持していた [{key,v}]（バージョン差分判定用）
+async function syncExtraImagesDown(item, localImages, prevExtras = []) {
+  const extras = item.extraImages || [];
+  const prevV = {};
+  for (const e of prevExtras) prevV[e.key] = e.v ?? 0;
+  for (const e of extras) {
+    const hasLocal = !!localImages[e.key];
+    const needFetch = !hasLocal || (e.v ?? 0) !== (prevV[e.key] ?? -1);
+    if (!needFetch) continue;
+    try {
+      const dataUrl = await downloadImageAsDataUrl(`${e.key}.jpg`, e.v ?? 0);
+      await saveImage(e.key, dataUrl);
+    } catch (err) {
+      console.warn('追加画像取得失敗', e.key, err);
+    }
+  }
+  const currentKeys = new Set(extras.map((e) => e.key));
+  for (const e of prevExtras) {
+    if (!currentKeys.has(e.key)) {
+      try { await deleteImage(e.key); } catch { /* ignore */ }
+    }
+  }
+}
+
+// 追加画像の storage 実体をまとめて削除
+async function deleteRemoteExtras(extras = []) {
+  const paths = (extras || []).filter((e) => e && e.key).map((e) => `${e.key}.jpg`);
+  if (paths.length === 0) return;
+  try { await supabase.storage.from(PANEL_BUCKET).remove(paths); } catch { /* ignore */ }
+}
+
+// === 公開: admin から追加画像を直接 storage 操作するためのヘルパー ===
+export async function uploadPanelImage(key, dataUrl) {
+  return uploadImage(key, dataUrl);
+}
+export async function deletePanelImageByKey(key) {
+  return deleteRemoteImage(`${key}.jpg`);
+}
+
 // === Supabase ↔ ローカル 全件同期 ===
 
 // クラウド → ローカル
@@ -143,22 +192,29 @@ async function pullAll() {
   const localImages = await getAllImages();
   const prevData = loadData();
   const prevVersionById = {};
-  for (const it of (prevData.items || [])) prevVersionById[it.id] = it.imageVersion ?? 0;
+  const prevExtrasById = {};
+  for (const it of (prevData.items || [])) {
+    prevVersionById[it.id] = it.imageVersion ?? 0;
+    prevExtrasById[it.id] = it.extraImages || [];
+  }
 
   for (const item of items) {
     if (item.hasImage && item._imagePath) {
       const remoteVersion = item.imageVersion ?? 0;
       const hasLocal = !!localImages[item.id];
       const needFetch = !hasLocal || remoteVersion !== (prevVersionById[item.id] ?? -1);
-      if (!needFetch) continue;
-      try {
-        const dataUrl = await downloadImageAsDataUrl(item._imagePath, remoteVersion);
-        await saveImage(item.id, dataUrl);
-      } catch (e) {
-        // 画像取得失敗は致命ではない、続行
-        console.warn('画像取得失敗', item.id, e);
+      if (needFetch) {
+        try {
+          const dataUrl = await downloadImageAsDataUrl(item._imagePath, remoteVersion);
+          await saveImage(item.id, dataUrl);
+        } catch (e) {
+          // 画像取得失敗は致命ではない、続行
+          console.warn('画像取得失敗', item.id, e);
+        }
       }
     }
+    // 追加画像も同期
+    await syncExtraImagesDown(item, localImages, prevExtrasById[item.id] || []);
   }
 
   // ローカル data に書き戻し
@@ -176,10 +232,15 @@ async function pushAll() {
   const data = loadData();
   const localImages = await getAllImages();
 
-  // 画像を Storage にアップロード
+  // 画像を Storage にアップロード（メイン＋追加画像）
   for (const item of data.items) {
     if (item.hasImage && localImages[item.id]) {
       await uploadImage(item.id, localImages[item.id]);
+    }
+    for (const e of (item.extraImages || [])) {
+      if (e && e.key && localImages[e.key]) {
+        try { await uploadImage(e.key, localImages[e.key]); } catch { /* ignore */ }
+      }
     }
   }
 
@@ -214,9 +275,10 @@ export async function syncSavePanel(item, imageDataUrl = null) {
   }
 }
 
-export async function syncDeletePanel(id) {
+export async function syncDeletePanel(id, extras = []) {
   try {
     await deleteRemoteImage(`${id}.jpg`);
+    await deleteRemoteExtras(extras);
     const { error } = await supabase.from('panels').delete().eq('id', id).eq('store_id', getStoreId());
     if (error) throw error;
     setStatus('connected');
@@ -268,9 +330,13 @@ async function applyRealtimePayload(payload) {
     const id = (payload.old && payload.old.id) || null;
     if (!id) return;
     const cur = loadData();
+    const gone = (cur.items || []).find((it) => it.id === id);
     cur.items = (cur.items || []).filter((it) => it.id !== id);
     saveData(cur);
     try { await deleteImage(id); } catch { /* ignore */ }
+    for (const e of (gone?.extraImages || [])) {
+      try { await deleteImage(e.key); } catch { /* ignore */ }
+    }
     return;
   }
   // INSERT / UPDATE
@@ -282,8 +348,9 @@ async function applyRealtimePayload(payload) {
   const items = cur.items || [];
   const idx = items.findIndex((it) => it.id === newItem.id);
 
-  // マージ前にローカルが持つ画像バージョンを退避（差し替え検知用）
+  // マージ前にローカルが持つ画像バージョンと追加画像を退避（差し替え検知用）
   const prevVersion = idx >= 0 ? (items[idx].imageVersion ?? 0) : -1;
+  const prevExtras = idx >= 0 ? (items[idx].extraImages || []) : [];
 
   // 内部用フィールドを除外して保存
   const { _imagePath, _updatedAt, ...clean } = newItem;
@@ -309,6 +376,14 @@ async function applyRealtimePayload(payload) {
   } else if (!newItem.hasImage) {
     // 画像が外された
     try { await deleteImage(newItem.id); } catch { /* ignore */ }
+  }
+
+  // 追加画像の差分同期
+  try {
+    const localImages = await getAllImages();
+    await syncExtraImagesDown(newItem, localImages, prevExtras);
+  } catch (e) {
+    console.warn('追加画像同期失敗', newItem.id, e);
   }
 }
 

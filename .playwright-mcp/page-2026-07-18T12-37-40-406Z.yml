@@ -1,0 +1,89 @@
+- generic [ref=f38e2]:
+  - banner [ref=f38e3]:
+    - heading "管理者画面" [level=1] [ref=f38e4]
+    - generic [ref=f38e5]:
+      - generic [ref=f38e6]: "同期: 同期確認中…"
+      - generic [ref=f38e7]: 2026/07/18(土) 21:37
+      - link "プレビュー" [ref=f38e8] [cursor=pointer]:
+        - /url: ./preview.html
+      - button "ログアウト" [ref=f38e9] [cursor=pointer]
+  - generic [ref=f38e10]:
+    - generic [ref=f38e11]:
+      - generic [ref=f38e12]:
+        - generic [ref=f38e13]: 初回ピックアップ履歴
+        - generic [ref=f38e14]:
+          - button "通知 OFF" [ref=f38e15] [cursor=pointer]
+          - button "全件クリア" [ref=f38e16] [cursor=pointer]
+      - generic [ref=f38e17]: 履歴はありません
+    - generic [ref=f38e20]:
+      - generic [ref=f38e21]: メニューパネル一覧
+      - generic [ref=f38e22]:
+        - button "移動モード" [ref=f38e23] [cursor=pointer]
+        - button "＋ 追加" [ref=f38e24] [cursor=pointer]
+    - generic [ref=f38e25]:
+      - generic [ref=f38e26]: 動作設定
+      - generic [ref=f38e28]:
+        - generic [ref=f38e29]: この端末の店舗
+        - generic [ref=f38e30]:
+          - generic [ref=f38e31]: GENTLY DIVA
+          - button "ログアウト（店舗切り替え）" [ref=f38e32] [cursor=pointer]
+      - generic [ref=f38e33]:
+        - generic [ref=f38e34]: "端末名（履歴に表示されます。例: フロア / 受付 / 1階タブレット）"
+        - textbox "未設定" [ref=f38e35]
+      - generic [ref=f38e37] [cursor=pointer]:
+        - checkbox "確定時に席番・お客様名の入力をスキップ（後から編集可）" [ref=f38e38]
+        - generic [ref=f38e39]: 確定時に席番・お客様名の入力をスキップ（後から編集可）
+    - generic [ref=f38e40]:
+      - generic [ref=f38e41]: 店舗設定（全端末共通）
+      - generic [ref=f38e43]:
+        - generic [ref=f38e44]: 卓番リスト（カンマ区切り。席選択に表示される順で入力。「その他」自由入力は常に選べます）
+        - 'textbox "例: A, B-1, B-2, C-1" [ref=f38e45]': A, B-1, B-2, C-1, C-2, D, E-1, E-2, E-3
+      - generic [ref=f38e46]:
+        - generic [ref=f38e47]: 色ラベル（色選択ボタンの下に表示。空欄の場合は色名 Yellow/Red/Blue/Green を表示）
+        - generic [ref=f38e48]:
+          - textbox "Yellow" [ref=f38e51]: 壁側
+          - textbox "Red" [ref=f38e54]: 通路側
+          - textbox "Blue" [ref=f38e57]
+          - textbox "Green" [ref=f38e60]
+      - button "店舗設定を保存" [ref=f38e62] [cursor=pointer]
+    - generic [ref=f38e63]:
+      - generic [ref=f38e64]: フォントサイズ設定
+      - generic [ref=f38e66]:
+        - generic [ref=f38e67]:
+          - generic [ref=f38e68]: サムネイル 源氏名
+          - generic [ref=f38e69]:
+            - slider [ref=f38e70]: "20"
+            - generic [ref=f38e71]: 20px
+        - generic [ref=f38e72]:
+          - generic [ref=f38e73]: サムネイル 役職
+          - generic [ref=f38e74]:
+            - slider [ref=f38e75]: "14"
+            - generic [ref=f38e76]: 14px
+        - generic [ref=f38e77]:
+          - generic [ref=f38e78]: 全画面 源氏名
+          - generic [ref=f38e79]:
+            - slider [ref=f38e80]: "44"
+            - generic [ref=f38e81]: 44px
+        - generic [ref=f38e82]:
+          - generic [ref=f38e83]: 全画面 役職
+          - generic [ref=f38e84]:
+            - slider [ref=f38e85]: "24"
+            - generic [ref=f38e86]: 24px
+    - generic [ref=f38e87]:
+      - generic [ref=f38e88]: メンテナンス
+      - generic [ref=f38e90]:
+        - button "画像を軽量化" [ref=f38e91] [cursor=pointer]
+        - button "クラウド再同期" [ref=f38e92] [cursor=pointer]
+        - button "この端末で上書き" [ref=f38e93] [cursor=pointer]
+    - generic [ref=f38e94]:
+      - generic [ref=f38e95]: バックアップ
+      - generic [ref=f38e97]:
+        - button "クラウドにバックアップ" [ref=f38e98] [cursor=pointer]
+        - button "クラウド履歴を表示" [ref=f38e99] [cursor=pointer]
+        - button "JSONで保存" [ref=f38e100] [cursor=pointer]
+        - button "JSONから復元" [ref=f38e101] [cursor=pointer]
+    - generic [ref=f38e102]:
+      - generic [ref=f38e103]: その他
+      - generic [ref=f38e105]:
+        - button "新人を非表示" [ref=f38e106] [cursor=pointer]
+        - button "データリセット" [ref=f38e107] [cursor=pointer]

@@ -170,6 +170,7 @@ const fsCounter = document.getElementById('fs-counter');
 const fsSwipeArea = document.getElementById('fs-swipe-area');
 const fsNewBadge = document.getElementById('fs-new-badge');
 const fsCheckbox = document.getElementById('fs-checkbox');
+const fsThumbs = document.getElementById('fs-thumbs');
 const confirmBtn = document.getElementById('confirm-btn');
 const confirmCount = document.getElementById('confirm-count');
 const fsConfirmBtn = document.getElementById('fs-confirm-btn');
@@ -571,19 +572,57 @@ function openFullscreen(index) {
   fullscreen.classList.add('active');
 }
 
-function showCurrentItem() {
-  const item = visibleItems[currentIndex];
-  if (!item) return;
+// 全画面で表示する画像リスト（メイン + 追加画像）を組み立てる
+let fsImages = [];
+let fsImgIndex = 0;
 
-  const img = imageCache[item.id] || '';
-  if (img) {
-    fsImage.src = img;
+function fsImageList(item) {
+  const list = [];
+  if (imageCache[item.id]) list.push({ key: item.id, src: imageCache[item.id] });
+  for (const e of (item.extraImages || [])) {
+    const src = imageCache[e.key];
+    if (src) list.push({ key: e.key, src });
+  }
+  return list;
+}
+
+function renderFsImage() {
+  if (fsImages.length > 0) {
+    fsImage.src = fsImages[fsImgIndex]?.src || fsImages[0].src;
     fsImage.style.display = 'block';
     fsPlaceholder.style.display = 'none';
   } else {
     fsImage.style.display = 'none';
     fsPlaceholder.style.display = 'flex';
   }
+}
+
+function renderFsThumbs() {
+  if (!fsThumbs) return;
+  if (fsImages.length <= 1) { fsThumbs.style.display = 'none'; fsThumbs.innerHTML = ''; return; }
+  fsThumbs.style.display = 'flex';
+  fsThumbs.innerHTML = fsImages.map((im, i) =>
+    `<button class="fs-thumb ${i === fsImgIndex ? 'active' : ''}" data-thumb-index="${i}"><img src="${im.src}" alt="" /></button>`
+  ).join('');
+}
+
+fsThumbs?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.fs-thumb');
+  if (!btn) return;
+  e.stopPropagation();
+  fsImgIndex = Number(btn.dataset.thumbIndex) || 0;
+  renderFsImage();
+  fsThumbs.querySelectorAll('.fs-thumb').forEach((b, i) => b.classList.toggle('active', i === fsImgIndex));
+});
+
+function showCurrentItem() {
+  const item = visibleItems[currentIndex];
+  if (!item) return;
+
+  fsImages = fsImageList(item);
+  fsImgIndex = 0;
+  renderFsImage();
+  renderFsThumbs();
 
   fsTitle.textContent = item.title || '';
   if (item.name && item.ruby) {

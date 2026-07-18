@@ -187,3 +187,6 @@ alter table public.store_settings enable row level security;
 drop policy if exists store_settings_anon_all on public.store_settings;
 create policy store_settings_anon_all on public.store_settings
   for all to anon using (true) with check (true);
+
+-- パネル複数画像対応（db/migration-panel-extra-images.sql）
+alter table public.panels add column if not exists extra_images jsonb not null default '[]'::jsonb;
