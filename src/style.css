@@ -1979,3 +1979,12 @@ html.env-web #btn-clear-own-orders { display: none !important; }
   pointer-events: none;
   display: block;
 }
+
+/* === 店舗設定フォント（源氏名・役職に適用。未設定時は body のデフォルト） === */
+.host-panel .host-name,
+.host-panel .host-title,
+.host-panel .host-name.label-only,
+.fullscreen-overlay .fs-name,
+.fullscreen-overlay .fs-title {
+  font-family: var(--menu-font, inherit);
+}

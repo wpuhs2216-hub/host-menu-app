@@ -29,6 +29,22 @@ self.addEventListener('activate', (e) => {
 
 // ネットワーク優先、フォールバックでキャッシュ
 self.addEventListener('fetch', (e) => {
+  // Google Fonts（店舗フォント）はキャッシュ優先で保持し、オフラインでも効くように
+  if (/^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(e.request.url)) {
+    e.respondWith((async () => {
+      const cache = await caches.open('hm-fonts');
+      const hit = await cache.match(e.request);
+      if (hit) return hit;
+      try {
+        const res = await fetch(e.request);
+        if (res.ok) cache.put(e.request, res.clone());
+        return res;
+      } catch {
+        return hit || Response.error();
+      }
+    })());
+    return;
+  }
   if (!e.request.url.startsWith(self.location.origin)) return;
   if (e.request.method !== 'GET') return;
   e.respondWith(

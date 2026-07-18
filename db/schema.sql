@@ -190,3 +190,6 @@ create policy store_settings_anon_all on public.store_settings
 
 -- パネル複数画像対応（db/migration-panel-extra-images.sql）
 alter table public.panels add column if not exists extra_images jsonb not null default '[]'::jsonb;
+
+-- 店舗フォント設定（db/migration-store-font.sql）
+alter table public.store_settings add column if not exists ui_font text not null default '';

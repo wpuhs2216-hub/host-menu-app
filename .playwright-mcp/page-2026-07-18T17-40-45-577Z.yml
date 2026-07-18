@@ -1,0 +1,101 @@
+- generic [ref=f42e2]:
+  - banner [ref=f42e3]:
+    - heading "管理者画面" [level=1] [ref=f42e4]
+    - generic [ref=f42e5]:
+      - generic [ref=f42e6]: "同期: 同期確認中…"
+      - generic [ref=f42e7]: 2026/07/19(日) 02:40
+      - link "プレビュー" [ref=f42e8] [cursor=pointer]:
+        - /url: ./preview.html
+      - button "ログアウト" [ref=f42e9] [cursor=pointer]
+  - generic [ref=f42e10]:
+    - generic [ref=f42e11]:
+      - generic [ref=f42e12]:
+        - generic [ref=f42e13]: 初回ピックアップ履歴
+        - generic [ref=f42e14]:
+          - button "通知 OFF" [ref=f42e15] [cursor=pointer]
+          - button "全件クリア" [ref=f42e16] [cursor=pointer]
+      - generic [ref=f42e17]: 履歴はありません
+    - generic [ref=f42e20]:
+      - generic [ref=f42e21]: メニューパネル一覧
+      - generic [ref=f42e22]:
+        - button "移動モード" [ref=f42e23] [cursor=pointer]
+        - button "＋ 追加" [ref=f42e24] [cursor=pointer]
+    - generic [ref=f42e25]:
+      - generic [ref=f42e26]: 動作設定
+      - generic [ref=f42e28]:
+        - generic [ref=f42e29]: この端末の店舗
+        - generic [ref=f42e30]:
+          - generic [ref=f42e31]: GENTLY DIVA
+          - button "ログアウト（店舗切り替え）" [ref=f42e32] [cursor=pointer]
+      - generic [ref=f42e33]:
+        - generic [ref=f42e34]: "端末名（履歴に表示されます。例: フロア / 受付 / 1階タブレット）"
+        - textbox "未設定" [ref=f42e35]
+      - generic [ref=f42e37] [cursor=pointer]:
+        - checkbox "確定時に席番・お客様名の入力をスキップ（後から編集可）" [ref=f42e38]
+        - generic [ref=f42e39]: 確定時に席番・お客様名の入力をスキップ（後から編集可）
+    - generic [ref=f42e40]:
+      - generic [ref=f42e41]: 店舗設定（全端末共通）
+      - generic [ref=f42e43]:
+        - generic [ref=f42e44]: 卓番リスト（カンマ区切り。席選択に表示される順で入力。「その他」自由入力は常に選べます）
+        - 'textbox "例: A, B-1, B-2, C-1" [ref=f42e45]': A, B-1, B-2, C-1, C-2, D, E-1, E-2, E-3
+      - generic [ref=f42e46]:
+        - generic [ref=f42e47]: 色ラベル（色選択ボタンの下に表示。空欄の場合は色名 Yellow/Red/Blue/Green を表示）
+        - generic [ref=f42e48]:
+          - textbox "Yellow" [ref=f42e51]: 壁側
+          - textbox "Red" [ref=f42e54]: 通路側
+          - textbox "Blue" [ref=f42e57]
+          - textbox "Green" [ref=f42e60]
+      - generic [ref=f42e61]:
+        - generic [ref=f42e62]: フォント（源氏名・役職の書体。選ぶとプレビューに反映）
+        - combobox [ref=f42e63]:
+          - option "デフォルト（標準ゴシック）" [selected]
+          - option "明朝（高級・上品）"
+          - option "明朝（格調）"
+          - option "筆文字（和・粋）"
+          - option "極太ゴシック（インパクト）"
+          - option "個性派 極太"
+          - option "手書き楷書（上品）"
+          - option "モダン角ゴ"
+        - generic [ref=f42e64]: 源氏名 蓮 代表
+      - button "店舗設定を保存" [ref=f42e66] [cursor=pointer]
+    - generic [ref=f42e67]:
+      - generic [ref=f42e68]: フォントサイズ設定
+      - generic [ref=f42e70]:
+        - generic [ref=f42e71]:
+          - generic [ref=f42e72]: サムネイル 源氏名
+          - generic [ref=f42e73]:
+            - slider [ref=f42e74]: "20"
+            - generic [ref=f42e75]: 20px
+        - generic [ref=f42e76]:
+          - generic [ref=f42e77]: サムネイル 役職
+          - generic [ref=f42e78]:
+            - slider [ref=f42e79]: "14"
+            - generic [ref=f42e80]: 14px
+        - generic [ref=f42e81]:
+          - generic [ref=f42e82]: 全画面 源氏名
+          - generic [ref=f42e83]:
+            - slider [ref=f42e84]: "44"
+            - generic [ref=f42e85]: 44px
+        - generic [ref=f42e86]:
+          - generic [ref=f42e87]: 全画面 役職
+          - generic [ref=f42e88]:
+            - slider [ref=f42e89]: "24"
+            - generic [ref=f42e90]: 24px
+    - generic [ref=f42e91]:
+      - generic [ref=f42e92]: メンテナンス
+      - generic [ref=f42e94]:
+        - button "画像を軽量化" [ref=f42e95] [cursor=pointer]
+        - button "クラウド再同期" [ref=f42e96] [cursor=pointer]
+        - button "この端末で上書き" [ref=f42e97] [cursor=pointer]
+    - generic [ref=f42e98]:
+      - generic [ref=f42e99]: バックアップ
+      - generic [ref=f42e101]:
+        - button "クラウドにバックアップ" [ref=f42e102] [cursor=pointer]
+        - button "クラウド履歴を表示" [ref=f42e103] [cursor=pointer]
+        - button "JSONで保存" [ref=f42e104] [cursor=pointer]
+        - button "JSONから復元" [ref=f42e105] [cursor=pointer]
+    - generic [ref=f42e106]:
+      - generic [ref=f42e107]: その他
+      - generic [ref=f42e109]:
+        - button "新人を非表示" [ref=f42e110] [cursor=pointer]
+        - button "データリセット" [ref=f42e111] [cursor=pointer]

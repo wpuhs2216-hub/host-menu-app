@@ -989,3 +989,145 @@
   "code": "await page.evaluate('() => {\\n  // .fs-thumb img の適用CSSを検証（縦長・横長画像で形が変わるか）\\n  const wrap = document.querySelector(\\'#fs-thumbs\\');\\n  wrap.style.display = \\'flex\\';\\n  wrap.innerHTML = `\\n    <button class=\"fs-thumb\"><img id=\"t-portrait\" style=\"\" /></button>\\n    <button class=\"fs-thumb\"><img id=\"t-land\" style=\"\" /></button>`;\\n  // 縦長(30x60) と 横長(60x30) のダミー\\n  const port = document.querySelector(\\'#t-portrait\\');\\n  const land = document.querySelector(\\'#t-land\\');\\n  // naturalサイズを持たせるためにcanvasデータURL\\n  const mk = (w,h) => { const c=document.createElement(\\'canvas\\'); c.width=w; c.height=h; return c.toDataURL(); };\\n  port.src = mk(30,60); land.src = mk(60,30);\\n  return new Promise(res => {\\n    let n=0; const done=()=>{ if(++n<2) return;\\n      const cs = getComputedStyle(port);\\n      res({\\n        imgHeight: cs.height, imgObjectFit: cs.objectFit,\\n        portraitBox: { w: port.getBoundingClientRect().width.toFixed(1), h: port.getBoundingClientRect().height.toFixed(1) },\\n        landBox: { w: land.getBoundingClientRect().width.toFixed(1), h: land.getBoundingClientRect().height.toFixed(1) },\\n      });\\n    };\\n    port.onload=done; land.onload=done;\\n  });\\n}');"
 }
 ```
+
+### Tool call: browser_navigate
+- Args
+```json
+{
+  "url": "http://localhost:5199/admin.html"
+}
+```
+- Result
+```json
+{
+  "code": "await page.goto('http://localhost:5199/admin.html');",
+  "page": "- Page URL: http://localhost:5199/admin.html\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings",
+  "snapshot": "- generic [ref=f42e2]:\n  - banner [ref=f42e3]:\n    - heading \"管理者画面\" [level=1] [ref=f42e4]\n    - generic [ref=f42e5]:\n      - generic [ref=f42e6]: \"同期: 同期確認中…\"\n      - generic [ref=f42e7]: 2026/07/19(日) 02:40\n      - link \"プレビュー\" [ref=f42e8] [cursor=pointer]:\n        - /url: ./preview.html\n      - button \"ログアウト\" [ref=f42e9] [cursor=pointer]\n  - generic [ref=f42e10]:\n    - generic [ref=f42e11]:\n      - generic [ref=f42e12]:\n        - generic [ref=f42e13]: 初回ピックアップ履歴\n        - generic [ref=f42e14]:\n          - button \"通知 OFF\" [ref=f42e15] [cursor=pointer]\n          - button \"全件クリア\" [ref=f42e16] [cursor=pointer]\n      - generic [ref=f42e17]: 履歴はありません\n    - generic [ref=f42e20]:\n      - generic [ref=f42e21]: メニューパネル一覧\n      - generic [ref=f42e22]:\n        - button \"移動モード\" [ref=f42e23] [cursor=pointer]\n        - button \"＋ 追加\" [ref=f42e24] [cursor=pointer]\n    - generic [ref=f42e25]:\n      - generic [ref=f42e26]: 動作設定\n      - generic [ref=f42e28]:\n        - generic [ref=f42e29]: この端末の店舗\n        - generic [ref=f42e30]:\n          - generic [ref=f42e31]: GENTLY DIVA\n          - button \"ログアウト（店舗切り替え）\" [ref=f42e32] [cursor=pointer]\n      - generic [ref=f42e33]:\n        - generic [ref=f42e34]: \"端末名（履歴に表示されます。例: フロア / 受付 / 1階タブレット）\"\n        - textbox \"未設定\" [ref=f42e35]\n      - generic [ref=f42e37] [cursor=pointer]:\n        - checkbox \"確定時に席番・お客様名の入力をスキップ（後から編集可）\" [ref=f42e38]\n        - generic [ref=f42e39]: 確定時に席番・お客様名の入力をスキップ（後から編集可）\n    - generic [ref=f42e40]:\n      - generic [ref=f42e41]: 店舗設定（全端末共通）\n      - generic [ref=f42e43]:\n        - generic [ref=f42e44]: 卓番リスト（カンマ区切り。席選択に表示される順で入力。「その他」自由入力は常に選べます）\n        - 'textbox \"例: A, B-1, B-2, C-1\" [ref=f42e45]': A, B-1, B-2, C-1, C-2, D, E-1, E-2, E-3\n      - generic [ref=f42e46]:\n        - generic [ref=f42e47]: 色ラベル（色選択ボタンの下に表示。空欄の場合は色名 Yellow/Red/Blue/Green を表示）\n        - generic [ref=f42e48]:\n          - textbox \"Yellow\" [ref=f42e51]: 壁側\n          - textbox \"Red\" [ref=f42e54]: 通路側\n          - textbox \"Blue\" [ref=f42e57]\n          - textbox \"Green\" [ref=f42e60]\n      - generic [ref=f42e61]:\n        - generic [ref=f42e62]: フォント（源氏名・役職の書体。選ぶとプレビューに反映）\n        - combobox [ref=f42e63]:\n          - option \"デフォルト（標準ゴシック）\" [selected]\n          - option \"明朝（高級・上品）\"\n          - option \"明朝（格調）\"\n          - option \"筆文字（和・粋）\"\n          - option \"極太ゴシック（インパクト）\"\n          - option \"個性派 極太\"\n          - option \"手書き楷書（上品）\"\n          - option \"モダン角ゴ\"\n        - generic [ref=f42e64]: 源氏名 蓮 代表\n      - button \"店舗設定を保存\" [ref=f42e66] [cursor=pointer]\n    - generic [ref=f42e67]:\n      - generic [ref=f42e68]: フォントサイズ設定\n      - generic [ref=f42e70]:\n        - generic [ref=f42e71]:\n          - generic [ref=f42e72]: サムネイル 源氏名\n          - generic [ref=f42e73]:\n            - slider [ref=f42e74]: \"20\"\n            - generic [ref=f42e75]: 20px\n        - generic [ref=f42e76]:\n          - generic [ref=f42e77]: サムネイル 役職\n          - generic [ref=f42e78]:\n            - slider [ref=f42e79]: \"14\"\n            - generic [ref=f42e80]: 14px\n        - generic [ref=f42e81]:\n          - generic [ref=f42e82]: 全画面 源氏名\n          - generic [ref=f42e83]:\n            - slider [ref=f42e84]: \"44\"\n            - generic [ref=f42e85]: 44px\n        - generic [ref=f42e86]:\n          - generic [ref=f42e87]: 全画面 役職\n          - generic [ref=f42e88]:\n            - slider [ref=f42e89]: \"24\"\n            - generic [ref=f42e90]: 24px\n    - generic [ref=f42e91]:\n      - generic [ref=f42e92]: メンテナンス\n      - generic [ref=f42e94]:\n        - button \"画像を軽量化\" [ref=f42e95] [cursor=pointer]\n        - button \"クラウド再同期\" [ref=f42e96] [cursor=pointer]\n        - button \"この端末で上書き\" [ref=f42e97] [cursor=pointer]\n    - generic [ref=f42e98]:\n      - generic [ref=f42e99]: バックアップ\n      - generic [ref=f42e101]:\n        - button \"クラウドにバックアップ\" [ref=f42e102] [cursor=pointer]\n        - button \"クラウド履歴を表示\" [ref=f42e103] [cursor=pointer]\n        - button \"JSONで保存\" [ref=f42e104] [cursor=pointer]\n        - button \"JSONから復元\" [ref=f42e105] [cursor=pointer]\n    - generic [ref=f42e106]:\n      - generic [ref=f42e107]: その他\n      - generic [ref=f42e109]:\n        - button \"新人を非表示\" [ref=f42e110] [cursor=pointer]\n        - button \"データリセット\" [ref=f42e111] [cursor=pointer]",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-18T17-40-44-901Z.log#L1-L3"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const pw = document.querySelector('input[type=\"password\"]');\n  if (pw) { pw.value='2020'; pw.closest('div').querySelector('button:last-child').click(); }\n  await new Promise(r => setTimeout(r, 2000));\n  const sel = document.querySelector('#setting-font');\n  return {\n    hasSelect: !!sel,\n    optionCount: sel ? sel.options.length : 0,\n    options: sel ? [...sel.options].map(o=>({v:o.value,t:o.textContent})) : [],\n    current: sel ? sel.value : null,\n  };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"hasSelect\": true,\n  \"optionCount\": 8,\n  \"options\": [\n    {\n      \"v\": \"\",\n      \"t\": \"デフォルト（標準ゴシック）\"\n    },\n    {\n      \"v\": \"shippori-mincho\",\n      \"t\": \"明朝（高級・上品）\"\n    },\n    {\n      \"v\": \"zen-old-mincho\",\n      \"t\": \"明朝（格調）\"\n    },\n    {\n      \"v\": \"yuji-syuku\",\n      \"t\": \"筆文字（和・粋）\"\n    },\n    {\n      \"v\": \"dela-gothic\",\n      \"t\": \"極太ゴシック（インパクト）\"\n    },\n    {\n      \"v\": \"reggae\",\n      \"t\": \"個性派 極太\"\n    },\n    {\n      \"v\": \"klee\",\n      \"t\": \"手書き楷書（上品）\"\n    },\n    {\n      \"v\": \"zen-kaku\",\n      \"t\": \"モダン角ゴ\"\n    }\n  ],\n  \"current\": \"\"\n}",
+  "code": "await page.evaluate('async () => {\\n  const pw = document.querySelector(\\'input[type=\"password\"]\\');\\n  if (pw) { pw.value=\\'2020\\'; pw.closest(\\'div\\').querySelector(\\'button:last-child\\').click(); }\\n  await new Promise(r => setTimeout(r, 2000));\\n  const sel = document.querySelector(\\'#setting-font\\');\\n  return {\\n    hasSelect: !!sel,\\n    optionCount: sel ? sel.options.length : 0,\\n    options: sel ? [...sel.options].map(o=>({v:o.value,t:o.textContent})) : [],\\n    current: sel ? sel.value : null,\\n  };\\n}');",
+  "page": "- Page URL: http://localhost:5199/admin.html\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const sel = document.querySelector('#setting-font');\n  sel.value = 'shippori-mincho';\n  sel.dispatchEvent(new Event('change'));\n  await new Promise(r => setTimeout(r, 500));\n  const rootFont = getComputedStyle(document.documentElement).getPropertyValue('--menu-font').trim();\n  const linkInjected = !!document.getElementById('gf-shippori-mincho');\n  const preview = document.querySelector('#setting-font-preview');\n  const previewFont = preview ? getComputedStyle(preview).fontFamily : null;\n  return { rootFont, linkInjected, previewFont };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"rootFont\": \"'Shippori Mincho B1', serif\",\n  \"linkInjected\": true,\n  \"previewFont\": \"\\\"Shippori Mincho B1\\\", serif\"\n}",
+  "code": "await page.evaluate('async () => {\\n  const sel = document.querySelector(\\'#setting-font\\');\\n  sel.value = \\'shippori-mincho\\';\\n  sel.dispatchEvent(new Event(\\'change\\'));\\n  await new Promise(r => setTimeout(r, 500));\\n  const rootFont = getComputedStyle(document.documentElement).getPropertyValue(\\'--menu-font\\').trim();\\n  const linkInjected = !!document.getElementById(\\'gf-shippori-mincho\\');\\n  const preview = document.querySelector(\\'#setting-font-preview\\');\\n  const previewFont = preview ? getComputedStyle(preview).fontFamily : null;\\n  return { rootFont, linkInjected, previewFont };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  // フォントが実際に読み込まれたか\n  await document.fonts.ready;\n  await new Promise(r => setTimeout(r, 800));\n  const loaded = document.fonts.check(\"20px 'Shippori Mincho B1'\");\n  // 保存\n  document.querySelector('#btn-save-store-settings').click();\n  await new Promise(r => setTimeout(r, 1800));\n  const status = document.querySelector('#store-settings-status')?.textContent;\n  // クラウド確認\n  const URL='https://ktvenszzbejbioafiilc.supabase.co';\n  const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs';\n  const r = await fetch(`${URL}/rest/v1/store_settings?select=store_id,ui_font&store_id=eq.gently-diva`, { headers:{apikey:ANON,Authorization:'Bearer '+ANON}});\n  const cloud = await r.json();\n  return { fontLoaded: loaded, status, cloudUiFont: cloud[0]?.ui_font };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"fontLoaded\": false,\n  \"status\": \"保存しました（全端末に反映されます）\",\n  \"cloudUiFont\": \"shippori-mincho\"\n}",
+  "code": "await page.evaluate('async () => {\\n  // フォントが実際に読み込まれたか\\n  await document.fonts.ready;\\n  await new Promise(r => setTimeout(r, 800));\\n  const loaded = document.fonts.check(\"20px \\'Shippori Mincho B1\\'\");\\n  // 保存\\n  document.querySelector(\\'#btn-save-store-settings\\').click();\\n  await new Promise(r => setTimeout(r, 1800));\\n  const status = document.querySelector(\\'#store-settings-status\\')?.textContent;\\n  // クラウド確認\\n  const URL=\\'https://ktvenszzbejbioafiilc.supabase.co\\';\\n  const ANON=\\'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs\\';\\n  const r = await fetch(`${URL}/rest/v1/store_settings?select=store_id,ui_font&store_id=eq.gently-diva`, { headers:{apikey:ANON,Authorization:\\'Bearer \\'+ANON}});\\n  const cloud = await r.json();\\n  return { fontLoaded: loaded, status, cloudUiFont: cloud[0]?.ui_font };\\n}');"
+}
+```
+
+### Tool call: browser_navigate
+- Args
+```json
+{
+  "url": "http://localhost:5199/"
+}
+```
+- Result
+```json
+{
+  "code": "await page.goto('http://localhost:5199/');",
+  "page": "- Page URL: http://localhost:5199/\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings",
+  "snapshot": "- generic [active] [ref=f43e1]:\n  - banner [ref=f43e2]:\n    - heading [level=1] [ref=f43e3] [cursor=pointer]:\n      - img \"GENTLY DIVA\" [ref=f43e4]\n    - button \"席：未選択\" [ref=f43e5] [cursor=pointer]\n    - generic [ref=f43e6]:\n      - generic [ref=f43e7]:\n        - button \"壁側\" [ref=f43e8] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: 壁側\n      - generic [ref=f43e9]:\n        - button \"通路側\" [ref=f43e10] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: 通路側\n      - generic [ref=f43e11]:\n        - button \"Blue\" [ref=f43e12] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: Blue\n      - generic [ref=f43e13]:\n        - button \"Green\" [ref=f43e14] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: Green\n    - generic [ref=f43e15]: 2026/07/19(日) 02:41\n  - main [ref=f43e16]",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-18T17-41-35-833Z.log#L1"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const ov = document.querySelector('.store-login-input');\n  if (ov) { ov.value='2020'; document.querySelector('.store-login-submit').click(); }\n  await new Promise(r => setTimeout(r, 2500));\n  const rootFont = getComputedStyle(document.documentElement).getPropertyValue('--menu-font').trim();\n  const linkInjected = !!document.getElementById('gf-shippori-mincho');\n  const nameEl = document.querySelector('.host-panel .host-name');\n  const nameFont = nameEl ? getComputedStyle(nameEl).fontFamily : null;\n  await document.fonts.ready;\n  await new Promise(r => setTimeout(r, 1000));\n  const loaded = document.fonts.check(\"20px 'Shippori Mincho B1'\");\n  return { rootFont, linkInjected, nameFont, fontLoaded: loaded };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"rootFont\": \"'Shippori Mincho B1', serif\",\n  \"linkInjected\": true,\n  \"nameFont\": \"\\\"Shippori Mincho B1\\\", serif\",\n  \"fontLoaded\": false\n}",
+  "code": "await page.evaluate('async () => {\\n  const ov = document.querySelector(\\'.store-login-input\\');\\n  if (ov) { ov.value=\\'2020\\'; document.querySelector(\\'.store-login-submit\\').click(); }\\n  await new Promise(r => setTimeout(r, 2500));\\n  const rootFont = getComputedStyle(document.documentElement).getPropertyValue(\\'--menu-font\\').trim();\\n  const linkInjected = !!document.getElementById(\\'gf-shippori-mincho\\');\\n  const nameEl = document.querySelector(\\'.host-panel .host-name\\');\\n  const nameFont = nameEl ? getComputedStyle(nameEl).fontFamily : null;\\n  await document.fonts.ready;\\n  await new Promise(r => setTimeout(r, 1000));\\n  const loaded = document.fonts.check(\"20px \\'Shippori Mincho B1\\'\");\\n  return { rootFont, linkInjected, nameFont, fontLoaded: loaded };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  await new Promise(r => setTimeout(r, 800));\n  const w700 = document.fonts.check(\"700 20px 'Shippori Mincho B1'\");\n  const w500 = document.fonts.check(\"500 20px 'Shippori Mincho B1'\");\n  // 実際にfontFaceを読み込ませてから確認\n  let loadOk = false;\n  try { await document.fonts.load(\"700 20px 'Shippori Mincho B1'\"); loadOk = document.fonts.check(\"700 20px 'Shippori Mincho B1'\"); } catch(e) { loadOk = 'err:'+e.message; }\n  // gstatic への実リクエスト有無\n  const fontReqs = performance.getEntriesByType('resource').filter(r=>r.name.includes('gstatic.com')).map(r=>({url:r.name.slice(-40), status: r.responseStatus}));\n  return { w700, w500, loadOk, fontReqs };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"w700\": true,\n  \"w500\": false,\n  \"loadOk\": true,\n  \"fontReqs\": [\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.60.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.79.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.84.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.85.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.87.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.90.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.91.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.92.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.93.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.97.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.98.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"w2oe2EcP5pp0erwTqsSWs9Jezazjcb4.99.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.101.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.102.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.103.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.104.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.106.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.107.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.108.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.109.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.110.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.111.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.112.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.113.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.114.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.115.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.116.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.117.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.118.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2oe2EcP5pp0erwTqsSWs9Jezazjcb4.119.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"p/v56/-F62fjtqLzI2JPCgQBnw7HFYwQgP.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2xCx5m9m2kVb449GP2pukmm_jQafeeM.84.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"2xCx5m9m2kVb449GP2pukmm_jQafeeM.99.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"xCx5m9m2kVb449GP2pukmm_jQafeeM.104.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"xCx5m9m2kVb449GP2pukmm_jQafeeM.114.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"xCx5m9m2kVb449GP2pukmm_jQafeeM.116.woff2\",\n      \"status\": 200\n    },\n    {\n      \"url\": \"wCr44tulPdnn-xbIpJ9RgT9-nKMo9_2XKg.woff2\",\n      \"status\": 200\n    }\n  ]\n}",
+  "code": "await page.evaluate('async () => {\\n  await new Promise(r => setTimeout(r, 800));\\n  const w700 = document.fonts.check(\"700 20px \\'Shippori Mincho B1\\'\");\\n  const w500 = document.fonts.check(\"500 20px \\'Shippori Mincho B1\\'\");\\n  // 実際にfontFaceを読み込ませてから確認\\n  let loadOk = false;\\n  try { await document.fonts.load(\"700 20px \\'Shippori Mincho B1\\'\"); loadOk = document.fonts.check(\"700 20px \\'Shippori Mincho B1\\'\"); } catch(e) { loadOk = \\'err:\\'+e.message; }\\n  // gstatic への実リクエスト有無\\n  const fontReqs = performance.getEntriesByType(\\'resource\\').filter(r=>r.name.includes(\\'gstatic.com\\')).map(r=>({url:r.name.slice(-40), status: r.responseStatus}));\\n  return { w700, w500, loadOk, fontReqs };\\n}');"
+}
+```
+
+### Tool call: browser_take_screenshot
+- Args
+```json
+{
+  "type": "jpeg",
+  "filename": "font-shippori.jpeg",
+  "scale": "css"
+}
+```
+- Result
+```json
+{
+  "result": "- [Screenshot of viewport](./font-shippori.jpeg)",
+  "code": "// Screenshot viewport and save it as ./font-shippori.jpeg\nawait page.screenshot({\n  path: './font-shippori.jpeg',\n  quality: 90,\n  scale: 'css',\n  type: 'jpeg'\n});"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const URL='https://ktvenszzbejbioafiilc.supabase.co';\n  const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs';\n  const r = await fetch(`${URL}/rest/v1/store_settings?store_id=eq.gently-diva`, {\n    method:'PATCH',\n    headers:{apikey:ANON,Authorization:'Bearer '+ANON,'Content-Type':'application/json',Prefer:'return=representation'},\n    body: JSON.stringify({ ui_font: '' }),\n  });\n  const res = await r.json();\n  return { status: r.status, ui_font: res[0]?.ui_font };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"status\": 200,\n  \"ui_font\": \"\"\n}",
+  "code": "await page.evaluate('async () => {\\n  const URL=\\'https://ktvenszzbejbioafiilc.supabase.co\\';\\n  const ANON=\\'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs\\';\\n  const r = await fetch(`${URL}/rest/v1/store_settings?store_id=eq.gently-diva`, {\\n    method:\\'PATCH\\',\\n    headers:{apikey:ANON,Authorization:\\'Bearer \\'+ANON,\\'Content-Type\\':\\'application/json\\',Prefer:\\'return=representation\\'},\\n    body: JSON.stringify({ ui_font: \\'\\' }),\\n  });\\n  const res = await r.json();\\n  return { status: r.status, ui_font: res[0]?.ui_font };\\n}');"
+}
+```

@@ -9,7 +9,7 @@ import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
 import { getStoreName, getStorePassword, logoutStore } from './storeContext.js';
-import { getSeatOptions, getColorLabel, getRawColorLabels, pullStoreSettings, saveStoreSettings } from './storeSettings.js';
+import { getSeatOptions, getColorLabel, getRawColorLabels, pullStoreSettings, saveStoreSettings, FONT_OPTIONS, getFont, applyMenuFont } from './storeSettings.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
@@ -1238,12 +1238,33 @@ function initStoreSettingsUI() {
   }
   if (!seatInput) return;
 
+  // フォント選択（全端末共通）。select を FONT_OPTIONS で構築し、変更でライブプレビュー。
+  const fontSelect = document.getElementById('setting-font');
+  const fontPreview = document.getElementById('setting-font-preview');
+  if (fontSelect && fontSelect.options.length === 0) {
+    for (const f of FONT_OPTIONS) {
+      const opt = document.createElement('option');
+      opt.value = f.id;
+      opt.textContent = f.label;
+      fontSelect.appendChild(opt);
+    }
+  }
+  const applyPreview = (id) => {
+    applyMenuFont(id);                 // Google Fonts 読込＋--menu-font 更新（画面全体にも反映）
+    if (fontPreview) {
+      const opt = FONT_OPTIONS.find((f) => f.id === id) || FONT_OPTIONS[0];
+      fontPreview.style.fontFamily = opt.css;
+    }
+  };
+  fontSelect?.addEventListener('change', () => applyPreview(fontSelect.value));
+
   const populate = () => {
     seatInput.value = getSeatOptions().join(', ');
     const labels = getRawColorLabels();
     for (const c of COLOR_KEYS) {
       if (labelInputs[c]) labelInputs[c].value = labels[c] || '';
     }
+    if (fontSelect) { fontSelect.value = getFont(); applyPreview(getFont()); }
   };
   populate();
 
@@ -1257,9 +1278,10 @@ function initStoreSettingsUI() {
     }
     const colorLabels = {};
     for (const c of COLOR_KEYS) colorLabels[c] = (labelInputs[c]?.value || '').trim();
+    const font = fontSelect ? fontSelect.value : getFont();
     btnSave.disabled = true;
     try {
-      await saveStoreSettings({ seatOptions, colorLabels });
+      await saveStoreSettings({ seatOptions, colorLabels, font });
       if (statusEl) statusEl.textContent = '保存しました（全端末に反映されます）';
       populate();
     } catch (e) {
@@ -1272,9 +1294,10 @@ function initStoreSettingsUI() {
 
   // クラウドの最新設定を反映（未編集時のみ上書き）
   pullStoreSettings().then(() => {
-    if (document.activeElement !== seatInput && !COLOR_KEYS.some((c) => document.activeElement === labelInputs[c])) {
-      populate();
-    }
+    const editing = document.activeElement === seatInput
+      || document.activeElement === fontSelect
+      || COLOR_KEYS.some((c) => document.activeElement === labelInputs[c]);
+    if (!editing) populate();
   }).catch(() => {});
 }
 

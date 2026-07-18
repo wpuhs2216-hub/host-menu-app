@@ -17,7 +17,7 @@ import * as dlg from './dialog.js';
 import { scheduleStartupCheck } from './updateCheck.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import { logoutStore, getStoreName, getStoreId } from './storeContext.js';
-import { getSeatOptions, getColorLabel, pullStoreSettings } from './storeSettings.js';
+import { getSeatOptions, getColorLabel, pullStoreSettings, applyMenuFont } from './storeSettings.js';
 // 注意: 確定前のキャスト選択（チェック状態）は端末ローカル運用とし、
 // selections テーブル同期は main 側では使わない（複数端末で選択が干渉しないように）
 
@@ -261,6 +261,8 @@ function applyColorPickerLabels() {
   });
 }
 applyColorPickerLabels();
+// キャッシュ済みフォントを即適用（クラウド取得前でも反映）
+applyMenuFont();
 
 // 「壁側 で選択中」のバッジ列をパネル左上に表示
 // 選択があるパネルには常に表示する（一覧でどの色ラベルか一目で分かるように）
@@ -796,6 +798,7 @@ window.addEventListener('popstate', () => {
     console.warn('店舗設定取得失敗（キャッシュ継続）', e);
   }
   applyColorPickerLabels();
+  applyMenuFont();
   await render();
   try {
     await initialSync();
@@ -816,7 +819,7 @@ async function resyncFromCloud({ silent = true } = {}) {
   if (resyncInFlight) return;
   resyncInFlight = true;
   try {
-    try { await pullStoreSettings(); applyColorPickerLabels(); } catch { /* 設定取得失敗は無視 */ }
+    try { await pullStoreSettings(); applyColorPickerLabels(); applyMenuFont(); } catch { /* 設定取得失敗は無視 */ }
     await forcePull();
     await render();
     stopRealtime();
