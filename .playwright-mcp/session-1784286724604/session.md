@@ -1131,3 +1131,238 @@
   "code": "await page.evaluate('async () => {\\n  const URL=\\'https://ktvenszzbejbioafiilc.supabase.co\\';\\n  const ANON=\\'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs\\';\\n  const r = await fetch(`${URL}/rest/v1/store_settings?store_id=eq.gently-diva`, {\\n    method:\\'PATCH\\',\\n    headers:{apikey:ANON,Authorization:\\'Bearer \\'+ANON,\\'Content-Type\\':\\'application/json\\',Prefer:\\'return=representation\\'},\\n    body: JSON.stringify({ ui_font: \\'\\' }),\\n  });\\n  const res = await r.json();\\n  return { status: r.status, ui_font: res[0]?.ui_font };\\n}');"
 }
 ```
+
+### Tool call: browser_navigate
+- Args
+```json
+{
+  "url": "http://localhost:5199/"
+}
+```
+- Result
+```json
+{
+  "code": "await page.goto('http://localhost:5199/');",
+  "page": "- Page URL: http://localhost:5199/\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings",
+  "snapshot": "- generic [active] [ref=f44e1]:\n  - banner [ref=f44e2]:\n    - heading [level=1] [ref=f44e3] [cursor=pointer]:\n      - img \"GENTLY DIVA\" [ref=f44e4]\n    - button \"席：未選択\" [ref=f44e5] [cursor=pointer]\n    - generic [ref=f44e6]:\n      - generic [ref=f44e7]:\n        - button \"壁側\" [ref=f44e8] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: 壁側\n      - generic [ref=f44e9]:\n        - button \"通路側\" [ref=f44e10] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: 通路側\n      - generic [ref=f44e11]:\n        - button \"Blue\" [ref=f44e12] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: Blue\n      - generic [ref=f44e13]:\n        - button \"Green\" [ref=f44e14] [cursor=pointer]:\n          - generic: \"0\"\n        - generic: Green\n    - generic [ref=f44e15]: 2026/07/19(日) 21:21\n  - main [ref=f44e16]",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-19T12-21-34-020Z.log#L1"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  // 店舗をLuciaに切り替え（ローカル固定を消して再ログイン）\n  localStorage.removeItem('host-menu-store-id');\n  localStorage.removeItem('host-menu-store-name');\n  localStorage.removeItem('host-menu-store-settings');\n  localStorage.removeItem('host-menu-data');\n  location.reload();\n  return 'reloading';\n}"
+}
+```
+- Result
+```json
+{
+  "result": "\"reloading\"",
+  "code": "await page.evaluate('async () => {\\n  // 店舗をLuciaに切り替え（ローカル固定を消して再ログイン）\\n  localStorage.removeItem(\\'host-menu-store-id\\');\\n  localStorage.removeItem(\\'host-menu-store-name\\');\\n  localStorage.removeItem(\\'host-menu-store-settings\\');\\n  localStorage.removeItem(\\'host-menu-data\\');\\n  location.reload();\\n  return \\'reloading\\';\\n}');",
+  "page": "- Page URL: http://localhost:5199/\n- Page Title: 初回案内",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-19T12-21-34-020Z.log#L2-L8"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  await new Promise(r => setTimeout(r, 800));\n  const ov = document.querySelector('.store-login-input');\n  if (ov) { ov.value='12345'; document.querySelector('.store-login-submit').click(); }\n  await new Promise(r => setTimeout(r, 3500));\n  const panels = [...document.querySelectorAll('.host-panel')];\n  const storeName = document.querySelector('.header-store-name')?.textContent || document.querySelector('#header-logo')?.textContent;\n  const names = panels.map(p => (p.querySelector('.host-name')?.textContent||'').trim() || '(メニュー/画像)');\n  return { storeName, panelCount: panels.length, first6: names.slice(0,6), casts: names.slice(4) };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"storeName\": \"Dear's Lucia\",\n  \"panelCount\": 0,\n  \"first6\": [],\n  \"casts\": []\n}",
+  "code": "await page.evaluate('async () => {\\n  await new Promise(r => setTimeout(r, 800));\\n  const ov = document.querySelector(\\'.store-login-input\\');\\n  if (ov) { ov.value=\\'12345\\'; document.querySelector(\\'.store-login-submit\\').click(); }\\n  await new Promise(r => setTimeout(r, 3500));\\n  const panels = [...document.querySelectorAll(\\'.host-panel\\')];\\n  const storeName = document.querySelector(\\'.header-store-name\\')?.textContent || document.querySelector(\\'#header-logo\\')?.textContent;\\n  const names = panels.map(p => (p.querySelector(\\'.host-name\\')?.textContent||\\'\\').trim() || \\'(メニュー/画像)\\');\\n  return { storeName, panelCount: panels.length, first6: names.slice(0,6), casts: names.slice(4) };\\n}');",
+  "page": "- Page URL: http://localhost:5199/\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-19T12-21-34-020Z.log#L9-L10"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  await new Promise(r => setTimeout(r, 6000));\n  const panels = [...document.querySelectorAll('.host-panel')];\n  const names = panels.map(p => (p.querySelector('.host-name')?.textContent||'').trim() || '(メニュー)');\n  const withImg = panels.filter(p => p.querySelector('.panel-image')).length;\n  const data = JSON.parse(localStorage.getItem('host-menu-data')||'{}');\n  return { panelCount: panels.length, withImg, order: (data.items||[]).sort((a,b)=>a.order-b.order).map(i=>i.name||'(メニュー)') };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"panelCount\": 0,\n  \"withImg\": 0,\n  \"order\": []\n}",
+  "code": "await page.evaluate('async () => {\\n  await new Promise(r => setTimeout(r, 6000));\\n  const panels = [...document.querySelectorAll(\\'.host-panel\\')];\\n  const names = panels.map(p => (p.querySelector(\\'.host-name\\')?.textContent||\\'\\').trim() || \\'(メニュー)\\');\\n  const withImg = panels.filter(p => p.querySelector(\\'.panel-image\\')).length;\\n  const data = JSON.parse(localStorage.getItem(\\'host-menu-data\\')||\\'{}\\');\\n  return { panelCount: panels.length, withImg, order: (data.items||[]).sort((a,b)=>a.order-b.order).map(i=>i.name||\\'(メニュー)\\') };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  return {\n    storeId: localStorage.getItem('host-menu-store-id'),\n    storeName: localStorage.getItem('host-menu-store-name'),\n    hasOverlay: !!document.querySelector('.store-login-overlay'),\n    gridChildren: document.querySelector('#grid')?.children.length,\n  };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"storeId\": \"dears-lucia\",\n  \"storeName\": \"Dear's Lucia\",\n  \"hasOverlay\": false,\n  \"gridChildren\": 0\n}",
+  "code": "await page.evaluate('async () => {\\n  return {\\n    storeId: localStorage.getItem(\\'host-menu-store-id\\'),\\n    storeName: localStorage.getItem(\\'host-menu-store-name\\'),\\n    hasOverlay: !!document.querySelector(\\'.store-login-overlay\\'),\\n    gridChildren: document.querySelector(\\'#grid\\')?.children.length,\\n  };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const t0 = Date.now();\n  while (Date.now() - t0 < 40000) {\n    const n = document.querySelector('#grid')?.children.length || 0;\n    if (n > 0) break;\n    await new Promise(r => setTimeout(r, 1500));\n  }\n  const panels = [...document.querySelectorAll('.host-panel')];\n  const data = JSON.parse(localStorage.getItem('host-menu-data')||'{}');\n  return {\n    panelCount: panels.length,\n    withImg: panels.filter(p => p.querySelector('.panel-image')).length,\n    order: (data.items||[]).slice().sort((a,b)=>a.order-b.order).map(i=>i.name||'(メニュー)'),\n  };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"panelCount\": 0,\n  \"withImg\": 0,\n  \"order\": []\n}",
+  "code": "await page.evaluate('async () => {\\n  const t0 = Date.now();\\n  while (Date.now() - t0 < 40000) {\\n    const n = document.querySelector(\\'#grid\\')?.children.length || 0;\\n    if (n > 0) break;\\n    await new Promise(r => setTimeout(r, 1500));\\n  }\\n  const panels = [...document.querySelectorAll(\\'.host-panel\\')];\\n  const data = JSON.parse(localStorage.getItem(\\'host-menu-data\\')||\\'{}\\');\\n  return {\\n    panelCount: panels.length,\\n    withImg: panels.filter(p => p.querySelector(\\'.panel-image\\')).length,\\n    order: (data.items||[]).slice().sort((a,b)=>a.order-b.order).map(i=>i.name||\\'(メニュー)\\'),\\n  };\\n}');"
+}
+```
+
+### Tool call: browser_console_messages
+- Args
+```json
+{
+  "level": "info"
+}
+```
+- Result
+```json
+{
+  "result": "Total messages: 4 (Errors: 0, Warnings: 1)\nReturning 2 messages for level \"info\"\n\n[VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:5199/:0\n[WARNING] <meta name=\"apple-mobile-web-app-capable\" content=\"yes\"> is deprecated. Please include <meta name=\"mobile-web-app-capable\" content=\"yes\"> @ http://localhost:5199/:0"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const t0 = Date.now();\n  let n = 0;\n  while (Date.now() - t0 < 115000) {\n    n = document.querySelector('#grid')?.children.length || 0;\n    if (n > 0) break;\n    await new Promise(r => setTimeout(r, 2000));\n  }\n  const reqs = performance.getEntriesByType('resource').filter(r=>r.name.includes('/storage/v1/object/public/panel-images')).length;\n  const data = JSON.parse(localStorage.getItem('host-menu-data')||'{}');\n  return { grid: n, storageReqs: reqs, savedItems: (data.items||[]).length,\n    order: (data.items||[]).slice().sort((a,b)=>a.order-b.order).map(i=>i.name||'(メニュー)') };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"grid\": 22,\n  \"storageReqs\": 53,\n  \"savedItems\": 22,\n  \"order\": [\n    \"(メニュー)\",\n    \"(メニュー)\",\n    \"(メニュー)\",\n    \"(メニュー)\",\n    \"実音\",\n    \"ささき\",\n    \"流川りょうすけ\",\n    \"神代ゆあ\",\n    \"冥条翠\",\n    \"ノエル\",\n    \"奏多\",\n    \"凛音\",\n    \"りょうま\",\n    \"ルル\",\n    \"ミナト\",\n    \"桜望タカマ\",\n    \"兎月リト\",\n    \"珀\",\n    \"芽嶺美加\",\n    \"柊コナン\",\n    \"渚明澄夏\",\n    \"美風a.k.a.ゆんゆん\"\n  ]\n}",
+  "code": "await page.evaluate('async () => {\\n  const t0 = Date.now();\\n  let n = 0;\\n  while (Date.now() - t0 < 115000) {\\n    n = document.querySelector(\\'#grid\\')?.children.length || 0;\\n    if (n > 0) break;\\n    await new Promise(r => setTimeout(r, 2000));\\n  }\\n  const reqs = performance.getEntriesByType(\\'resource\\').filter(r=>r.name.includes(\\'/storage/v1/object/public/panel-images\\')).length;\\n  const data = JSON.parse(localStorage.getItem(\\'host-menu-data\\')||\\'{}\\');\\n  return { grid: n, storageReqs: reqs, savedItems: (data.items||[]).length,\\n    order: (data.items||[]).slice().sort((a,b)=>a.order-b.order).map(i=>i.name||\\'(メニュー)\\') };\\n}');"
+}
+```
+
+### Tool call: browser_take_screenshot
+- Args
+```json
+{
+  "type": "jpeg",
+  "filename": "lucia-panels.jpeg",
+  "fullPage": true,
+  "scale": "css"
+}
+```
+- Result
+```json
+{
+  "result": "- [Screenshot of full page](./lucia-panels.jpeg)",
+  "code": "// Screenshot full page and save it as ./lucia-panels.jpeg\nawait page.screenshot({\n  fullPage: true,\n  path: './lucia-panels.jpeg',\n  quality: 90,\n  scale: 'css',\n  type: 'jpeg'\n});"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const panels = [...document.querySelectorAll('.host-panel')];\n  // 流川りょうすけ（sub7）を開く\n  const target = panels.find(p => (p.querySelector('.host-name')?.textContent||'').includes('流川'));\n  target.click();\n  await new Promise(r => setTimeout(r, 800));\n  const thumbs = [...document.querySelectorAll('#fs-thumbs .fs-thumb')];\n  const before = document.querySelector('#fs-image').src;\n  // 3枚目に切替\n  if (thumbs[2]) thumbs[2].click();\n  await new Promise(r => setTimeout(r, 400));\n  const after = document.querySelector('#fs-image').src;\n  return { thumbCount: thumbs.length, switched: before !== after, fsName: document.querySelector('#fs-name')?.textContent };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"thumbCount\": 8,\n  \"switched\": true,\n  \"fsName\": \"流川りょうすけ\"\n}",
+  "code": "await page.evaluate('async () => {\\n  const panels = [...document.querySelectorAll(\\'.host-panel\\')];\\n  // 流川りょうすけ（sub7）を開く\\n  const target = panels.find(p => (p.querySelector(\\'.host-name\\')?.textContent||\\'\\').includes(\\'流川\\'));\\n  target.click();\\n  await new Promise(r => setTimeout(r, 800));\\n  const thumbs = [...document.querySelectorAll(\\'#fs-thumbs .fs-thumb\\')];\\n  const before = document.querySelector(\\'#fs-image\\').src;\\n  // 3枚目に切替\\n  if (thumbs[2]) thumbs[2].click();\\n  await new Promise(r => setTimeout(r, 400));\\n  const after = document.querySelector(\\'#fs-image\\').src;\\n  return { thumbCount: thumbs.length, switched: before !== after, fsName: document.querySelector(\\'#fs-name\\')?.textContent };\\n}');"
+}
+```
+
+### Tool call: browser_navigate
+- Args
+```json
+{
+  "url": "http://localhost:5199/admin.html"
+}
+```
+- Result
+```json
+{
+  "code": "await page.goto('http://localhost:5199/admin.html');",
+  "page": "- Page URL: http://localhost:5199/admin.html\n- Page Title: 初回案内\n- Console: 0 errors, 1 warnings",
+  "snapshot": "- generic [ref=f46e3]:\n  - heading \"管理者パスワード\" [level=2] [ref=f46e4]\n  - textbox \"パスワードを入力\" [active] [ref=f46e5]\n  - generic [ref=f46e6]:\n    - button \"キャンセル\" [ref=f46e7] [cursor=pointer]\n    - button \"ログイン\" [ref=f46e8] [cursor=pointer]",
+  "events": "- New console entries: .playwright-mcp/console-2026-07-19T12-25-22-861Z.log#L1-L2"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const pw = document.querySelector('input[type=\"password\"]');\n  if (pw) { pw.value='12345'; pw.closest('div').querySelector('button:last-child').click(); }\n  await new Promise(r => setTimeout(r, 3000));\n  // りょうま（sub1）の編集を開く（小さめの例で確認）\n  const rows = [...document.querySelectorAll('.sortable-item')];\n  const target = rows.find(r => (r.querySelector('.info-name')?.textContent||'').includes('りょうま'));\n  const id = target?.dataset.id;\n  target?.querySelector('.btn-edit')?.click();\n  await new Promise(r => setTimeout(r, 500));\n  const extras = [...document.querySelectorAll('#extra-images .extra-thumb')];\n  const mainSrc = document.querySelector('#upload-preview')?.src?.slice(-20);\n  const sub0Src = extras[0]?.querySelector('img')?.src?.slice(-20);\n  const hasMainBtn = !!document.querySelector('#extra-images .extra-main');\n  return { id, extraCount: extras.length, hasMainBtn, mainSrcTail: mainSrc, sub0SrcTail: sub0Src };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"id\": \"item-1784463643982-13058v\",\n  \"extraCount\": 1,\n  \"hasMainBtn\": true,\n  \"mainSrcTail\": \"sGQDYNgmzAWQKu3/2Q==\",\n  \"sub0SrcTail\": \"QsGvqgyWwN0KNm//2Q==\"\n}",
+  "code": "await page.evaluate('async () => {\\n  const pw = document.querySelector(\\'input[type=\"password\"]\\');\\n  if (pw) { pw.value=\\'12345\\'; pw.closest(\\'div\\').querySelector(\\'button:last-child\\').click(); }\\n  await new Promise(r => setTimeout(r, 3000));\\n  // りょうま（sub1）の編集を開く（小さめの例で確認）\\n  const rows = [...document.querySelectorAll(\\'.sortable-item\\')];\\n  const target = rows.find(r => (r.querySelector(\\'.info-name\\')?.textContent||\\'\\').includes(\\'りょうま\\'));\\n  const id = target?.dataset.id;\\n  target?.querySelector(\\'.btn-edit\\')?.click();\\n  await new Promise(r => setTimeout(r, 500));\\n  const extras = [...document.querySelectorAll(\\'#extra-images .extra-thumb\\')];\\n  const mainSrc = document.querySelector(\\'#upload-preview\\')?.src?.slice(-20);\\n  const sub0Src = extras[0]?.querySelector(\\'img\\')?.src?.slice(-20);\\n  const hasMainBtn = !!document.querySelector(\\'#extra-images .extra-main\\');\\n  return { id, extraCount: extras.length, hasMainBtn, mainSrcTail: mainSrc, sub0SrcTail: sub0Src };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  const origMain = document.querySelector('#upload-preview')?.src;\n  const origSub = document.querySelector('#extra-images .extra-thumb img')?.src;\n  // ★メインにする を押して入替\n  document.querySelector('#extra-images .extra-main').click();\n  await new Promise(r => setTimeout(r, 300));\n  const newMain = document.querySelector('#upload-preview')?.src;\n  const newSub = document.querySelector('#extra-images .extra-thumb img')?.src;\n  return {\n    swappedMain: newMain === origSub,   // メインが元サブに\n    swappedSub: newSub === origMain,    // サブが元メインに\n  };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"swappedMain\": true,\n  \"swappedSub\": true\n}",
+  "code": "await page.evaluate('async () => {\\n  const origMain = document.querySelector(\\'#upload-preview\\')?.src;\\n  const origSub = document.querySelector(\\'#extra-images .extra-thumb img\\')?.src;\\n  // ★メインにする を押して入替\\n  document.querySelector(\\'#extra-images .extra-main\\').click();\\n  await new Promise(r => setTimeout(r, 300));\\n  const newMain = document.querySelector(\\'#upload-preview\\')?.src;\\n  const newSub = document.querySelector(\\'#extra-images .extra-thumb img\\')?.src;\\n  return {\\n    swappedMain: newMain === origSub,   // メインが元サブに\\n    swappedSub: newSub === origMain,    // サブが元メインに\\n  };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  document.querySelector('#modal-save').click();\n  await new Promise(r => setTimeout(r, 2500));\n  // 再度開いてメインが入替後(=元サブ)になっているか\n  const rows = [...document.querySelectorAll('.sortable-item')];\n  const target = rows.find(r => (r.querySelector('.info-name')?.textContent||'').includes('りょうま'));\n  const thumbSrc = target?.querySelector('.item-thumb img')?.src?.slice(-20); // 一覧のメイン\n  target?.querySelector('.btn-edit')?.click();\n  await new Promise(r => setTimeout(r, 600));\n  const mainTail = document.querySelector('#upload-preview')?.src?.slice(-20);\n  return { listThumbTail: thumbSrc, modalMainTail: mainTail };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"listThumbTail\": \"QsGvqgyWwN0KNm//2Q==\",\n  \"modalMainTail\": \"QsGvqgyWwN0KNm//2Q==\"\n}",
+  "code": "await page.evaluate('async () => {\\n  document.querySelector(\\'#modal-save\\').click();\\n  await new Promise(r => setTimeout(r, 2500));\\n  // 再度開いてメインが入替後(=元サブ)になっているか\\n  const rows = [...document.querySelectorAll(\\'.sortable-item\\')];\\n  const target = rows.find(r => (r.querySelector(\\'.info-name\\')?.textContent||\\'\\').includes(\\'りょうま\\'));\\n  const thumbSrc = target?.querySelector(\\'.item-thumb img\\')?.src?.slice(-20); // 一覧のメイン\\n  target?.querySelector(\\'.btn-edit\\')?.click();\\n  await new Promise(r => setTimeout(r, 600));\\n  const mainTail = document.querySelector(\\'#upload-preview\\')?.src?.slice(-20);\\n  return { listThumbTail: thumbSrc, modalMainTail: mainTail };\\n}');"
+}
+```
+
+### Tool call: browser_evaluate
+- Args
+```json
+{
+  "function": "async () => {\n  // 現在: main=元サブ, sub=元メイン。★で戻す\n  document.querySelector('#extra-images .extra-main').click();\n  await new Promise(r => setTimeout(r, 300));\n  const restoredMain = document.querySelector('#upload-preview')?.src?.slice(-20);\n  document.querySelector('#modal-save').click();\n  await new Promise(r => setTimeout(r, 2500));\n  // 一覧サムネが元メインに戻ったか\n  const rows = [...document.querySelectorAll('.sortable-item')];\n  const target = rows.find(r => (r.querySelector('.info-name')?.textContent||'').includes('りょうま'));\n  const listTail = target?.querySelector('.item-thumb img')?.src?.slice(-20);\n  return { restoredMainTail: restoredMain, listTail, backToOriginal: restoredMain === 'sGQDYNgmzAWQKu3/2Q==' };\n}"
+}
+```
+- Result
+```json
+{
+  "result": "{\n  \"restoredMainTail\": \"sGQDYNgmzAWQKu3/2Q==\",\n  \"listTail\": \"sGQDYNgmzAWQKu3/2Q==\",\n  \"backToOriginal\": true\n}",
+  "code": "await page.evaluate('async () => {\\n  // 現在: main=元サブ, sub=元メイン。★で戻す\\n  document.querySelector(\\'#extra-images .extra-main\\').click();\\n  await new Promise(r => setTimeout(r, 300));\\n  const restoredMain = document.querySelector(\\'#upload-preview\\')?.src?.slice(-20);\\n  document.querySelector(\\'#modal-save\\').click();\\n  await new Promise(r => setTimeout(r, 2500));\\n  // 一覧サムネが元メインに戻ったか\\n  const rows = [...document.querySelectorAll(\\'.sortable-item\\')];\\n  const target = rows.find(r => (r.querySelector(\\'.info-name\\')?.textContent||\\'\\').includes(\\'りょうま\\'));\\n  const listTail = target?.querySelector(\\'.item-thumb img\\')?.src?.slice(-20);\\n  return { restoredMainTail: restoredMain, listTail, backToOriginal: restoredMain === \\'sGQDYNgmzAWQKu3/2Q==\\' };\\n}');"
+}
+```

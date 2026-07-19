@@ -498,16 +498,57 @@ let originalExtras = [];
 function renderExtras() {
   if (!extraImagesEl) return;
   extraImagesEl.innerHTML = pendingExtras.map((e, i) =>
-    `<div class="extra-thumb"><img src="${e.data}" alt="" /><button type="button" class="extra-del" data-extra-index="${i}" aria-label="削除">×</button></div>`
+    `<div class="extra-thumb">
+      <img src="${e.data}" alt="" />
+      <button type="button" class="extra-main" data-extra-index="${i}" title="メインにする">★</button>
+      <button type="button" class="extra-del" data-extra-index="${i}" aria-label="削除">×</button>
+    </div>`
   ).join('');
 }
 
-extraImagesEl?.addEventListener('click', (e) => {
-  const btn = e.target.closest('.extra-del');
-  if (!btn) return;
-  const i = Number(btn.dataset.extraIndex);
-  pendingExtras.splice(i, 1);
+// メイン画像プレビューを pendingImage の内容に更新
+function refreshMainPreview() {
+  if (pendingImage) {
+    uploadPreview.src = pendingImage;
+    uploadPreview.style.display = 'block';
+    uploadText.style.display = 'none';
+    imgPosGroup.style.display = 'block';
+    imgPosPreviewImg.src = pendingImage;
+    updateImgPosPreview();
+  } else {
+    uploadPreview.style.display = 'none';
+    uploadText.style.display = 'block';
+    uploadText.textContent = 'タップして画像を選択';
+    imgPosGroup.style.display = 'none';
+  }
+}
+
+// サブ画像 i をメインに昇格（メインは既存サブと入れ替え）
+function makeMainExtra(i) {
+  const ex = pendingExtras[i];
+  if (!ex) return;
+  if (!pendingImage) {
+    // メイン未設定 → サブをそのままメインへ
+    pendingImage = ex.data;
+    pendingExtras.splice(i, 1);
+  } else {
+    const tmp = pendingImage;
+    pendingImage = ex.data;
+    ex.data = tmp;
+    ex.dirty = true;   // 内容が入れ替わった既存サブは保存時に再アップロード
+  }
+  refreshMainPreview();
   renderExtras();
+}
+
+extraImagesEl?.addEventListener('click', (e) => {
+  const mainBtn = e.target.closest('.extra-main');
+  if (mainBtn) { makeMainExtra(Number(mainBtn.dataset.extraIndex)); return; }
+  const delBtn = e.target.closest('.extra-del');
+  if (delBtn) {
+    pendingExtras.splice(Number(delBtn.dataset.extraIndex), 1);
+    renderExtras();
+  }
 });
 
 btnAddExtra?.addEventListener('click', () => extraInput?.click());
@@ -683,6 +724,12 @@ document.getElementById('modal-save').addEventListener('click', async () => {
         await saveImage(key, e.data);
         finalExtras.push({ key, v: Date.now() });
         extraUploads.push({ key, data: e.data });
+      } else if (e.dirty) {
+        // メイン↔サブ入替などで中身が変わった既存サブ: 同じ key で再アップロード＋版更新
+        await saveImage(e.key, e.data);
+        const v = Date.now();
+        finalExtras.push({ key: e.key, v });
+        extraUploads.push({ key: e.key, data: e.data });
       } else {
         finalExtras.push({ key: e.key, v: e.v ?? 0 });
       }
