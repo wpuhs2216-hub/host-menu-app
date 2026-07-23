@@ -602,6 +602,7 @@ function fsImageList(item) {
 }
 
 function renderFsImage() {
+  resetZoom();
   if (fsImages.length > 0) {
     fsImage.src = fsImages[fsImgIndex]?.src || fsImages[0].src;
     fsImage.style.display = 'block';
@@ -681,6 +682,7 @@ function syncGridCheckbox(id) {
 }
 
 function closeFullscreen() {
+  resetZoom();
   fullscreen.classList.remove('active');
 }
 
@@ -690,6 +692,69 @@ fullscreen.addEventListener('click', (e) => {
   if (e.target === fullscreen) closeFullscreen();
 });
 
+// === ピンチズーム ===
+// transform は translate → scale の順（origin は画像中央）。
+// 画面座標 = 画像中央 + translate + scale × 画像内オフセット の関係を使って焦点を維持する
+let zoomScale = 1;
+let zoomX = 0;
+let zoomY = 0;
+let pinching = false;
+let pinchStartDist = 0;
+let pinchStartScale = 1;
+let pinchStartMid = { x: 0, y: 0 };
+let pinchStartZoom = { x: 0, y: 0 };
+let panning = false;
+let panStart = { x: 0, y: 0, zx: 0, zy: 0 };
+let lastTapTime = 0;
+let lastTapPos = { x: 0, y: 0 };
+
+const ZOOM_MAX = 4;
+
+function applyZoom() {
+  fsImage.style.transform = (zoomScale === 1 && zoomX === 0 && zoomY === 0)
+    ? '' : `translate(${zoomX}px, ${zoomY}px) scale(${zoomScale})`;
+}
+
+function resetZoom() {
+  fsImage.style.transition = '';
+  resetZoomKeepTransition();
+}
+
+function resetZoomKeepTransition() {
+  zoomScale = 1;
+  zoomX = 0;
+  zoomY = 0;
+  applyZoom();
+}
+
+// 画像が画面外に飛ばないよう translate をクランプ（余白が出る軸は中央固定）
+function clampZoomPan() {
+  const rect = fsSwipeArea.getBoundingClientRect();
+  const maxX = Math.max(0, (fsImage.clientWidth * zoomScale - rect.width) / 2);
+  const maxY = Math.max(0, (fsImage.clientHeight * zoomScale - rect.height) / 2);
+  zoomX = Math.min(maxX, Math.max(-maxX, zoomX));
+  zoomY = Math.min(maxY, Math.max(-maxY, zoomY));
+}
+
+function touchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+// コンテナ中央を原点としたタッチ座標
+function relPoint(clientX, clientY) {
+  const rect = fsSwipeArea.getBoundingClientRect();
+  return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 };
+}
+
+function touchMid(touches) {
+  return relPoint(
+    (touches[0].clientX + touches[1].clientX) / 2,
+    (touches[0].clientY + touches[1].clientY) / 2
+  );
+}
+
 // スワイプ操作
 let touchStartX = 0;
 let touchStartY = 0;
@@ -697,6 +762,26 @@ let touchDeltaX = 0;
 let swiping = false;
 
 fsSwipeArea.addEventListener('touchstart', (e) => {
+  if (e.touches.length >= 2) {
+    // ピンチ開始（スワイプ中だったら位置を戻す）
+    swiping = false;
+    panning = false;
+    fsSwipeArea.style.transition = 'none';
+    fsSwipeArea.style.transform = '';
+    fsImage.style.transition = '';
+    pinching = true;
+    pinchStartDist = touchDist(e.touches);
+    pinchStartScale = zoomScale;
+    pinchStartMid = touchMid(e.touches);
+    pinchStartZoom = { x: zoomX, y: zoomY };
+    return;
+  }
+  if (zoomScale > 1) {
+    // 拡大中は1本指でパン
+    panning = true;
+    panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, zx: zoomX, zy: zoomY };
+    return;
+  }
   touchStartX = e.touches[0].clientX;
   touchStartY = e.touches[0].clientY;
   touchDeltaX = 0;
@@ -704,14 +789,98 @@ fsSwipeArea.addEventListener('touchstart', (e) => {
 }, { passive: true });
 
 fsSwipeArea.addEventListener('touchmove', (e) => {
+  if (pinching && e.touches.length >= 2) {
+    e.preventDefault();
+    const s = Math.min(ZOOM_MAX, Math.max(1, pinchStartScale * (touchDist(e.touches) / pinchStartDist)));
+    const mid = touchMid(e.touches);
+    // ピンチ開始時に中点が指していた画像上の点を、移動後の中点に一致させ続ける
+    zoomX = mid.x - (pinchStartMid.x - pinchStartZoom.x) * (s / pinchStartScale);
+    zoomY = mid.y - (pinchStartMid.y - pinchStartZoom.y) * (s / pinchStartScale);
+    zoomScale = s;
+    clampZoomPan();
+    applyZoom();
+    return;
+  }
+  if (panning && e.touches.length === 1) {
+    e.preventDefault();
+    zoomX = panStart.zx + (e.touches[0].clientX - panStart.x);
+    zoomY = panStart.zy + (e.touches[0].clientY - panStart.y);
+    clampZoomPan();
+    applyZoom();
+    return;
+  }
   if (!swiping) return;
   touchDeltaX = e.touches[0].clientX - touchStartX;
   const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
   if (deltaY > Math.abs(touchDeltaX)) { swiping = false; return; }
   fsSwipeArea.style.transform = `translateX(${touchDeltaX}px)`;
-}, { passive: true });
+}, { passive: false });
 
-fsSwipeArea.addEventListener('touchend', () => {
+fsSwipeArea.addEventListener('touchend', (e) => {
+  if (pinching) {
+    if (e.touches.length >= 2) return;
+    pinching = false;
+    if (zoomScale <= 1.01) {
+      resetZoom();
+    } else if (e.touches.length === 1) {
+      // 残った指でそのままパンに移行
+      panning = true;
+      panStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, zx: zoomX, zy: zoomY };
+    }
+    return;
+  }
+  if (panning) {
+    if (e.touches.length === 0) panning = false;
+    // 拡大中でも動いていないタップはダブルタップ判定（等倍へ戻す）
+    if (e.changedTouches.length === 1) {
+      const t = e.changedTouches[0];
+      const moved = Math.hypot(t.clientX - panStart.x, t.clientY - panStart.y);
+      if (moved < 10) {
+        const now = Date.now();
+        const nearLast = Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) < 40;
+        if (now - lastTapTime < 300 && nearLast) {
+          lastTapTime = 0;
+          fsImage.style.transition = 'transform 0.2s ease';
+          resetZoomKeepTransition();
+          setTimeout(() => { fsImage.style.transition = ''; }, 200);
+          return;
+        }
+        lastTapTime = now;
+        lastTapPos = { x: t.clientX, y: t.clientY };
+      }
+    }
+    return;
+  }
+
+  // ダブルタップで拡大⇔等倍（ほぼ動いていないタップのみ対象）
+  if (swiping && Math.abs(touchDeltaX) < 10 && e.changedTouches.length === 1) {
+    const t = e.changedTouches[0];
+    const now = Date.now();
+    const nearLast = Math.hypot(t.clientX - lastTapPos.x, t.clientY - lastTapPos.y) < 40;
+    if (now - lastTapTime < 300 && nearLast) {
+      lastTapTime = 0;
+      swiping = false;
+      fsSwipeArea.style.transform = '';
+      fsImage.style.transition = 'transform 0.2s ease';
+      if (zoomScale > 1) {
+        zoomScale = 1;
+        zoomX = 0;
+        zoomY = 0;
+      } else {
+        const p = relPoint(t.clientX, t.clientY);
+        zoomScale = 2.5;
+        zoomX = p.x * (1 - zoomScale);
+        zoomY = p.y * (1 - zoomScale);
+        clampZoomPan();
+      }
+      applyZoom();
+      setTimeout(() => { fsImage.style.transition = ''; }, 200);
+      return;
+    }
+    lastTapTime = now;
+    lastTapPos = { x: t.clientX, y: t.clientY };
+  }
+
   if (!swiping) {
     fsSwipeArea.style.transform = '';
     return;
