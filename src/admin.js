@@ -565,16 +565,98 @@ extraInput?.addEventListener('change', async (e) => {
 });
 
 // プレビュー更新
+const imgPosZoom = document.getElementById('img-pos-zoom');
+const imgPosReset = document.getElementById('img-pos-reset');
+
 function updateImgPosPreview() {
   const x = editImgX.value;
   const y = editImgY.value;
   const scale = editImgScale.value;
   imgPosPreviewImg.style.objectPosition = `${x}% ${y}%`;
   imgPosPreviewImg.style.transform = `scale(${scale / 100})`;
+  if (imgPosZoom) imgPosZoom.textContent = `拡大 ${scale}%`;
 }
-editImgX.addEventListener('input', updateImgPosPreview);
-editImgY.addEventListener('input', updateImgPosPreview);
-editImgScale.addEventListener('input', updateImgPosPreview);
+
+// === プレビュー直接操作（ドラッグで位置・ピンチで拡大） ===
+// 値は従来どおり imgX/imgY(0-100%)・imgScale(100-250%) に落とし込む
+const IMG_SCALE_MIN = 100;
+const IMG_SCALE_MAX = 250;
+const posPointers = new Map(); // pointerId -> {x, y}
+
+function clampImgPos(v) { return Math.min(100, Math.max(0, v)); }
+
+// ドラッグ量(px)を object-position の%に換算する係数
+// object-fit: cover のはみ出し幅 (コンテナ - 描画幅) × scale が 100% ぶんの移動量
+function imgPosDragFactor() {
+  const cw = imgPosPreview.clientWidth;
+  const ch = imgPosPreview.clientHeight;
+  const nw = imgPosPreviewImg.naturalWidth;
+  const nh = imgPosPreviewImg.naturalHeight;
+  const s = Number(editImgScale.value) / 100;
+  if (!nw || !nh) return { fx: 0, fy: 0 };
+  const cover = Math.max(cw / nw, ch / nh);
+  return {
+    fx: (cw - nw * cover) * s / 100,  // ≦0（余りがない軸は0 → 移動不可）
+    fy: (ch - nh * cover) * s / 100,
+  };
+}
+
+function applyImgPosDrag(dx, dy) {
+  const { fx, fy } = imgPosDragFactor();
+  if (fx < -0.01) editImgX.value = clampImgPos(Number(editImgX.value) + dx / fx);
+  if (fy < -0.01) editImgY.value = clampImgPos(Number(editImgY.value) + dy / fy);
+}
+
+function applyImgPosScale(ratio) {
+  const s = Number(editImgScale.value) * ratio;
+  editImgScale.value = Math.round(Math.min(IMG_SCALE_MAX, Math.max(IMG_SCALE_MIN, s)));
+}
+
+imgPosPreview?.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  posPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { imgPosPreview.setPointerCapture(e.pointerId); } catch { /* 合成イベント等でIDが無効な場合は無視 */ }
+});
+
+imgPosPreview?.addEventListener('pointermove', (e) => {
+  if (!posPointers.has(e.pointerId)) return;
+  const prev = posPointers.get(e.pointerId);
+  const cur = { x: e.clientX, y: e.clientY };
+  if (posPointers.size === 1) {
+    // 1本指/マウス: ドラッグで位置
+    applyImgPosDrag(cur.x - prev.x, cur.y - prev.y);
+  } else if (posPointers.size === 2) {
+    // 2本指: ピンチで拡大（中点の移動ぶんは位置にも反映）
+    let other = null;
+    for (const [id, p] of posPointers) if (id !== e.pointerId) other = p;
+    const dPrev = Math.hypot(prev.x - other.x, prev.y - other.y);
+    const dCur = Math.hypot(cur.x - other.x, cur.y - other.y);
+    if (dPrev > 0) applyImgPosScale(dCur / dPrev);
+    applyImgPosDrag((cur.x - prev.x) / 2, (cur.y - prev.y) / 2);
+  }
+  posPointers.set(e.pointerId, cur);
+  updateImgPosPreview();
+});
+
+function endPosPointer(e) {
+  posPointers.delete(e.pointerId);
+}
+imgPosPreview?.addEventListener('pointerup', endPosPointer);
+imgPosPreview?.addEventListener('pointercancel', endPosPointer);
+
+// PC: ホイールで拡大縮小
+imgPosPreview?.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  applyImgPosScale(e.deltaY < 0 ? 1.05 : 1 / 1.05);
+  updateImgPosPreview();
+}, { passive: false });
+
+imgPosReset?.addEventListener('click', () => {
+  editImgX.value = 50;
+  editImgY.value = 50;
+  editImgScale.value = 100;
+  updateImgPosPreview();
+});
 
 async function openModal(item = null) {
   if (item) {

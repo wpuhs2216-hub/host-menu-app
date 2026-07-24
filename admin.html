@@ -204,26 +204,19 @@
           </div>
         </div>
         <div class="form-group img-pos-group" id="img-pos-group" style="display:none">
-          <label>表示範囲プレビュー</label>
+          <label>表示範囲（ドラッグで位置・ピンチで拡大）</label>
           <div class="img-pos-preview-wrap">
             <div class="img-pos-preview" id="img-pos-preview">
-              <img id="img-pos-preview-img" src="" />
+              <img id="img-pos-preview-img" src="" draggable="false" />
             </div>
           </div>
-          <div class="img-pos-controls">
-            <div class="img-pos-row">
-              <label>横位置</label>
-              <input type="range" id="edit-img-x" min="0" max="100" step="1" value="50" />
-            </div>
-            <div class="img-pos-row">
-              <label>縦位置</label>
-              <input type="range" id="edit-img-y" min="0" max="100" step="1" value="50" />
-            </div>
-            <div class="img-pos-row">
-              <label>拡大</label>
-              <input type="range" id="edit-img-scale" min="100" max="250" step="5" value="100" />
-            </div>
+          <div class="img-pos-gesture-row">
+            <span class="img-pos-zoom" id="img-pos-zoom">拡大 100%</span>
+            <button type="button" class="btn btn-secondary btn-img-pos-reset" id="img-pos-reset">リセット</button>
           </div>
+          <input type="hidden" id="edit-img-x" value="50" />
+          <input type="hidden" id="edit-img-y" value="50" />
+          <input type="hidden" id="edit-img-scale" value="100" />
         </div>
         <div class="form-group">
           <label>追加画像（拡大時にサムネで切替）</label>
