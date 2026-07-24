@@ -73,6 +73,19 @@ export function generateId() {
   return `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// === サムネフレーム（金/銀/銅） ===
+export const FRAME_OPTIONS = [
+  { id: 'gold', label: '金' },
+  { id: 'silver', label: '銀' },
+  { id: 'bronze', label: '銅' },
+];
+
+// フレーム画像のパス（無効値は '' を返す）
+export function frameSrc(frame) {
+  if (!FRAME_OPTIONS.some((f) => f.id === frame)) return '';
+  return `${import.meta.env.BASE_URL}frames/${frame}.webp`;
+}
+
 // === 指名オーダー管理 ===
 
 export function loadOrders() {

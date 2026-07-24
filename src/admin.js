@@ -3,7 +3,7 @@
 const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
 document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
-import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData } from './store.js';
+import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, FRAME_OPTIONS, frameSrc } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
@@ -281,6 +281,9 @@ function createSortableItem(item, imageSrc) {
     thumb.innerHTML = `<img src="${imageSrc}" alt="" style="object-position:${px}% ${py}%;transform-origin:${px}% ${py}%;transform:scale(${sc / 100})" />`;
   } else {
     thumb.innerHTML = `<div class="thumb-placeholder">♠</div>`;
+  }
+  if (frameSrc(item.frame)) {
+    thumb.innerHTML += `<img class="thumb-frame" src="${frameSrc(item.frame)}" alt="" />`;
   }
 
   // タッチドラッグ初期化
@@ -661,6 +664,28 @@ imgPosReset?.addEventListener('click', () => {
   updateImgPosPreview();
 });
 
+// === フレーム選択（なし/金/銀/銅） ===
+const frameSelect = document.getElementById('frame-select');
+let pendingFrame = null;
+
+function renderFrameSelect() {
+  if (!frameSelect) return;
+  const opts = [{ id: '', label: 'なし' }, ...FRAME_OPTIONS];
+  frameSelect.innerHTML = opts.map((o) =>
+    `<button type="button" class="frame-opt ${(pendingFrame || '') === o.id ? 'active' : ''}" data-frame="${o.id}">
+      <span class="frame-opt-thumb">${o.id ? `<img src="${frameSrc(o.id)}" alt="" />` : '<span class="frame-none">✕</span>'}</span>
+      <span class="frame-opt-label">${o.label}</span>
+    </button>`
+  ).join('');
+}
+
+frameSelect?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.frame-opt');
+  if (!btn) return;
+  pendingFrame = btn.dataset.frame || null;
+  renderFrameSelect();
+});
+
 async function openModal(item = null) {
   if (item) {
     modalTitle.textContent = 'パネル編集';
@@ -681,6 +706,8 @@ async function openModal(item = null) {
       if (d) pendingExtras.push({ key: e.key, data: d, v: e.v ?? 0, isNew: false });
     }
     renderExtras();
+    pendingFrame = item.frame || null;
+    renderFrameSelect();
     editImgX.value = item.imgX ?? 50;
     editImgY.value = item.imgY ?? 50;
     editImgScale.value = item.imgScale ?? 100;
@@ -709,6 +736,8 @@ async function openModal(item = null) {
     originalExtras = [];
     pendingExtras = [];
     renderExtras();
+    pendingFrame = null;
+    renderFrameSelect();
     editImgX.value = 50;
     editImgY.value = 50;
     editImgScale.value = 100;
@@ -751,6 +780,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   const imgX = Number(editImgX.value);
   const imgY = Number(editImgY.value);
   const imgScale = Number(editImgScale.value);
+  const frame = pendingFrame;
 
   const id = editId.value;
   let savedItem = null;
@@ -766,6 +796,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       item.imgX = imgX;
       item.imgY = imgY;
       item.imgScale = imgScale;
+      item.frame = frame;
       if (pendingImage) {
         await saveImage(id, pendingImage);
         imagesCached = null;
@@ -788,6 +819,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       hasImage: !!pendingImage,
       imageVersion: pendingImage ? Date.now() : 0,
       imgX, imgY, imgScale,
+      frame,
       image: '',
       order: data.items.length,
       visible: true,
@@ -1308,6 +1340,43 @@ if (btnCheckUpdate) {
 const versionLabel = document.getElementById('app-version');
 if (versionLabel) versionLabel.textContent = `v${APP_VERSION}`;
 
+// === アプデ後の初回起動時にアプデ履歴を表示 ===
+// 前回表示したバージョンを記録し、更新後に初めて設定画面を開いた時だけ
+// その間のリリースノートをまとめてダイアログ表示する
+const SEEN_VERSION_KEY = 'host-menu-seen-version';
+
+async function showUpdateHistoryIfNeeded() {
+  let seen = null;
+  try { seen = localStorage.getItem(SEEN_VERSION_KEY); } catch { /* ignore */ }
+  if (seen === APP_VERSION) return;
+  if (!seen) {
+    // 初回起動（または機能導入直後）は記録のみで表示しない
+    try { localStorage.setItem(SEEN_VERSION_KEY, APP_VERSION); } catch { /* ignore */ }
+    return;
+  }
+  let text = `v${seen} から v${APP_VERSION} に更新されました。`;
+  try {
+    const res = await fetch('https://api.github.com/repos/wpuhs2216-hub/host-menu-app/releases?per_page=20', {
+      headers: { 'Accept': 'application/vnd.github+json' },
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const releases = await res.json();
+      // 前回表示バージョンより後〜現行までのリリースを新しい順に列挙
+      const list = (Array.isArray(releases) ? releases : [])
+        .filter((r) => r.tag_name
+          && compareVersions(r.tag_name, seen) > 0
+          && compareVersions(r.tag_name, APP_VERSION) <= 0)
+        .slice(0, 10);
+      if (list.length > 0) {
+        text = list.map((r) => `■ ${r.tag_name}\n${(r.body || '').trim()}`).join('\n\n');
+      }
+    }
+  } catch { /* オフライン等は既定文言のまま */ }
+  await dlg.alert(text, { title: `アップデート内容（v${seen} → v${APP_VERSION}）`, okLabel: 'OK' });
+  try { localStorage.setItem(SEEN_VERSION_KEY, APP_VERSION); } catch { /* ignore */ }
+}
+
 // === フォントサイズ設定 ===
 
 const fsSliders = {
@@ -1819,6 +1888,9 @@ async function init() {
 
   // 通知ボタンの状態を最新化（permission が変わっている場合に追従）
   updateNotifyBtn();
+
+  // アプデ後の初回起動ならアプデ履歴を表示
+  showUpdateHistoryIfNeeded().catch(() => {});
 
   // 起動時自動アップデートチェック（APK アップデートはアプリ版のみ）
   if (IS_CAPACITOR) scheduleStartupCheck();

@@ -44,6 +44,7 @@ function rowToItem(row) {
     imgX: row.img_x ?? 50,
     imgY: row.img_y ?? 50,
     imgScale: row.img_scale ?? 100,
+    frame: row.frame || null,               // サムネフレーム 'gold'|'silver'|'bronze'|null
     order: row.order ?? 0,
     visible: row.visible !== false,
     isNewFace: !!row.is_new_face,
@@ -72,6 +73,7 @@ function itemToRow(item) {
     img_x: Number(item.imgX ?? 50),
     img_y: Number(item.imgY ?? 50),
     img_scale: Number(item.imgScale ?? 100),
+    frame: item.frame || null,
     order: Number(item.order ?? 0),
     visible: item.visible !== false,
     is_new_face: !!item.isNewFace,

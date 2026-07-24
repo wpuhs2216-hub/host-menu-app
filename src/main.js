@@ -10,7 +10,7 @@ if (IS_CAPACITOR) {
   try { localStorage.removeItem('host-menu-admin-session'); } catch { /* ignore */ }
 }
 
-import { loadData, saveData, saveOrder, generateId, loadSettings } from './store.js';
+import { loadData, saveData, saveOrder, generateId, loadSettings, frameSrc } from './store.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import { initialSync, startRealtime, stopRealtime, forcePull, syncOrderInsert } from './sync.js';
 import * as dlg from './dialog.js';
@@ -356,6 +356,11 @@ async function render() {
       el.innerHTML = `<img class="panel-image" src="${img}" alt="${escapeHtml(item.name || item.label)}" style="object-position:${posX}% ${posY}%;transform-origin:${posX}% ${posY}%;transform:scale(${scale / 100})" />`;
     } else {
       el.innerHTML = `<div class="placeholder">♠</div>`;
+    }
+
+    // サムネフレーム（金/銀/銅）
+    if (frameSrc(item.frame)) {
+      el.innerHTML += `<img class="panel-frame" src="${frameSrc(item.frame)}" alt="" />`;
     }
 
     // NEWバッジ

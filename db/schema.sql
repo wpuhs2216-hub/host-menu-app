@@ -13,6 +13,7 @@ create table if not exists public.panels (
   img_x integer default 50,
   img_y integer default 50,
   img_scale integer default 100,
+  frame text,
   "order" integer default 0,
   visible boolean default true,
   is_new_face boolean default false,
