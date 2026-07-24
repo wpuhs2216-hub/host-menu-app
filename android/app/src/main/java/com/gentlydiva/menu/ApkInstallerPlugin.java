@@ -69,7 +69,7 @@ public class ApkInstallerPlugin extends Plugin {
                 return;
             }
 
-            int total = conn.getContentLength();
+            long total = conn.getContentLengthLong();
             long downloaded = 0;
             int lastPct = -1;
             try (InputStream in = conn.getInputStream();
@@ -92,11 +92,18 @@ public class ApkInstallerPlugin extends Plugin {
                 out.flush();
             }
 
-            launchInstall(apk);
+            // 途中で切れた不完全な APK でインストーラを起動しない
+            // （通信断で read が -1 を返して正常終了に見えるケース対策）
+            if (total > 0 && downloaded != total) {
+                call.reject("INCOMPLETE_DOWNLOAD");
+                return;
+            }
+            if (downloaded < 1024 * 100) {   // 100KB 未満は APK として異常
+                call.reject("INCOMPLETE_DOWNLOAD");
+                return;
+            }
 
-            JSObject ret = new JSObject();
-            ret.put("ok", true);
-            call.resolve(ret);
+            launchInstall(call, apk);
         } catch (Exception e) {
             call.reject("ダウンロードエラー: " + e.getMessage());
         } finally {
@@ -104,12 +111,23 @@ public class ApkInstallerPlugin extends Plugin {
         }
     }
 
-    private void launchInstall(File apk) {
-        Uri uri = FileProvider.getUriForFile(getContext(),
-                getContext().getPackageName() + ".fileprovider", apk);
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(uri, "application/vnd.android.package-archive");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        getContext().startActivity(intent);
+    private void launchInstall(PluginCall call, File apk) {
+        // startActivity はワーカースレッドから呼ぶと端末によって黙って失敗するため
+        // 必ず UI スレッドで実行し、失敗はエラーとして JS 側へ返す
+        getActivity().runOnUiThread(() -> {
+            try {
+                Uri uri = FileProvider.getUriForFile(getContext(),
+                        getContext().getPackageName() + ".fileprovider", apk);
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setDataAndType(uri, "application/vnd.android.package-archive");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getContext().startActivity(intent);
+                JSObject ret = new JSObject();
+                ret.put("ok", true);
+                call.resolve(ret);
+            } catch (Exception e) {
+                call.reject("INSTALL_LAUNCH_FAILED: " + e.getMessage());
+            }
+        });
     }
 }

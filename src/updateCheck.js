@@ -82,12 +82,19 @@ function showUpdateBanner({ latest, url }) {
 }
 
 // アプリ内アップデート（APK ダウンロード→インストール）。進捗はバナー本文に表示する。
-async function startInAppUpdate(el, url) {
+async function startInAppUpdate(el, url, retry = 0) {
   const btn = el.querySelector('.ub-update');
   const skipBtn = el.querySelector('.ub-skip');
   const textEl = el.querySelector('.ub-text');
   const origText = textEl.innerHTML;
   let listener;
+
+  const resetButtons = (label = '更新する') => {
+    btn.disabled = false;
+    if (skipBtn) skipBtn.disabled = false;
+    btn.textContent = label;
+  };
+
   try {
     btn.disabled = true;
     if (skipBtn) skipBtn.disabled = true;
@@ -101,23 +108,35 @@ async function startInAppUpdate(el, url) {
 
     await ApkInstaller.install({ url });
     textEl.textContent = 'インストールを開始します…';
+
+    // インストーラが開けばアプリはバックグラウンドに落ちる。
+    // 10秒経っても前面のままなら開けていないので再試行できるようにする
+    setTimeout(() => {
+      if (document.visibilityState === 'visible' && document.body.contains(el)) {
+        textEl.textContent = 'インストール画面が開かない場合は、もう一度「更新する」を押してください';
+        resetButtons();
+      }
+    }, 10000);
   } catch (err) {
     const msg = String(err?.message || err || '');
     if (msg.includes('PERMISSION_REQUIRED')) {
       // 提供元不明アプリの許可画面を開いた状態。許可後に再度押してもらう。
       textEl.textContent = 'この端末で「提供元不明アプリのインストール」を許可し、もう一度「更新する」を押してください';
-      btn.disabled = false;
-      if (skipBtn) skipBtn.disabled = false;
-      btn.textContent = '更新する';
+      resetButtons();
+    } else if (msg.includes('INCOMPLETE_DOWNLOAD') && retry < 2) {
+      // 通信断などでダウンロードが不完全 → 自動で再ダウンロード（最大2回）
+      textEl.textContent = 'ダウンロードをやり直しています…';
+      if (listener && listener.remove) { try { await listener.remove(); } catch { /* ignore */ } }
+      listener = null;
+      setTimeout(() => startInAppUpdate(el, url, retry + 1), 1500);
+      return;
     } else {
       textEl.innerHTML = origText;
       const ok = await dlg.confirm('アプリ内更新に失敗しました。\nブラウザでダウンロードページを開きますか？', {
         title: '更新エラー', okLabel: '開く', cancelLabel: '閉じる',
       });
       if (ok) { try { window.open(url, '_system'); } catch { window.open(url, '_blank'); } }
-      btn.disabled = false;
-      if (skipBtn) skipBtn.disabled = false;
-      btn.textContent = '更新する';
+      resetButtons();
     }
   } finally {
     if (listener && listener.remove) { try { await listener.remove(); } catch { /* ignore */ } }
