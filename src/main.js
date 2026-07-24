@@ -353,7 +353,7 @@ async function render() {
       const posX = item.imgX ?? 50;
       const posY = item.imgY ?? 50;
       const scale = item.imgScale ?? 100;
-      el.innerHTML = `<img class="panel-image" src="${img}" alt="${escapeHtml(item.name || item.label)}" style="object-position:${posX}% ${posY}%;transform:scale(${scale / 100})" />`;
+      el.innerHTML = `<img class="panel-image" src="${img}" alt="${escapeHtml(item.name || item.label)}" style="object-position:${posX}% ${posY}%;transform-origin:${posX}% ${posY}%;transform:scale(${scale / 100})" />`;
     } else {
       el.innerHTML = `<div class="placeholder">♠</div>`;
     }

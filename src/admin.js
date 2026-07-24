@@ -278,7 +278,7 @@ function createSortableItem(item, imageSrc) {
     const px = item.imgX ?? 50;
     const py = item.imgY ?? 50;
     const sc = item.imgScale ?? 100;
-    thumb.innerHTML = `<img src="${imageSrc}" alt="" style="object-position:${px}% ${py}%;transform:scale(${sc / 100})" />`;
+    thumb.innerHTML = `<img src="${imageSrc}" alt="" style="object-position:${px}% ${py}%;transform-origin:${px}% ${py}%;transform:scale(${sc / 100})" />`;
   } else {
     thumb.innerHTML = `<div class="thumb-placeholder">♠</div>`;
   }
@@ -573,8 +573,10 @@ function updateImgPosPreview() {
   const y = editImgY.value;
   const scale = editImgScale.value;
   imgPosPreviewImg.style.objectPosition = `${x}% ${y}%`;
+  // 拡大の基準点も位置と連動させる（拡大後もドラッグで全域に移動できる）
+  imgPosPreviewImg.style.transformOrigin = `${x}% ${y}%`;
   imgPosPreviewImg.style.transform = `scale(${scale / 100})`;
-  if (imgPosZoom) imgPosZoom.textContent = `拡大 ${scale}%`;
+  if (imgPosZoom) imgPosZoom.textContent = `拡大 ${Math.round(scale)}%`;
 }
 
 // === プレビュー直接操作（ドラッグで位置・ピンチで拡大） ===
@@ -585,8 +587,9 @@ const posPointers = new Map(); // pointerId -> {x, y}
 
 function clampImgPos(v) { return Math.min(100, Math.max(0, v)); }
 
-// ドラッグ量(px)を object-position の%に換算する係数
-// object-fit: cover のはみ出し幅 (コンテナ - 描画幅) × scale が 100% ぶんの移動量
+// ドラッグ量(px)を位置%に換算する係数
+// object-position と transform-origin を同値で連動させているため、
+// 位置% を 0→100 に動かすと画面上は (コンテナ幅 - 描画幅×scale) だけ移動する
 function imgPosDragFactor() {
   const cw = imgPosPreview.clientWidth;
   const ch = imgPosPreview.clientHeight;
@@ -596,8 +599,8 @@ function imgPosDragFactor() {
   if (!nw || !nh) return { fx: 0, fy: 0 };
   const cover = Math.max(cw / nw, ch / nh);
   return {
-    fx: (cw - nw * cover) * s / 100,  // ≦0（余りがない軸は0 → 移動不可）
-    fy: (ch - nh * cover) * s / 100,
+    fx: (cw - nw * cover * s) / 100,  // ≦0（拡大していれば必ず動かせる）
+    fy: (ch - nh * cover * s) / 100,
   };
 }
 
