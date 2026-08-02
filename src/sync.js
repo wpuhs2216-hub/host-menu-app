@@ -70,9 +70,10 @@ function itemToRow(item) {
     label: item.label || '',
     image_path: item._imagePath || (item.hasImage ? `${item.id}.jpg` : ''),
     image_version: Number(item.imageVersion ?? 0),
-    img_x: Number(item.imgX ?? 50),
-    img_y: Number(item.imgY ?? 50),
-    img_scale: Number(item.imgScale ?? 100),
+    // integer 列なので必ず整数化（小数が混ざると同期エラーになる）
+    img_x: Math.round(Number(item.imgX ?? 50)) || 0,
+    img_y: Math.round(Number(item.imgY ?? 50)) || 0,
+    img_scale: Math.round(Number(item.imgScale ?? 100)) || 100,
     frame: item.frame || null,
     order: Number(item.order ?? 0),
     visible: item.visible !== false,

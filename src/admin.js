@@ -777,9 +777,10 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   const title = editTitle.value.trim();
   const label = editLabel.value.trim();
   const isNewFace = editNewFace.checked;
-  const imgX = Number(editImgX.value);
-  const imgY = Number(editImgY.value);
-  const imgScale = Number(editImgScale.value);
+  // DB 側は integer 列なので保存時に整数へ丸める（ドラッグ操作で小数になるため）
+  const imgX = Math.round(Number(editImgX.value) || 0);
+  const imgY = Math.round(Number(editImgY.value) || 0);
+  const imgScale = Math.round(Number(editImgScale.value) || 100);
   const frame = pendingFrame;
 
   const id = editId.value;
