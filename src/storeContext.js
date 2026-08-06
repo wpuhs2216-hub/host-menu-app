@@ -9,6 +9,7 @@
 export const STORES = [
   { id: 'gently-diva', name: 'GENTLY DIVA', password: '2020' },
   { id: 'dears-lucia', name: "Dear's Lucia", password: '12345' },
+  { id: 'dears-bachelor', name: "Dear's BACHELOR", password: '54321' },
 ];
 
 const STORE_ID_KEY = 'host-menu-store-id';
