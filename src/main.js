@@ -339,7 +339,8 @@ function initConsentEntry() {
     btn.disabled = true;
     try {
       const mod = await import('./consent.js');
-      await mod.openConsentDialog({ isTest: true });
+      // メニュー画面からの署名は本番運用の記録として残す（設定画面からのものはテスト扱い）
+      await mod.openConsentDialog({ isTest: false });
     } catch (err) {
       dlg.alert(`同意書画面を開けませんでした。\n${err?.message || err}`, { title: 'エラー' });
     } finally {

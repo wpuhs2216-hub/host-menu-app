@@ -1465,6 +1465,7 @@ function initConsentTestMode() {
           row.innerHTML = `
             <span class="cr-when">${when}</span>
             <span class="cr-route">${r.customerName || '（署名のみ）'}／${routeLabels[r.route] || '―'}／身分証${r.idChecked ? '済' : '未'}</span>
+            ${r.isTest ? '<span class="cr-badge cr-test">テスト</span>' : '<span class="cr-badge cr-real">本番</span>'}
             ${r.synced ? '<span class="cr-badge cr-synced">クラウド済</span>' : '<span class="cr-badge">端末のみ</span>'}`;
           row.addEventListener('click', async () => {
             const ok = await consentMod.openConsentImage(r.id);

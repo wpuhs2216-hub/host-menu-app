@@ -366,3 +366,14 @@
   .consent-actions { padding: 1.4vh 5vw 1.8vh; flex-shrink: 0; }
   .consent-actions .btn { padding: 1.2vh 14px; min-height: 5vh; font-size: clamp(14px, 1.9vh, 17px); }
 }
+
+/* 一覧の区分バッジ: テスト（設定画面から）/ 本番（メニュー画面から） */
+.consent-row .cr-badge.cr-test {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.consent-row .cr-badge.cr-real {
+  background: rgba(212, 175, 55, 0.22);
+  color: #e8cf7a;
+}
