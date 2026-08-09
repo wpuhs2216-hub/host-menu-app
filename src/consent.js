@@ -4,13 +4,24 @@
 //   consents テーブルへ 1 行 insert する（追記専用。DB 側で UPDATE/DELETE は拒否）
 // - 「何に同意したか」を後から再現できるよう、表示した本文をそのまま doc_text に残す
 
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import { supabase } from './supabaseClient.js';
 import { getStoreId, getStoreName } from './storeContext.js';
 import { getDeviceName, getSelfDeviceId } from './sync.js';
+import { loadSettings } from './store.js';
+import {
+  saveConsentLocal, listConsentsLocal, getConsentImage,
+  markSynced, listUnsyncedLocal, localUsage,
+} from './consentDB.js';
 import * as dlg from './dialog.js';
 import './consent.css';
 
 export const CONSENT_BUCKET = 'consent-images';
+
+// 端末のアルバムへ保存するネイティブプラグイン（APK 版のみ実体あり）
+const AlbumSaver = registerPlugin('AlbumSaver');
+const IS_CAPACITOR = !!(Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+const ALBUM_NAME = '同意書';
 
 // 書類の版。本文を変えたら必ず版も上げる（過去の同意がどの本文だったか追えなくなるため）
 export const DOC_VERSION = 'spl-v1';
@@ -334,7 +345,104 @@ async function uploadPng(path, dataUrl) {
   return path;
 }
 
+// クラウドにも保存するか（既定オフ＝この端末の中だけに置く）
+export function isCloudSaveEnabled() {
+  return !!loadSettings().consentCloudSave;
+}
+
+// 端末のアルバムにも保存するか（既定オン）
+export function isAlbumSaveEnabled() {
+  const s = loadSettings();
+  return s.consentAlbumSave !== false;
+}
+
+// 保存する画像のファイル名（アルバムで見て分かるように日時を入れる）
+function albumFileName(signedAt, customerName) {
+  const p = (n) => String(n).padStart(2, '0');
+  const d = signedAt;
+  const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  const who = (customerName || '').replace(/[\\/:*?"<>|]/g, '').slice(0, 20);
+  return `同意書_${stamp}${who ? `_${who}` : ''}.jpg`;
+}
+
+// === 端末のアルバムへ保存 ===
+// アプリ版はギャラリーへ、ブラウザ版はダウンロードにフォールバックする
+export async function saveToAlbum(dataUrl, fileName) {
+  if (!dataUrl) return { ok: false, reason: 'NO_DATA' };
+
+  if (IS_CAPACITOR) {
+    try {
+      const res = await AlbumSaver.save({ data: dataUrl, fileName, album: ALBUM_NAME });
+      return { ok: true, uri: res?.uri || '' };
+    } catch (err) {
+      const msg = String(err?.message || err || '');
+      return { ok: false, reason: msg.includes('PERMISSION_DENIED') ? 'PERMISSION_DENIED' : msg };
+    }
+  }
+
+  // ブラウザ: アルバムの概念がないのでファイルとして落とす
+  try {
+    const blob = dataUrlToBlob(dataUrl);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return { ok: true, downloaded: true };
+  } catch (err) {
+    return { ok: false, reason: err?.message || String(err) };
+  }
+}
+
+// === クラウドへ 1 件送る（ローカルに保存済みのものを送信する） ===
+// 保存の本体はローカル側。ここは「送れたら送る」役割で、失敗しても署名自体は失われない。
+export async function pushConsentToCloud(meta) {
+  const documentImage = await getConsentImage(meta.id);
+  const signatureImage = await getConsentImage(`${meta.id}__sig`);
+
+  const signaturePath = `${meta.id}__sig.png`;
+  const documentPath = `${meta.id}.jpg`;
+  if (signatureImage) await uploadPng(signaturePath, signatureImage);
+  if (documentImage) await uploadPng(documentPath, documentImage);
+
+  const { error } = await supabase.from('consents').insert({
+    id: meta.id,
+    store_id: meta.storeId,
+    route: meta.route,
+    id_checked: !!meta.idChecked,
+    customer_name: meta.customerName || '',
+    signature_path: signaturePath,
+    document_path: documentPath,
+    doc_version: meta.docVersion,
+    doc_text: meta.docText,
+    device_name: meta.deviceName || '',
+    device_id: meta.deviceId || '',
+    hash: meta.hash || '',
+    is_test: !!meta.isTest,
+    signed_at: meta.signedAt,
+  });
+  if (error) throw error;
+  await markSynced(meta.id, true);
+  return true;
+}
+
+// 未送信ぶんをまとめて送る（クラウド保存をオンにした時や再送ボタン用）
+export async function pushPendingConsents() {
+  const pending = await listUnsyncedLocal(getStoreId());
+  let ok = 0;
+  const failed = [];
+  for (const meta of pending) {
+    try { await pushConsentToCloud(meta); ok++; } catch (e) { failed.push({ id: meta.id, error: e?.message || String(e) }); }
+  }
+  return { total: pending.length, ok, failed };
+}
+
 // === 保存 ===
+// まず端末内（IndexedDB）に確定保存し、そのあとで必要ならクラウドへ送る。
+// 通信が無くても署名は取れる／消えない、という順序にしてある。
 export async function saveConsent({ route, idChecked, customerName, pad, isTest = true }) {
   const id = genId();
   const signedAt = new Date();
@@ -345,49 +453,87 @@ export async function saveConsent({ route, idChecked, customerName, pad, isTest 
     route, idChecked, customerName, signaturePng, signedAt,
   });
 
-  const signaturePath = `${id}__sig.png`;
-  const documentPath = `${id}.jpg`;
-  await uploadPng(signaturePath, signaturePng);
-  await uploadPng(documentPath, documentJpg);
-
   const hash = await sha256Hex([
     DOC_VERSION, docText, route, idChecked ? '1' : '0',
     customerName || '', signedAt.toISOString(), signaturePng.slice(0, 4096),
   ].join('|'));
 
-  const row = {
+  const meta = {
     id,
-    store_id: getStoreId(),
+    storeId: getStoreId(),
     route,
-    id_checked: !!idChecked,
-    customer_name: customerName || '',
-    signature_path: signaturePath,
-    document_path: documentPath,
-    doc_version: DOC_VERSION,
-    doc_text: docText,
-    device_name: getDeviceName(),
-    device_id: getSelfDeviceId(),
+    idChecked: !!idChecked,
+    customerName: customerName || '',
+    docVersion: DOC_VERSION,
+    docText,
+    deviceName: getDeviceName(),
+    deviceId: getSelfDeviceId(),
     hash,
-    is_test: !!isTest,
-    signed_at: signedAt.toISOString(),
+    isTest: !!isTest,
+    signedAt: signedAt.toISOString(),
+    synced: false,
+    syncedAt: '',
   };
-  const { error } = await supabase.from('consents').insert(row);
-  if (error) throw error;
-  return row;
+
+  // ① 端末内に保存（ここが本体。失敗したらエラーにする）
+  await saveConsentLocal(meta, { documentImage: documentJpg, signatureImage: signaturePng });
+
+  // ② 端末のアルバムにも残す（失敗しても署名自体は①で確定済み）
+  if (isAlbumSaveEnabled()) {
+    const r = await saveToAlbum(documentJpg, albumFileName(signedAt, customerName));
+    meta.albumSaved = !!r.ok;
+    if (!r.ok) meta.albumError = r.reason;
+    // 保存結果を meta に反映（画像は①で入っているので再書き込みしない）
+    await saveConsentLocal(meta);
+  }
+
+  // ③ クラウド保存が有効なら送る。失敗しても未送信として残すだけで、署名は端末に残る
+  if (isCloudSaveEnabled()) {
+    try {
+      await pushConsentToCloud(meta);
+      meta.synced = true;
+    } catch (err) {
+      console.warn('クラウド送信に失敗（端末内には保存済み）', err);
+      meta.cloudError = err?.message || String(err);
+    }
+  }
+  return meta;
 }
 
-// === 一覧取得 ===
-export async function listConsents(limit = 20) {
-  const { data, error } = await supabase
-    .from('consents')
-    .select('id,route,id_checked,customer_name,document_path,signed_at,device_name,is_test,doc_version')
-    .eq('store_id', getStoreId())
-    .order('signed_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data || [];
+// === 一覧取得（端末内から） ===
+export async function listConsents(limit = 50) {
+  return listConsentsLocal(getStoreId(), limit);
 }
 
+export async function getLocalUsage() {
+  return localUsage(getStoreId());
+}
+
+// 保存済みの 1 件を、あとからアルバムへ入れ直す（保存に失敗していた分の救済）
+export async function resaveToAlbum(meta) {
+  const documentImage = await getConsentImage(meta.id);
+  if (!documentImage) return { ok: false, reason: 'NO_DATA' };
+  const r = await saveToAlbum(documentImage, albumFileName(new Date(meta.signedAt), meta.customerName));
+  if (r.ok) {
+    meta.albumSaved = true;
+    delete meta.albumError;
+    await saveConsentLocal(meta);
+  }
+  return r;
+}
+
+// 端末内に保存した画像を新しいタブで開く（dataURL を Blob URL 化して表示）
+export async function openConsentImage(id) {
+  const dataUrl = await getConsentImage(id);
+  if (!dataUrl) return false;
+  const blob = dataUrlToBlob(dataUrl);
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return true;
+}
+
+// クラウド側に保存された画像の URL（クラウド保存を使う場合のみ意味を持つ）
 export function consentImageUrl(path) {
   if (!path) return '';
   const { data } = supabase.storage.from(CONSENT_BUCKET).getPublicUrl(path);

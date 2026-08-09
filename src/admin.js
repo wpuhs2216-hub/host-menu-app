@@ -1445,32 +1445,36 @@ function initConsentTestMode() {
   const listEl = document.getElementById('consent-list');
   const routeLabels = { 1: '路上での声掛け', 2: '案内所からの案内', 3: 'その他／自らの意思' };
 
+  const usageEl = document.getElementById('consent-usage');
+
   async function refreshList() {
     if (!consentMod) return;
     listEl.innerHTML = '<div class="consent-empty">読み込み中…</div>';
     try {
-      const rows = await consentMod.listConsents(20);
+      const rows = await consentMod.listConsents(50);
       if (rows.length === 0) {
         listEl.innerHTML = '<div class="consent-empty">まだ署名はありません</div>';
-        return;
+      } else {
+        listEl.innerHTML = '';
+        for (const r of rows) {
+          const d = new Date(r.signedAt);
+          const when = `${d.getMonth() + 1}/${d.getDate()} `
+            + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          const row = document.createElement('div');
+          row.className = 'consent-row';
+          row.innerHTML = `
+            <span class="cr-when">${when}</span>
+            <span class="cr-route">${r.customerName || '（署名のみ）'}／${routeLabels[r.route] || '―'}／身分証${r.idChecked ? '済' : '未'}</span>
+            ${r.synced ? '<span class="cr-badge cr-synced">クラウド済</span>' : '<span class="cr-badge">端末のみ</span>'}`;
+          row.addEventListener('click', async () => {
+            const ok = await consentMod.openConsentImage(r.id);
+            if (!ok) dlg.toast('画像が見つかりません', { type: 'error' });
+          });
+          listEl.appendChild(row);
+        }
       }
-      listEl.innerHTML = '';
-      for (const r of rows) {
-        const d = new Date(r.signed_at);
-        const when = `${d.getMonth() + 1}/${d.getDate()} `
-          + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        const row = document.createElement('div');
-        row.className = 'consent-row';
-        row.innerHTML = `
-          <span class="cr-when">${when}</span>
-          <span class="cr-route">${r.customer_name || '（署名のみ）'}／${routeLabels[r.route] || '―'}／身分証${r.id_checked ? '済' : '未'}</span>
-          ${r.is_test ? '<span class="cr-badge">テスト</span>' : ''}`;
-        row.addEventListener('click', () => {
-          const url = consentMod.consentImageUrl(r.document_path);
-          if (url) window.open(url, '_blank');
-        });
-        listEl.appendChild(row);
-      }
+      const u = await consentMod.getLocalUsage();
+      usageEl.textContent = `この端末に ${u.count} 件保存（約 ${(u.bytes / 1024 / 1024).toFixed(1)} MB）`;
     } catch (err) {
       listEl.innerHTML = `<div class="consent-empty">取得に失敗しました（${err?.message || err}）</div>`;
     }
@@ -1504,10 +1508,66 @@ function initConsentTestMode() {
   document.getElementById('btn-consent-new')?.addEventListener('click', async () => {
     const mod = await ensureModule();
     const saved = await mod.openConsentDialog({ isTest: true });
-    if (saved) refreshList();
+    if (saved) {
+      if (saved.albumError === 'PERMISSION_DENIED') {
+        dlg.toast('端末に保存しました（アルバム保存は権限が許可されていません）', { type: 'error' });
+      } else if (saved.albumError) {
+        dlg.toast('端末に保存しました（アルバム保存は失敗）', { type: 'error' });
+      } else if (saved.cloudError) {
+        dlg.toast('端末に保存しました（クラウド送信は失敗）', { type: 'error' });
+      }
+      refreshList();
+    }
   });
 
   document.getElementById('btn-consent-reload')?.addEventListener('click', refreshList);
+
+  // 端末のアルバムにも保存するか（既定オン）
+  const albumCb = document.getElementById('setting-consent-album');
+  if (albumCb) {
+    albumCb.checked = loadSettings().consentAlbumSave !== false;
+    albumCb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur.consentAlbumSave = albumCb.checked;
+      saveSettings(cur);
+    });
+  }
+
+  // クラウドにも保存するか（オフ＝この端末の中だけ）
+  const cloudCb = document.getElementById('setting-consent-cloud');
+  if (cloudCb) {
+    cloudCb.checked = !!loadSettings().consentCloudSave;
+    cloudCb.addEventListener('change', async () => {
+      const cur = loadSettings();
+      cur.consentCloudSave = cloudCb.checked;
+      saveSettings(cur);
+      if (cloudCb.checked) {
+        dlg.toast('以降の署名はクラウドにも保存されます', { type: 'info' });
+      }
+    });
+  }
+
+  document.getElementById('btn-consent-push')?.addEventListener('click', async () => {
+    const mod = await ensureModule();
+    const btn = document.getElementById('btn-consent-push');
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '送信中…';
+    try {
+      const r = await mod.pushPendingConsents();
+      if (r.total === 0) {
+        dlg.toast('未送信の署名はありません', { type: 'info' });
+      } else if (r.failed.length === 0) {
+        dlg.toast(`${r.ok} 件をクラウドへ送りました`, { type: 'success' });
+      } else {
+        dlg.alert(`${r.ok} 件送信、${r.failed.length} 件失敗しました。\n${r.failed[0].error}`, { title: '送信結果' });
+      }
+      refreshList();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  });
 }
 
 // === 店舗設定 UI（卓番リスト・色ラベル。クラウド保存で全端末共有） ===

@@ -11,8 +11,9 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // アプリ内アップデート用プラグインを登録（super.onCreate より前に呼ぶ）
+        // 自作プラグインを登録（super.onCreate より前に呼ぶ）
         registerPlugin(ApkInstallerPlugin.class);
+        registerPlugin(AlbumSaverPlugin.class);   // 同意書をアルバムへ保存
         super.onCreate(savedInstanceState);
         hideSystemBars();
 

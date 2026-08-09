@@ -129,6 +129,8 @@ const DEFAULT_SETTINGS = {
   fsTitleFontSize: 24,
   skipOrderInput: false,
   consentTestMode: false,   // デジタル署名（ご新規様同意書）のテストモード
+  consentCloudSave: false,  // 署名をクラウドにも保存する（オフ=この端末の中だけ）
+  consentAlbumSave: true,   // 署名した書類を端末のアルバム（写真アプリ）にも保存する
 };
 
 export function loadSettings() {

@@ -249,3 +249,9 @@
   font-size: 13px;
   padding: 8px 0;
 }
+
+/* クラウド送信済みのバッジ（未送信の赤系と区別する） */
+.consent-row .cr-badge.cr-synced {
+  background: rgba(52, 199, 89, 0.2);
+  color: #7ee2a0;
+}
