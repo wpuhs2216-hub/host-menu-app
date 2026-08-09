@@ -24,13 +24,17 @@ insert into public.store_settings (store_id, seat_options, color_labels, ui_font
   ('dears-bachelor',
    '["A","B-1","B-2","C-1","C-2","D"]'::jsonb,
    '{"yellow":"壁側","red":"通路側","blue":"","green":""}'::jsonb,
+   ''),
+  ('test-store',
+   '["T-1","T-2","T-3"]'::jsonb,
+   '{"yellow":"壁側","red":"通路側","blue":"","green":""}'::jsonb,
    '')
 on conflict (store_id) do nothing;
 
 -- テスト用パネル（画像なし。表示・並べ替え・同期の確認用）
+-- 検証は必ず store_id='test-store'（パスワード 00000）で行う。実店舗の id は使わない
 insert into public.panels (id, store_id, name, title, "order", visible, selectable, has_image) values
-  ('test-1', 'dears-bachelor', 'テスト太郎', '代表',   0, true, true, false),
-  ('test-2', 'dears-bachelor', 'テスト次郎', '幹部',   1, true, true, false),
-  ('test-3', 'dears-bachelor', 'テスト三郎', '',       2, true, true, false),
-  ('test-4', 'gently-diva',    'ダミー花子', '',       0, true, true, false)
+  ('test-1', 'test-store', 'テスト太郎', '代表', 0, true, true, false),
+  ('test-2', 'test-store', 'テスト次郎', '幹部', 1, true, true, false),
+  ('test-3', 'test-store', 'テスト三郎', '',     2, true, true, false)
 on conflict (id) do nothing;
