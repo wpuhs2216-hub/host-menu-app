@@ -1418,6 +1418,9 @@ function initFontSettings() {
     });
   }
 
+  // デジタル署名テストモード
+  initConsentTestMode();
+
   // 端末名
   const dnInput = document.getElementById('setting-device-name');
   if (dnInput) {
@@ -1429,6 +1432,82 @@ function initFontSettings() {
 
   // 店舗表示・切り替え
   initStoreSwitch();
+}
+
+// === デジタル署名テストモード ===
+// 既定オフ。オンにした端末だけ「デジタル署名（テスト）」セクションが出る。
+// 保存先は consents テーブル（追記専用）で、既存のパネル/履歴には一切触れない。
+function initConsentTestMode() {
+  const cb = document.getElementById('setting-consent-test');
+  const section = document.getElementById('consent-section');
+  if (!cb || !section) return;
+
+  const listEl = document.getElementById('consent-list');
+  const routeLabels = { 1: '路上での声掛け', 2: '案内所からの案内', 3: 'その他／自らの意思' };
+
+  async function refreshList() {
+    if (!consentMod) return;
+    listEl.innerHTML = '<div class="consent-empty">読み込み中…</div>';
+    try {
+      const rows = await consentMod.listConsents(20);
+      if (rows.length === 0) {
+        listEl.innerHTML = '<div class="consent-empty">まだ署名はありません</div>';
+        return;
+      }
+      listEl.innerHTML = '';
+      for (const r of rows) {
+        const d = new Date(r.signed_at);
+        const when = `${d.getMonth() + 1}/${d.getDate()} `
+          + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        const row = document.createElement('div');
+        row.className = 'consent-row';
+        row.innerHTML = `
+          <span class="cr-when">${when}</span>
+          <span class="cr-route">${r.customer_name || '（署名のみ）'}／${routeLabels[r.route] || '―'}／身分証${r.id_checked ? '済' : '未'}</span>
+          ${r.is_test ? '<span class="cr-badge">テスト</span>' : ''}`;
+        row.addEventListener('click', () => {
+          const url = consentMod.consentImageUrl(r.document_path);
+          if (url) window.open(url, '_blank');
+        });
+        listEl.appendChild(row);
+      }
+    } catch (err) {
+      listEl.innerHTML = `<div class="consent-empty">取得に失敗しました（${err?.message || err}）</div>`;
+    }
+  }
+
+  // モジュールはテストモードをオンにした時だけ読み込む（通常運用の起動を重くしない）
+  let consentMod = null;
+  async function ensureModule() {
+    if (!consentMod) consentMod = await import('./consent.js');
+    return consentMod;
+  }
+
+  async function applyMode(on) {
+    section.style.display = on ? '' : 'none';
+    if (on) {
+      await ensureModule();
+      refreshList();
+    }
+  }
+
+  cb.checked = !!loadSettings().consentTestMode;
+  applyMode(cb.checked);
+
+  cb.addEventListener('change', async () => {
+    const cur = loadSettings();
+    cur.consentTestMode = cb.checked;
+    saveSettings(cur);
+    await applyMode(cb.checked);
+  });
+
+  document.getElementById('btn-consent-new')?.addEventListener('click', async () => {
+    const mod = await ensureModule();
+    const saved = await mod.openConsentDialog({ isTest: true });
+    if (saved) refreshList();
+  });
+
+  document.getElementById('btn-consent-reload')?.addEventListener('click', refreshList);
 }
 
 // === 店舗設定 UI（卓番リスト・色ラベル。クラウド保存で全端末共有） ===

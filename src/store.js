@@ -128,6 +128,7 @@ const DEFAULT_SETTINGS = {
   fsNameFontSize: 44,
   fsTitleFontSize: 24,
   skipOrderInput: false,
+  consentTestMode: false,   // デジタル署名（ご新規様同意書）のテストモード
 };
 
 export function loadSettings() {

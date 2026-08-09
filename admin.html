@@ -89,6 +89,22 @@
             <span>確定時に席番・お客様名の入力をスキップ（後から編集可）</span>
           </label>
         </div>
+        <div class="form-group check-row">
+          <label class="check-label">
+            <input type="checkbox" id="setting-consent-test" />
+            <span>デジタル署名テストモード（ご新規様同意書の試用）</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- デジタル署名（テストモード時のみ表示） -->
+      <div class="section" id="consent-section" style="display:none">
+        <div class="section-title"><span>デジタル署名（テスト）</span></div>
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btn-consent-new">同意書に署名してもらう</button>
+          <button class="btn btn-secondary" id="btn-consent-reload">一覧を更新</button>
+        </div>
+        <div class="consent-list" id="consent-list"></div>
       </div>
 
       <!-- 店舗設定（卓番・色ラベル。全端末共通） -->

@@ -2,8 +2,12 @@
 // anon key は RLS で守られた公開鍵なのでソースに含めて問題ない
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://ktvenszzbejbioafiilc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs';
+// 接続先は .env.local で上書きできる（未指定なら本番）。
+// ローカルのテスト環境を使う時は .env.local に VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY を書く。
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+  || 'https://ktvenszzbejbioafiilc.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0dmVuc3p6YmVqYmlvYWZpaWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjgxNzYsImV4cCI6MjA5MzMwNDE3Nn0.0g1c2vQC_sD3eStYx29GDGyIY_UH5HBBPnJhXuAOiJs';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
