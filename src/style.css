@@ -2002,3 +2002,41 @@ html.env-web #btn-clear-own-orders { display: none !important; }
 .fullscreen-overlay .fs-title {
   font-family: var(--menu-font, inherit);
 }
+
+/* ===== 同意書ボタン（メニュー画面・設定でオンの時だけ表示） ===== */
+/* グリッドは3列・パネルは 3:4。パネル1枚の高さ = 列幅×4/3 なので、
+   その半分になるよう横幅いっぱいのボタンの高さを算出する */
+.consent-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: calc(100% - 16px);
+  max-width: 1184px;
+  margin: 8px auto 0;
+  /* 列幅 = (幅 - padding16 - gap12) / 3。その 4/3 がパネル高、さらに半分 */
+  height: calc((min(100vw, 1200px) - 28px) / 3 * 4 / 3 / 2);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.06));
+  color: #f0e2b6;
+  cursor: pointer;
+  padding: 0 16px;
+}
+
+.consent-entry:active {
+  transform: scale(0.99);
+  background: rgba(212, 175, 55, 0.24);
+}
+
+.consent-entry .ce-title {
+  font-size: clamp(16px, 2.6vw, 26px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.consent-entry .ce-sub {
+  font-size: clamp(10px, 1.4vw, 14px);
+  opacity: 0.75;
+}

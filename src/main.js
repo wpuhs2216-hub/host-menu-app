@@ -326,6 +326,28 @@ headerClock.addEventListener('click', () => {
 
 // === メイン描画（非同期：IndexedDBから画像読み込み） ===
 
+// === 同意書ボタン（設定でオンの時だけメニューに出す） ===
+function initConsentEntry() {
+  const btn = document.getElementById('consent-entry');
+  if (!btn) return;
+  if (!loadSettings().consentMenuButton) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      const mod = await import('./consent.js');
+      await mod.openConsentDialog({ isTest: true });
+    } catch (err) {
+      dlg.alert(`同意書画面を開けませんでした。\n${err?.message || err}`, { title: 'エラー' });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 async function render() {
   applyFontSettings();
   const data = loadData();
@@ -973,6 +995,7 @@ window.addEventListener('popstate', () => {
   }
   applyColorPickerLabels();
   applyMenuFont();
+  initConsentEntry();
   await render();
   try {
     await initialSync();

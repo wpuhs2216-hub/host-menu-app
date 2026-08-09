@@ -1522,6 +1522,28 @@ function initConsentTestMode() {
 
   document.getElementById('btn-consent-reload')?.addEventListener('click', refreshList);
 
+  // メニュー画面に同意書ボタンを出すか（既定オフ）
+  const menuBtnCb = document.getElementById('setting-consent-menu-btn');
+  if (menuBtnCb) {
+    menuBtnCb.checked = !!loadSettings().consentMenuButton;
+    menuBtnCb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur.consentMenuButton = menuBtnCb.checked;
+      saveSettings(cur);
+    });
+  }
+
+  // 伝票名（ひらがな）の入力欄を出すか（既定オフ）
+  const nameFieldCb = document.getElementById('setting-consent-name-field');
+  if (nameFieldCb) {
+    nameFieldCb.checked = !!loadSettings().consentNameField;
+    nameFieldCb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur.consentNameField = nameFieldCb.checked;
+      saveSettings(cur);
+    });
+  }
+
   // 端末のアルバムにも保存するか（既定オン）
   const albumCb = document.getElementById('setting-consent-album');
   if (albumCb) {

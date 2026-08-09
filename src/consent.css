@@ -255,3 +255,114 @@
   background: rgba(52, 199, 89, 0.2);
   color: #7ee2a0;
 }
+
+/* ===== 保存済み同意書のビューア（アプリ内。別タブで開くと戻れないため） ===== */
+.consent-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  flex-direction: column;
+}
+
+.consent-viewer .cv-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.consent-viewer .cv-bar button {
+  padding: 10px 16px;
+  min-height: 44px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.consent-viewer .cv-close { margin-right: auto; }
+
+.consent-viewer .cv-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px 12px;
+  overflow: auto;
+}
+
+/* 既定は全体が収まる大きさ。拡大時だけ原寸相当にしてスクロールさせる */
+.consent-viewer .cv-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.consent-viewer .cv-body.zoomed {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.consent-viewer .cv-body.zoomed .cv-img {
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+}
+
+/* ===== タブレット縦持ち（Redmi Pad 2 など）でスクロールせず1画面に収める ===== */
+/* 1カラムのまま、各パーツの高さを vh 基準に詰める */
+@media (orientation: portrait) and (min-height: 700px) {
+  .consent-overlay {
+    padding: 6px;
+    align-items: center;
+    overflow: hidden;                /* 画面外へはみ出させない */
+  }
+
+  .consent-sheet {
+    max-width: min(760px, 97vw);
+    max-height: 98vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+
+  .consent-testbadge { padding: 0.6vh 12px; font-size: clamp(11px, 1.4vh, 13px); }
+
+  .consent-doc {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 1.4vh 5vw 0;
+  }
+
+  .consent-title { font-size: clamp(20px, 2.9vh, 30px); margin: 0 0 1.2vh; }
+
+  .consent-lead,
+  .consent-notice { font-size: clamp(13px, 1.75vh, 17px); line-height: 1.75; margin-bottom: 0; }
+  .consent-h { font-size: clamp(14px, 1.9vh, 18px); margin: 1.2vh 0 0.5vh; }
+  .consent-note { font-size: clamp(11px, 1.5vh, 14px); margin-bottom: 0.6vh; }
+
+  .consent-routes { gap: 0.2vh; }
+  .consent-route { font-size: clamp(13px, 1.8vh, 16px); padding: 0.6vh 14px; min-height: 4.2vh; }
+
+  .consent-field { margin: 1vh 0; }
+  .consent-label { font-size: clamp(11px, 1.5vh, 14px); margin-bottom: 0.4vh; }
+  .consent-input { padding: 1vh 12px; font-size: 16px; }
+
+  /* 署名欄は指で書ける高さを確保しつつ、余りを吸収する */
+  .consent-padwrap { height: clamp(130px, 14vh, 230px); }
+  .consent-padactions .btn { padding: 1vh 12px; min-height: 4.4vh; font-size: clamp(12px, 1.6vh, 15px); }
+
+  .consent-when { margin: 1vh 0 0; font-size: clamp(11px, 1.5vh, 14px); }
+
+  .consent-actions { padding: 1.4vh 5vw 1.8vh; flex-shrink: 0; }
+  .consent-actions .btn { padding: 1.2vh 14px; min-height: 5vh; font-size: clamp(14px, 1.9vh, 17px); }
+}

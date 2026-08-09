@@ -91,10 +91,11 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([arr], { type: mime });
 }
 
+// 書類に載せる来店日時は日付まで（原本が「__年__月__日」のため）。
+// 記録用の正確な時刻は signedAt に別途残している
 function fmtDate(d) {
   const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${w}) `
-    + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日(${w})`;
 }
 
 // === 署名キャンバス ===
@@ -306,7 +307,7 @@ function renderDocumentImage({ route, idChecked, customerName, signaturePng, sig
         left(lbl, x + 36, yy, '26px sans-serif');
       }
       yy += 90;
-      if (customerName) left(`お名前(読み) :　${customerName}`, labelX, yy, '24px sans-serif');
+      if (customerName) left(`伝票名 :　${customerName}`, labelX, yy, '24px sans-serif');
 
       // フッタ（記録用の由来情報）
       c.fillStyle = '#666';
@@ -348,6 +349,11 @@ async function uploadPng(path, dataUrl) {
 // クラウドにも保存するか（既定オフ＝この端末の中だけに置く）
 export function isCloudSaveEnabled() {
   return !!loadSettings().consentCloudSave;
+}
+
+// 伝票名（ひらがな）の入力欄を出すか（既定オフ）
+export function isNameFieldEnabled() {
+  return !!loadSettings().consentNameField;
 }
 
 // 端末のアルバムにも保存するか（既定オン）
@@ -522,14 +528,47 @@ export async function resaveToAlbum(meta) {
   return r;
 }
 
-// 端末内に保存した画像を新しいタブで開く（dataURL を Blob URL 化して表示）
+// 端末内に保存した書類をアプリ内のビューアで開く。
+// 別タブ（window.open）だとアプリ版で前の画面に戻れなくなるため、必ずこのモーダルで見せる。
 export async function openConsentImage(id) {
   const dataUrl = await getConsentImage(id);
   if (!dataUrl) return false;
-  const blob = dataUrlToBlob(dataUrl);
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'consent-viewer';
+  overlay.innerHTML = `
+    <div class="cv-bar">
+      <button class="cv-close" id="cv-close" type="button">✕ 閉じる</button>
+      <button class="cv-zoom" id="cv-zoom" type="button">拡大</button>
+    </div>
+    <div class="cv-body" id="cv-body">
+      <img class="cv-img" id="cv-img" alt="同意書" />
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const img = overlay.querySelector('#cv-img');
+  img.src = dataUrl;
+
+  const body = overlay.querySelector('#cv-body');
+  const zoomBtn = overlay.querySelector('#cv-zoom');
+  let zoomed = false;                       // 既定は全体表示（拡大しない）
+  zoomBtn.addEventListener('click', () => {
+    zoomed = !zoomed;
+    body.classList.toggle('zoomed', zoomed);
+    zoomBtn.textContent = zoomed ? '全体表示' : '拡大';
+    if (!zoomed) { body.scrollTop = 0; body.scrollLeft = 0; }
+  });
+
+  const close = () => {
+    window.removeEventListener('popstate', onPop);
+    overlay.remove();
+  };
+  // アプリの戻る操作でもビューアだけ閉じる（メニューまで戻ってしまわないように）
+  const onPop = (e) => { e.stopImmediatePropagation?.(); close(); };
+  window.addEventListener('popstate', onPop);
+
+  overlay.querySelector('#cv-close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   return true;
 }
 
@@ -544,6 +583,8 @@ export function consentImageUrl(path) {
 // 完了したら保存済みの行を、キャンセルなら null を返す
 export function openConsentDialog({ isTest = true } = {}) {
   return new Promise((resolve) => {
+    // 伝票名の入力欄は設定でオンにした時だけ出す（既定は非表示）
+    const showNameField = isNameFieldEnabled();
     const overlay = document.createElement('div');
     overlay.className = 'consent-overlay';
     overlay.innerHTML = `
@@ -551,48 +592,56 @@ export function openConsentDialog({ isTest = true } = {}) {
         ${isTest ? '<div class="consent-testbadge">テストモード（本番の運用データではありません）</div>' : ''}
         <div class="consent-doc">
           <h2 class="consent-title">${DOC.title}</h2>
-          <p class="consent-lead">${DOC.lead.join('<br>')}</p>
 
-          <h3 class="consent-h">${DOC.routeHeading}</h3>
-          <p class="consent-note">${DOC.routeNote}</p>
-          <div class="consent-routes">
-            ${DOC.routes.map((r, i) => `
-              <label class="consent-route">
-                <input type="radio" name="consent-route" value="${i + 1}" />
-                <span>${r}</span>
-              </label>`).join('')}
-          </div>
+          <!-- 左: 読ませる内容 / 右: 記入する内容。横長画面では 2 カラムに並ぶ -->
+          <div class="consent-col consent-col-read">
+            <p class="consent-lead">${DOC.lead.join('<br>')}</p>
 
-          <h3 class="consent-h">${DOC.noticeHeading}</h3>
-          <p class="consent-notice">${DOC.notice.join('<br>')}</p>
-
-          <h3 class="consent-h">${DOC.signHeading}</h3>
-          <p class="consent-note">${DOC.signLead}</p>
-
-          <div class="consent-field">
-            <label class="consent-label">お名前（読み・任意）</label>
-            <input type="text" class="consent-input" id="consent-name" placeholder="例: 山田 太郎" />
-          </div>
-
-          <div class="consent-field">
-            <label class="consent-label">ご署名（枠内に指またはペンで）</label>
-            <div class="consent-padwrap">
-              <canvas class="consent-pad" id="consent-pad"></canvas>
-              <div class="consent-padline"></div>
+            <h3 class="consent-h">${DOC.routeHeading}</h3>
+            <p class="consent-note">${DOC.routeNote}</p>
+            <div class="consent-routes">
+              ${DOC.routes.map((r, i) => `
+                <label class="consent-route">
+                  <input type="radio" name="consent-route" value="${i + 1}" />
+                  <span>${r}</span>
+                </label>`).join('')}
             </div>
-            <div class="consent-padactions">
-              <button class="btn btn-secondary" id="consent-undo">一画取り消し</button>
-              <button class="btn btn-secondary" id="consent-clear">全部消す</button>
+
+            <h3 class="consent-h">${DOC.noticeHeading}</h3>
+            <p class="consent-notice">${DOC.notice.join('<br>')}</p>
+          </div>
+
+          <div class="consent-col consent-col-write">
+            <h3 class="consent-h">${DOC.signHeading}</h3>
+            <p class="consent-note">${DOC.signLead}</p>
+
+            ${showNameField ? `
+            <div class="consent-field">
+              <label class="consent-label">伝票名（ひらがな）</label>
+              <input type="text" class="consent-input" id="consent-name" lang="ja"
+                     placeholder="例: たろう / あきくん" />
+            </div>` : ''}
+
+            <div class="consent-field">
+              <label class="consent-label">ご署名（枠内に指またはペンで）</label>
+              <div class="consent-padwrap">
+                <canvas class="consent-pad" id="consent-pad"></canvas>
+                <div class="consent-padline"></div>
+              </div>
+              <div class="consent-padactions">
+                <button class="btn btn-secondary" id="consent-undo">一画取り消し</button>
+                <button class="btn btn-secondary" id="consent-clear">全部消す</button>
+              </div>
             </div>
-          </div>
 
-          <div class="consent-field consent-idcheck">
-            <span class="consent-label">身分証確認（スタッフ）</span>
-            <label class="consent-route"><input type="radio" name="consent-idck" value="1" /><span>済</span></label>
-            <label class="consent-route"><input type="radio" name="consent-idck" value="0" checked /><span>未</span></label>
-          </div>
+            <div class="consent-field consent-idcheck">
+              <span class="consent-label">身分証確認（スタッフ）</span>
+              <label class="consent-route"><input type="radio" name="consent-idck" value="1" checked /><span>済</span></label>
+              <label class="consent-route"><input type="radio" name="consent-idck" value="0" /><span>未</span></label>
+            </div>
 
-          <p class="consent-when">来店日時：<span id="consent-when"></span>（自動記録）</p>
+            <p class="consent-when">来店日時：<span id="consent-when"></span>（自動記録）</p>
+          </div>
         </div>
 
         <div class="consent-actions">
@@ -642,7 +691,7 @@ export function openConsentDialog({ isTest = true } = {}) {
         const row = await saveConsent({
           route: Number(routeEl.value),
           idChecked: overlay.querySelector('input[name="consent-idck"]:checked')?.value === '1',
-          customerName: overlay.querySelector('#consent-name').value.trim(),
+          customerName: overlay.querySelector('#consent-name')?.value.trim() || '',
           pad,
           isTest,
         });

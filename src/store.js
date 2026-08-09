@@ -131,6 +131,8 @@ const DEFAULT_SETTINGS = {
   consentTestMode: false,   // デジタル署名（ご新規様同意書）のテストモード
   consentCloudSave: false,  // 署名をクラウドにも保存する（オフ=この端末の中だけ）
   consentAlbumSave: true,   // 署名した書類を端末のアルバム（写真アプリ）にも保存する
+  consentMenuButton: false, // メニュー画面に同意書ボタンを表示する
+  consentNameField: false,  // 伝票名（ひらがな）の入力欄を表示する
 };
 
 export function loadSettings() {
