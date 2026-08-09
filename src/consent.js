@@ -619,7 +619,7 @@ export function openConsentDialog({ isTest = true } = {}) {
             <div class="consent-field">
               <label class="consent-label">伝票名（ひらがな）</label>
               <input type="text" class="consent-input" id="consent-name" lang="ja"
-                     placeholder="例: ゆい / みさきちゃん" />
+                     placeholder="下のお名前・ニックネーム" />
             </div>` : ''}
 
             <div class="consent-field">
