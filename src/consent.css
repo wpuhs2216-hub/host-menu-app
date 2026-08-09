@@ -140,15 +140,6 @@
   touch-action: none;
 }
 
-.consent-padline {
-  position: absolute;
-  left: 24px;
-  right: 24px;
-  bottom: 42px;
-  border-bottom: 1px dashed #ccc;
-  pointer-events: none;
-}
-
 .consent-padactions {
   display: flex;
   gap: 8px;

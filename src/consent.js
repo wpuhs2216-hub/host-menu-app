@@ -626,7 +626,6 @@ export function openConsentDialog({ isTest = true } = {}) {
               <label class="consent-label">ご署名（枠内に指またはペンで）</label>
               <div class="consent-padwrap">
                 <canvas class="consent-pad" id="consent-pad"></canvas>
-                <div class="consent-padline"></div>
               </div>
               <div class="consent-padactions">
                 <button class="btn btn-secondary" id="consent-undo">一画取り消し</button>
