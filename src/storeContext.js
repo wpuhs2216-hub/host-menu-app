@@ -10,6 +10,9 @@ export const STORES = [
   { id: 'gently-diva', name: 'GENTLY DIVA', password: '2020' },
   { id: 'dears-lucia', name: "Dear's Lucia", password: '12345' },
   { id: 'dears-bachelor', name: "Dear's BACHELOR", password: '54321' },
+  { id: 'dears-osaka', name: "Dear's大阪", password: '11111' },
+  { id: 'gently', name: 'GENTLY', password: '22222' },
+  { id: 'gently-greed', name: 'GENTLY GREED', password: '33333' },
   // 動作確認用。新機能の検証は実店舗ではなく必ずこの店舗で行う
   { id: 'test-store', name: 'テスト店舗', password: '00000' },
 ];
