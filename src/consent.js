@@ -661,11 +661,50 @@ export function openConsentDialog({ isTest = true } = {}) {
     tick();
     const timer = setInterval(tick, 30000);
 
-    const close = (result) => {
+    // 署名欄が無くなったあと（完了画面）は時計もリサイズ追従も要らないので止める
+    let live = true;
+    const stopLive = () => {
+      if (!live) return;
+      live = false;
       clearInterval(timer);
       window.removeEventListener('resize', onResize);
+    };
+
+    const close = (result) => {
+      stopLive();
       overlay.remove();
       resolve(result);
+    };
+
+    // 保存が終わったら、お客様に見せる完了画面へ差し替える。
+    // ここでタブレットを運営スタッフに渡してもらう想定なので、閉じるまで自動では消さない。
+    const showDone = (row) => {
+      stopLive();
+      overlay.innerHTML = `
+        <div class="consent-sheet consent-done" role="dialog" aria-modal="true">
+          ${isTest ? '<div class="consent-testbadge">テストモード（本番の運用データではありません）</div>' : ''}
+          <div class="consent-done-body">
+            <div class="consent-done-mark">✓</div>
+            <h2 class="consent-done-title">ご記入ありがとうございました</h2>
+            <p class="consent-done-lead">この画面を<br>運営スタッフにお渡しください</p>
+          </div>
+          <div class="consent-actions">
+            <button class="btn btn-secondary" id="consent-done-preview">プレビュー</button>
+            <button class="btn btn-primary" id="consent-done-close">閉じる</button>
+          </div>
+        </div>`;
+
+      const previewBtn = overlay.querySelector('#consent-done-preview');
+      previewBtn.addEventListener('click', async () => {
+        previewBtn.disabled = true;
+        try {
+          const ok = await openConsentImage(row.id);
+          if (!ok) dlg.toast('書類の画像が見つかりませんでした', { type: 'error' });
+        } finally {
+          previewBtn.disabled = false;
+        }
+      });
+      overlay.querySelector('#consent-done-close').addEventListener('click', () => close(row));
     };
 
     overlay.querySelector('#consent-undo').addEventListener('click', () => pad.undo());
@@ -694,8 +733,7 @@ export function openConsentDialog({ isTest = true } = {}) {
           pad,
           isTest,
         });
-        dlg.toast('同意書を保存しました', { type: 'success' });
-        close(row);
+        showDone(row);
       } catch (err) {
         console.error(err);
         submitBtn.disabled = false;

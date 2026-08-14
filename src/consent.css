@@ -193,6 +193,40 @@
   padding: 16px 28px 24px;
 }
 
+/* ===== 保存完了画面（お客様に見せてスタッフへ渡してもらう） ===== */
+.consent-done-body {
+  padding: 48px 28px 40px;
+  text-align: center;
+}
+
+.consent-done-mark {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: #b3261e;
+  color: #fff;
+  font-size: 38px;
+  line-height: 72px;
+  font-weight: 700;
+}
+
+.consent-done-title {
+  font-family: serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0 0 18px;
+}
+
+.consent-done-lead {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
 /* 管理画面側（ダークUI）に置く一覧 */
 .consent-list {
   display: flex;
@@ -356,6 +390,28 @@
 
   .consent-actions { padding: 1.4vh 5vw 1.8vh; flex-shrink: 0; }
   .consent-actions .btn { padding: 1.2vh 14px; min-height: 5vh; font-size: clamp(14px, 1.9vh, 17px); }
+
+  /* 完了画面は文字だけなので、縦持ちでは中央に大きく置く */
+  .consent-done-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4vh 5vw;
+  }
+
+  .consent-done-mark {
+    width: clamp(64px, 9vh, 96px);
+    height: clamp(64px, 9vh, 96px);
+    line-height: clamp(64px, 9vh, 96px);
+    font-size: clamp(34px, 4.6vh, 50px);
+    margin-bottom: 2.4vh;
+  }
+
+  .consent-done-title { font-size: clamp(20px, 2.8vh, 28px); margin-bottom: 2.2vh; }
+  .consent-done-lead { font-size: clamp(19px, 2.8vh, 30px); }
 }
 
 /* 一覧の区分バッジ: テスト（設定画面から）/ 本番（メニュー画面から） */
