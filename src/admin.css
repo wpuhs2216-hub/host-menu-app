@@ -818,6 +818,34 @@
   background: rgba(212, 175, 55, 0.85);
   color: #0a0a0a;
 }
+/* 表示/非表示の切り替え（非表示にしても消さずストックしておく） */
+.extra-toggle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18px;
+  border: none;
+  background: rgba(0, 0, 0, 0.72);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 18px;
+  padding: 0;
+  cursor: pointer;
+}
+.extra-thumb.is-off img {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+.extra-thumb.is-off {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.extra-thumb.is-off .extra-toggle {
+  background: rgba(0, 0, 0, 0.82);
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .btn-add-extra {
   font-size: 13px;
   padding: 6px 12px;

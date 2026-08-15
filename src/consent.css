@@ -227,6 +227,12 @@
   margin: 0;
 }
 
+.consent-done-note {
+  font-size: 12px;
+  color: #777;
+  margin: 18px 0 0;
+}
+
 /* 管理画面側（ダークUI）に置く一覧 */
 .consent-list {
   display: flex;
@@ -412,6 +418,7 @@
 
   .consent-done-title { font-size: clamp(20px, 2.8vh, 28px); margin-bottom: 2.2vh; }
   .consent-done-lead { font-size: clamp(19px, 2.8vh, 30px); }
+  .consent-done-note { font-size: clamp(11px, 1.5vh, 14px); margin-top: 2.4vh; }
 }
 
 /* 一覧の区分バッジ: テスト（設定画面から）/ 本番（メニュー画面から） */

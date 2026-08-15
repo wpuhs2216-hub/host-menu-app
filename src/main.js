@@ -623,6 +623,7 @@ function fsImageList(item) {
   const list = [];
   if (imageCache[item.id]) list.push({ key: item.id, src: imageCache[item.id] });
   for (const e of (item.extraImages || [])) {
+    if (e.off) continue;                 // 非表示にしたサブ画像はストック扱いで出さない
     const src = imageCache[e.key];
     if (src) list.push({ key: e.key, src });
   }

@@ -493,7 +493,7 @@ const extraImagesEl = document.getElementById('extra-images');
 const extraInput = document.getElementById('extra-image-input');
 const btnAddExtra = document.getElementById('btn-add-extra');
 let pendingImage = null;
-// 追加画像の編集状態: [{ key|null, data, v, isNew }]（key=null は新規）
+// 追加画像の編集状態: [{ key|null, data, v, off, isNew }]（key=null は新規 / off=true は非表示ストック）
 let pendingExtras = [];
 // モーダルを開いた時点の追加画像 [{key,v}]（保存時の削除掃除に使う）
 let originalExtras = [];
@@ -501,10 +501,12 @@ let originalExtras = [];
 function renderExtras() {
   if (!extraImagesEl) return;
   extraImagesEl.innerHTML = pendingExtras.map((e, i) =>
-    `<div class="extra-thumb">
+    `<div class="extra-thumb${e.off ? ' is-off' : ''}">
       <img src="${e.data}" alt="" />
       <button type="button" class="extra-main" data-extra-index="${i}" title="メインにする">★</button>
       <button type="button" class="extra-del" data-extra-index="${i}" aria-label="削除">×</button>
+      <button type="button" class="extra-toggle" data-extra-index="${i}"
+              title="${e.off ? '表示する' : '非表示にする'}">${e.off ? '非表示' : '表示'}</button>
     </div>`
   ).join('');
 }
@@ -539,6 +541,7 @@ function makeMainExtra(i) {
     pendingImage = ex.data;
     ex.data = tmp;
     ex.dirty = true;   // 内容が入れ替わった既存サブは保存時に再アップロード
+    ex.off = false;    // 降格したメインは表示のまま残す（非表示ストックを昇格させた場合も同じ）
   }
   refreshMainPreview();
   renderExtras();
@@ -551,6 +554,13 @@ extraImagesEl?.addEventListener('click', (e) => {
   if (delBtn) {
     pendingExtras.splice(Number(delBtn.dataset.extraIndex), 1);
     renderExtras();
+    return;
+  }
+  // 表示/非表示の切り替え（消さずにストックしておく）
+  const toggleBtn = e.target.closest('.extra-toggle');
+  if (toggleBtn) {
+    const ex = pendingExtras[Number(toggleBtn.dataset.extraIndex)];
+    if (ex) { ex.off = !ex.off; renderExtras(); }
   }
 });
 
@@ -561,7 +571,7 @@ extraInput?.addEventListener('change', async (e) => {
   for (const file of files) {
     let data;
     try { data = await compressImage(file); } catch { data = await fileToBase64(file); }
-    pendingExtras.push({ key: null, data, v: 0, isNew: true });
+    pendingExtras.push({ key: null, data, v: 0, off: false, isNew: true });
   }
   extraInput.value = '';
   renderExtras();
@@ -699,11 +709,11 @@ async function openModal(item = null) {
     const img = await getImage(item.id);
     pendingImage = img || null;
     // 追加画像を読み込む
-    originalExtras = (item.extraImages || []).map((e) => ({ key: e.key, v: e.v ?? 0 }));
+    originalExtras = (item.extraImages || []).map((e) => ({ key: e.key, v: e.v ?? 0, off: !!e.off }));
     pendingExtras = [];
     for (const e of (item.extraImages || [])) {
       const d = await getImage(e.key);
-      if (d) pendingExtras.push({ key: e.key, data: d, v: e.v ?? 0, isNew: false });
+      if (d) pendingExtras.push({ key: e.key, data: d, v: e.v ?? 0, off: !!e.off, isNew: false });
     }
     renderExtras();
     pendingFrame = item.frame || null;
@@ -840,16 +850,16 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       if (e.isNew || !e.key) {
         const key = `${panelId}__${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
         await saveImage(key, e.data);
-        finalExtras.push({ key, v: Date.now() });
+        finalExtras.push({ key, v: Date.now(), off: !!e.off });
         extraUploads.push({ key, data: e.data });
       } else if (e.dirty) {
         // メイン↔サブ入替などで中身が変わった既存サブ: 同じ key で再アップロード＋版更新
         await saveImage(e.key, e.data);
         const v = Date.now();
-        finalExtras.push({ key: e.key, v });
+        finalExtras.push({ key: e.key, v, off: !!e.off });
         extraUploads.push({ key: e.key, data: e.data });
       } else {
-        finalExtras.push({ key: e.key, v: e.v ?? 0 });
+        finalExtras.push({ key: e.key, v: e.v ?? 0, off: !!e.off });
       }
     }
     const keepKeys = new Set(finalExtras.map((x) => x.key));

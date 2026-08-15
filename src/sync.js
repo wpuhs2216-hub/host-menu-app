@@ -52,8 +52,9 @@ function rowToItem(row) {
     hasImage: !!row.has_image,
     imageVersion: row.image_version ?? 0,   // 画像差し替え検知用
     // 追加画像 [{ key, v }]（メイン画像とは別。全画面でサムネ切替表示）
+    // off: true のサブ画像はストック扱い（全画面のサムネに出さない）
     extraImages: Array.isArray(row.extra_images)
-      ? row.extra_images.filter((e) => e && e.key).map((e) => ({ key: e.key, v: Number(e.v ?? 0) }))
+      ? row.extra_images.filter((e) => e && e.key).map((e) => ({ key: e.key, v: Number(e.v ?? 0), off: !!e.off }))
       : [],
     _imagePath: row.image_path || '',       // 内部用
     _updatedAt: row.updated_at || null,
@@ -82,7 +83,7 @@ function itemToRow(item) {
     has_image: !!item.hasImage,
     extra_images: (item.extraImages || [])
       .filter((e) => e && e.key)
-      .map((e) => ({ key: e.key, v: Number(e.v ?? 0) })),
+      .map((e) => ({ key: e.key, v: Number(e.v ?? 0), off: !!e.off })),
   };
 }
 
