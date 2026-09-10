@@ -173,3 +173,16 @@
   45% { transform: translateX(8px); }
   70% { transform: translateX(-5px); }
 }
+
+/* パターンを忘れた時にパスワード入力へ切り替える（管理画面ログインだけに出す） */
+.lock-fallback {
+  margin-top: 14px;
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: transparent;
+  color: #d4af37;
+  font-size: 13px;
+  cursor: pointer;
+}

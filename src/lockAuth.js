@@ -43,8 +43,9 @@ function shake(box) {
   box.classList.add('lock-shake');
 }
 
-// === テンキー（店舗パスワード） ===
-function openKeypad({ title, message, expected }) {
+// === テンキー ===
+// verify(入力値) が true を返したら解錠。cancelable=false ならキャンセルを出さない
+export function openKeypad({ title, message, verify, okLabel = 'OK', cancelable = true }) {
   return new Promise((resolve) => {
     const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
     const overlay = buildOverlay(`
@@ -55,9 +56,9 @@ function openKeypad({ title, message, expected }) {
         ${keys.map((k) => `<button type="button" class="lock-key" data-key="${k}">${k}</button>`).join('')}
         <button type="button" class="lock-key lock-key-sub" id="lock-back">⌫</button>
         <button type="button" class="lock-key" data-key="0">0</button>
-        <button type="button" class="lock-key lock-key-ok" id="lock-ok">OK</button>
+        <button type="button" class="lock-key lock-key-ok" id="lock-ok">${okLabel}</button>
       </div>
-      <button type="button" class="lock-cancel" id="lock-cancel">キャンセル</button>
+      ${cancelable ? '<button type="button" class="lock-cancel" id="lock-cancel">キャンセル</button>' : ''}
     `);
     const box = overlay.querySelector('.lock-box');
     const dotsEl = overlay.querySelector('#lock-dots');
@@ -70,9 +71,9 @@ function openKeypad({ title, message, expected }) {
 
     const close = (ok) => { overlay.remove(); resolve(ok); };
 
-    const submit = () => {
+    const submit = async () => {
       if (!buf) return;
-      if (buf === expected) { close(true); return; }
+      if (await verify(buf)) { close(true); return; }
       buf = '';
       renderDots();
       shake(box);
@@ -93,7 +94,7 @@ function openKeypad({ title, message, expected }) {
 
 // === 9点パターン ===
 // onDone(pattern) が false を返した場合は入力欄をリセットして続行する（登録の1回目→2回目で使う）
-function openPatternInput({ title, message, verify }) {
+function openPatternInput({ title, message, verify, fallbackLabel = '' }) {
   return new Promise((resolve) => {
     const overlay = buildOverlay(`
       <h3 class="lock-title">${title}</h3>
@@ -104,6 +105,7 @@ function openPatternInput({ title, message, verify }) {
         </svg>
         ${Array.from({ length: 9 }, (_, i) => `<div class="lock-node" data-node="${i}"><span></span></div>`).join('')}
       </div>
+      ${fallbackLabel ? `<button type="button" class="lock-fallback" id="lock-fallback">${fallbackLabel}</button>` : ''}
       <button type="button" class="lock-cancel" id="lock-cancel">キャンセル</button>
     `);
     const box = overlay.querySelector('.lock-box');
@@ -196,23 +198,31 @@ function openPatternInput({ title, message, verify }) {
     window.addEventListener('pointerup', onUp);
 
     overlay.querySelector('#lock-cancel').addEventListener('click', () => close(false));
+    overlay.querySelector('#lock-fallback')?.addEventListener('click', () => close('fallback'));
   });
 }
 
 // === 解錠（呼び出し側はこれだけ使う） ===
 // パターン設定済み → パターン入力 / 未設定 → テンキーで店舗パスワード
-export function requireUnlock({ title = 'スタッフ確認', message = '' } = {}) {
+export async function requireUnlock({ title = 'スタッフ確認', message = '', allowPassword = false } = {}) {
   const pattern = getLockPattern();
+  const expected = getStorePassword();
   if (pattern) {
-    return openPatternInput({
+    // allowPassword: パターンを忘れても店舗パスワードで入れる逃げ道を出す（管理画面ログイン用）
+    const r = await openPatternInput({
       title,
       message: message || 'パターンをなぞってください',
       verify: (input) => input === pattern,
+      fallbackLabel: (allowPassword && expected) ? '店舗パスワードで入る' : '',
     });
+    if (r !== 'fallback') return r === true;
   }
-  const expected = getStorePassword();
-  if (!expected) return Promise.resolve(true);   // 店舗未固定など、照合できない時は素通し
-  return openKeypad({ title, message: message || 'スタッフの方が店舗パスワードを入力してください。', expected });
+  if (!expected) return true;                    // 店舗未固定など、照合できない時は素通し
+  return openKeypad({
+    title,
+    message: message || 'スタッフの方が店舗パスワードを入力してください。',
+    verify: (v) => v === expected,
+  });
 }
 
 // === パターンの登録（管理画面から呼ぶ。2回なぞって一致したら保存） ===

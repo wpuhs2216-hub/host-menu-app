@@ -45,6 +45,13 @@
   border-color: rgba(212, 175, 55, 0.5);
 }
 
+.pw-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
 .pw-actions {
   display: flex;
   gap: 10px;

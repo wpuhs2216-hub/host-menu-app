@@ -36,7 +36,6 @@ function urlBase64ToUint8Array(base64String) {
 
 const pwScreen = document.getElementById('pw-screen');
 const adminBody = document.getElementById('admin-body');
-const pwInput = document.getElementById('pw-input');
 const pwSubmit = document.getElementById('pw-submit');
 const pwError = document.getElementById('pw-error');
 
@@ -76,19 +75,23 @@ function enterAdmin() {
   init();
 }
 
-function doLogin() {
-  if (pwInput.value === getStorePassword()) {
+// 管理画面のログインも共通の解錠を使う（テンキー / パターンを登録していればパターン）。
+// パターンを忘れると設定を戻せなくなるので、ここだけは店舗パスワードへの逃げ道を出す。
+let loginOpen = false;
+async function doLogin() {
+  if (loginOpen) return;
+  loginOpen = true;
+  try {
+    const ok = await requireUnlock({ title: '管理者ログイン', allowPassword: true });
+    if (!ok) return;
     setLoggedIn();
     enterAdmin();
-  } else {
-    pwError.textContent = 'パスワードが違います';
-    pwInput.value = '';
-    pwInput.focus();
+  } finally {
+    loginOpen = false;
   }
 }
 
 pwSubmit.addEventListener('click', doLogin);
-pwInput.addEventListener('keydown', async (e) => { if (e.key === 'Enter') doLogin(); });
 document.getElementById('pw-cancel').addEventListener('click', async () => {
   window.location.href = './';
 });
@@ -100,7 +103,7 @@ document.getElementById('pw-cancel').addEventListener('click', async () => {
   if (isLoggedIn()) {
     enterAdmin();
   } else {
-    pwInput.focus();
+    doLogin();
   }
 })();
 
