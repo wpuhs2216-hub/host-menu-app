@@ -6,7 +6,8 @@
 
 import { registerPlugin, Capacitor } from '@capacitor/core';
 import { supabase } from './supabaseClient.js';
-import { getStoreId, getStoreName, getStorePassword } from './storeContext.js';
+import { getStoreId, getStoreName } from './storeContext.js';
+import { requireUnlock, hasLockPattern } from './lockAuth.js';
 import { getDeviceName, getSelfDeviceId } from './sync.js';
 import { loadSettings } from './store.js';
 import {
@@ -687,7 +688,7 @@ export function openConsentDialog({ isTest = true } = {}) {
             <div class="consent-done-mark">✓</div>
             <h2 class="consent-done-title">ご記入ありがとうございました</h2>
             <p class="consent-done-lead">この画面を<br>運営スタッフにお渡しください</p>
-            <p class="consent-done-note">閉じるには店舗パスワードが必要です</p>
+            <p class="consent-done-note">閉じるには${hasLockPattern() ? 'パターン入力' : '店舗パスワード'}が必要です</p>
           </div>
           <div class="consent-actions">
             <button class="btn btn-secondary" id="consent-done-preview">プレビュー</button>
@@ -705,19 +706,11 @@ export function openConsentDialog({ isTest = true } = {}) {
           previewBtn.disabled = false;
         }
       });
-      // 閉じるは店舗パスワードを要求する（お客様が勝手に閉じて次の画面へ進めないように）
+      // 閉じるは解錠を要求する（お客様が勝手に閉じて次の画面へ進めないように）
+      // テンキー、パターンを登録している端末ではパターン入力になる
       overlay.querySelector('#consent-done-close').addEventListener('click', async () => {
-        const expected = getStorePassword();
-        if (!expected) { close(row); return; }   // 店舗未固定など、照合できない時は素通し
-        const pw = await dlg.prompt('スタッフの方が店舗パスワードを入力してください。', '', {
-          title: 'スタッフ確認',
-          placeholder: 'パスワード',
-          type: 'password',
-          okLabel: '閉じる',
-        });
-        if (pw === null) return;                 // キャンセルは完了画面のまま
-        if (pw !== expected) { dlg.toast('パスワードが違います', { type: 'error' }); return; }
-        close(row);
+        const ok = await requireUnlock({ title: 'スタッフ確認' });
+        if (ok) close(row);                      // キャンセル・誤りは完了画面のまま
       });
     };
 

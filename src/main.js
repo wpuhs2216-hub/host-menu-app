@@ -11,6 +11,7 @@ if (IS_CAPACITOR) {
 }
 
 import { loadData, saveData, saveOrder, generateId, loadSettings, frameSrc } from './store.js';
+import { requireUnlock } from './lockAuth.js';
 import { getImage, getAllImages, migrateFromLocalStorage } from './imageDB.js';
 import { initialSync, startRealtime, stopRealtime, forcePull, syncOrderInsert } from './sync.js';
 import * as dlg from './dialog.js';
@@ -514,7 +515,13 @@ function groupCastsByColor() {
   return ordered;
 }
 
-function openOrderModal() {
+// 送信の直前に解錠を挟む（設定オンのときだけ）。お客様の手が触れて送信されるのを防ぐ
+async function ensureOrderAuth() {
+  if (!loadSettings().orderAuth) return true;
+  return requireUnlock({ title: 'スタッフ確認', message: '送信するには解錠してください' });
+}
+
+async function openOrderModal() {
   const groups = groupCastsByColor();
   if (groups.length === 0) return;
 
@@ -522,7 +529,7 @@ function openOrderModal() {
   const skip = !!settings.skipOrderInput;
   if (skip) {
     // 入力スキップ ON: モーダル出さず即送信（後から admin で編集可能）
-    submitOrder();
+    if (await ensureOrderAuth()) submitOrder();
     return;
   }
 
@@ -595,6 +602,7 @@ fsConfirmBtn.addEventListener('click', (e) => {
 // === 確定モーダル ===
 
 document.getElementById('order-submit').addEventListener('click', async () => {
+  if (!await ensureOrderAuth()) return;
   submitOrder();
   await dlg.alert('送信しました', { title: '完了', okLabel: 'OK' });
 });

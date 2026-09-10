@@ -11,6 +11,7 @@ import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
 import { getStoreName, getStorePassword, logoutStore } from './storeContext.js';
 import { getSeatOptions, getColorLabel, getRawColorLabels, pullStoreSettings, saveStoreSettings, FONT_OPTIONS, getFont, applyMenuFont } from './storeSettings.js';
 import { ensureStoreFixed } from './storeLogin.js';
+import { requireUnlock, openPatternSetup, hasLockPattern, clearLockPattern } from './lockAuth.js';
 import {
   initialSync, startRealtime, subscribeStatus, forcePull, forcePush,
   syncSavePanel, syncDeletePanel, syncBulkUpdateOrder, syncPatchPanel,
@@ -1425,6 +1426,51 @@ function initFontSettings() {
       const cur = loadSettings();
       cur.skipOrderInput = skipCb.checked;
       saveSettings(cur);
+    });
+  }
+
+  // パネル送信時のロック解除
+  const orderAuthCb = document.getElementById('setting-order-auth');
+  if (orderAuthCb) {
+    orderAuthCb.checked = !!s.orderAuth;
+    orderAuthCb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur.orderAuth = orderAuthCb.checked;
+      saveSettings(cur);
+    });
+  }
+
+  // パターンロック（既定オフ。オンにすると 9 点の登録画面を出し、登録できた時だけ有効になる）
+  const patternCb = document.getElementById('setting-lock-pattern');
+  const patternChangeBtn = document.getElementById('btn-lock-pattern-change');
+  if (patternCb) {
+    const syncPatternUi = () => {
+      const on = hasLockPattern();
+      patternCb.checked = on;
+      if (patternChangeBtn) patternChangeBtn.style.display = on ? '' : 'none';
+    };
+    syncPatternUi();
+
+    patternCb.addEventListener('change', async () => {
+      if (patternCb.checked) {
+        const ok = await openPatternSetup();
+        if (ok) dlg.toast('パターンを登録しました', { type: 'success' });
+        syncPatternUi();
+        return;
+      }
+      const ok = await dlg.confirm('パターンロックを解除しますか？\n以後はテンキーで店舗パスワードを入力します。', {
+        title: '確認', okLabel: '解除',
+      });
+      if (ok) clearLockPattern();
+      syncPatternUi();
+    });
+
+    patternChangeBtn?.addEventListener('click', async () => {
+      // 変更するには今のパターンを一度なぞってもらう
+      if (!await requireUnlock({ title: '今のパターンを入力' })) return;
+      const ok = await openPatternSetup();
+      if (ok) dlg.toast('パターンを変更しました', { type: 'success' });
+      syncPatternUi();
     });
   }
 

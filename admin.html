@@ -91,6 +91,19 @@
         </div>
         <div class="form-group check-row">
           <label class="check-label">
+            <input type="checkbox" id="setting-order-auth" />
+            <span>パネル送信のときにロック解除を求める（お客様の誤送信を防ぐ）</span>
+          </label>
+        </div>
+        <div class="form-group check-row">
+          <label class="check-label">
+            <input type="checkbox" id="setting-lock-pattern" />
+            <span>パターンロックを使う（9点をなぞる。オフならテンキーで店舗パスワード）</span>
+          </label>
+          <button type="button" class="btn btn-secondary btn-pattern-change" id="btn-lock-pattern-change" style="display:none">パターンを変更</button>
+        </div>
+        <div class="form-group check-row">
+          <label class="check-label">
             <input type="checkbox" id="setting-consent-test" />
             <span>デジタル署名テストモード（ご新規様同意書の試用）</span>
           </label>

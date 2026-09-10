@@ -1,0 +1,175 @@
+/* 端末ロック認証（テンキー / 9点パターン）
+   アプリ内の他のダイアログ（z-index 10000）より前面に出す */
+
+.lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.lock-box {
+  background: #1a1a2e;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+.lock-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  letter-spacing: 0.04em;
+}
+
+.lock-msg {
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.75;
+  margin: 0 0 14px;
+  min-height: 2.6em;
+}
+
+/* 入力済みの桁を丸で示す（桁数だけ見せて中身は見せない） */
+.lock-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 22px;
+  margin-bottom: 16px;
+}
+
+.lock-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #d4af37;
+}
+
+.lock-dot-empty {
+  font-size: 12px;
+  opacity: 0.4;
+}
+
+.lock-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.lock-key {
+  height: 56px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 21px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lock-key:active {
+  background: rgba(212, 175, 55, 0.25);
+}
+
+.lock-key-sub {
+  font-size: 18px;
+  opacity: 0.8;
+}
+
+.lock-key-ok {
+  background: rgba(212, 175, 55, 0.85);
+  border-color: rgba(212, 175, 55, 0.85);
+  color: #0a0a0a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.lock-cancel {
+  margin-top: 14px;
+  width: 100%;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* === 9点パターン === */
+.lock-pattern {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  touch-action: none;
+  user-select: none;
+}
+
+.lock-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.lock-lines polyline {
+  fill: none;
+  stroke: #d4af37;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+}
+
+.lock-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lock-node span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  transition: transform 0.1s ease, background 0.1s ease, border-color 0.1s ease;
+}
+
+.lock-node.on span {
+  background: #d4af37;
+  border-color: #d4af37;
+  transform: scale(1.25);
+}
+
+/* 誤りを伝える横揺れ */
+.lock-shake {
+  animation: lockShake 0.28s ease;
+}
+
+@keyframes lockShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); }
+  45% { transform: translateX(8px); }
+  70% { transform: translateX(-5px); }
+}

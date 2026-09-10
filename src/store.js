@@ -133,6 +133,8 @@ const DEFAULT_SETTINGS = {
   consentAlbumSave: true,   // 署名した書類を端末のアルバム（写真アプリ）にも保存する
   consentMenuButton: false, // メニュー画面に同意書ボタンを表示する
   consentNameField: false,  // 伝票名（ひらがな）の入力欄を表示する
+  lockPattern: '',          // 9点パターンロック（空=未設定。設定するとパスワード入力の代わりに使う）
+  orderAuth: false,         // パネル送信のときに解錠（パスワード/パターン）を求める
 };
 
 export function loadSettings() {

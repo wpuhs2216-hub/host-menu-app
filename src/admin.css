@@ -869,3 +869,11 @@
   letter-spacing: 2px;
   margin-left: 8px;
 }
+
+/* パターンロックの「変更」ボタン（チェック行の右に小さく置く） */
+.btn-pattern-change {
+  margin-top: 8px;
+  font-size: 13px;
+  padding: 6px 12px;
+  align-self: flex-start;
+}
