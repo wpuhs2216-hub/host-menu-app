@@ -38,8 +38,15 @@ function pagesRedirectIndexPlugin() {
   };
 }
 
+// ハジメル向け（2026-09-12）: BACKEND=hajimeru で焼く時だけ、棚と話す 3 つの部品を src/hj/ に差し替える。
+// 元のファイルは触らない。Supabase 向けのビルド（既定）には何も効かない。
+const isHajimeru = process.env.BACKEND === 'hajimeru';
+
 export default defineConfig({
   base: isPages ? '/host-menu-app/' : '/',
+  resolve: isHajimeru ? {
+    alias: [{ find: /^\.\/(supabaseClient|storeContext|storeLogin)\.js$/, replacement: resolve(__dirname, 'src/hj/$1.js') }],
+  } : {},
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
