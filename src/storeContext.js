@@ -13,6 +13,7 @@ export const STORES = [
   { id: 'dears-osaka', name: "Dear's大阪", password: '11111' },
   { id: 'gently', name: 'GENTLY', password: '22222' },
   { id: 'gently-greed', name: 'GENTLY GREED', password: '33333' },
+  { id: 'dears-party', name: "Dear's Party", password: '44444' },
   // 動作確認用。新機能の検証は実店舗ではなく必ずこの店舗で行う
   { id: 'test-store', name: 'テスト店舗', password: '00000' },
 ];
