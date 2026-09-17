@@ -88,6 +88,10 @@ body {
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: transform 0.2s;
+  /* 長押しで画像メニュー・テキスト選択が出ないようにする（チェック用の長押しと競合するため） */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .host-panel:active {

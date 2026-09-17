@@ -446,15 +446,17 @@ async function render() {
 }
 
 // === 長押し（選択ボックスを消した時のチェック手段） ===
-// 550ms 押し続けたら onFire。指が動いたら（スクロール）取りやめる。発火後の click は consumeLongPress で捨てる
+// 550ms 押し続けたら onFire。指が動いたら（スクロール）取りやめる。発火後の click は consumeLongPress で捨てる。
+// 指の操作は touch イベントで拾う: Android の WebView はスクロールを察知すると pointercancel を投げて
+// pointer 系を打ち切るため、pointer だけに頼ると実機で一度も発火しない。マウス（Web 版）は pointer で拾う
 const LONG_PRESS_MS = 550;
 function attachLongPress(el, onFire) {
   let timer = null;
   let start = null;
+  let lastTouchAt = 0;               // 直前に指で触った時刻。指の回の pointer は見ない（二重発火を防ぐ）
   const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  el.addEventListener('pointerdown', (e) => {
-    if (e.button != null && e.button !== 0) return;
-    start = { x: e.clientX, y: e.clientY };
+  const begin = (x, y) => {
+    start = { x, y };
     cancel();
     timer = setTimeout(() => {
       timer = null;
@@ -462,14 +464,31 @@ function attachLongPress(el, onFire) {
       try { navigator.vibrate?.(30); } catch { /* ignore */ }
       onFire();
     }, LONG_PRESS_MS);
-  });
-  el.addEventListener('pointermove', (e) => {
+  };
+  const moved = (x, y) => {
     if (!timer || !start) return;
-    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) cancel();
+    if (Math.hypot(x - start.x, y - start.y) > 12) cancel();
+  };
+
+  el.addEventListener('touchstart', (e) => {
+    lastTouchAt = Date.now();
+    if (e.touches.length === 1) begin(e.touches[0].clientX, e.touches[0].clientY);
+    else cancel();                   // 2本指はピンチ等なので長押し扱いにしない
+  }, { passive: true });
+  el.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) moved(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  el.addEventListener('touchend', () => { lastTouchAt = Date.now(); cancel(); });
+  el.addEventListener('touchcancel', () => { lastTouchAt = Date.now(); cancel(); });
+
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch' || Date.now() - lastTouchAt < 800) return;
+    if (e.button != null && e.button !== 0) return;
+    begin(e.clientX, e.clientY);
   });
-  el.addEventListener('pointerup', cancel);
-  el.addEventListener('pointercancel', cancel);
-  el.addEventListener('pointerleave', cancel);
+  el.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch') moved(e.clientX, e.clientY); });
+  el.addEventListener('pointerup', (e) => { if (e.pointerType !== 'touch') cancel(); });
+  el.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'touch') cancel(); });
   el.addEventListener('contextmenu', (e) => e.preventDefault());   // 長押しのメニューを出さない
 }
 function consumeLongPress(el) {
