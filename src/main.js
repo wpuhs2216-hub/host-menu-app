@@ -367,6 +367,7 @@ async function render() {
     .filter((item) => item.visible !== false)
     .sort((a, b) => a.order - b.order);
 
+  const hideThumbName = !!loadSettings().hideThumbName;   // サムネに名前を出さない設定（端末ごと）
   visibleItems.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = `host-panel placeholder-bg-${i % 9}`;
@@ -392,8 +393,8 @@ async function render() {
       el.innerHTML += `<div class="new-badge">NEW</div>`;
     }
 
-    // オーバーレイ（テキストがある場合のみ）
-    const hasOverlay = item.name || item.title || item.label;
+    // オーバーレイ（テキストがある場合のみ。名前を隠す設定ではキャストの名前・役職を載せない）
+    const hasOverlay = (item.name && !hideThumbName) || (!item.name && item.label);
     if (hasOverlay) {
       const overlayHtml = item.name
         ? `<div class="host-title">${escapeHtml(item.title)}</div>

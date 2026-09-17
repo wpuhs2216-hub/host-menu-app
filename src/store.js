@@ -135,6 +135,7 @@ const DEFAULT_SETTINGS = {
   consentNameField: false,  // 伝票名（ひらがな）の入力欄を表示する
   lockPattern: '',          // 9点パターンロック（空=未設定。設定するとパスワード入力の代わりに使う）
   orderAuth: false,         // パネル送信のときに解錠（パスワード/パターン）を求める
+  hideThumbName: false,     // サムネイルに源氏名・役職を出さない（既定は表示。拡大表示には影響しない）
 };
 
 export function loadSettings() {

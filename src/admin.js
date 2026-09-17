@@ -1432,6 +1432,17 @@ function initFontSettings() {
     });
   }
 
+  // サムネイルの名前を隠す
+  const hideNameCb = document.getElementById('setting-hide-thumb-name');
+  if (hideNameCb) {
+    hideNameCb.checked = !!s.hideThumbName;
+    hideNameCb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur.hideThumbName = hideNameCb.checked;
+      saveSettings(cur);
+    });
+  }
+
   // パネル送信時のロック解除
   const orderAuthCb = document.getElementById('setting-order-auth');
   if (orderAuthCb) {
