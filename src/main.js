@@ -203,6 +203,18 @@ function rubyHtml(name, ruby) {
   return escaped;
 }
 
+// ブラウザ表示（Web 版）の縮尺をCSS変数に入れる。
+// タブレット縦持ち（幅 800px）を 1.0 とし、狭い画面ではパネルの中身を同じ比率で縮める。
+// 単位の混ざった式（min(1, 100vw/800) など）はカスタムプロパティに入れると使用時に無効値になるため、
+// ここで無次元の数値として渡す
+const WEB_BASE_WIDTH = 800;
+function applyWebScale() {
+  const scale = IS_CAPACITOR ? 1 : Math.min(1, window.innerWidth / WEB_BASE_WIDTH);
+  document.documentElement.style.setProperty('--web-scale', String(scale));
+}
+window.addEventListener('resize', applyWebScale);
+window.addEventListener('orientationchange', applyWebScale);
+
 // フォントサイズ設定をCSS変数に反映
 function applyFontSettings() {
   const s = loadSettings();
@@ -351,6 +363,7 @@ function initConsentEntry() {
 }
 
 async function render() {
+  applyWebScale();
   applyFontSettings();
   const data = loadData();
 

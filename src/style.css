@@ -1047,41 +1047,50 @@ html.env-web .cloud-backup-item .cb-actions { width: 100%; justify-content: flex
 }
 
 /* ========================================
-   メニュー画面（index.html）スマホWeb UI
-   Capacitor アプリでは未適用、ブラウザのみ縦1列
+   メニュー画面（index.html / preview.html）のブラウザ表示
+   スマホでもタブレットと同じ 3 列にし、パネルの中身は画面幅に応じて同じ比率で縮める。
+   倍率はタブレット縦持ち（幅 800px）を 1.0 とする。800px 以上では等倍（＝アプリと同じ見え方）
 ======================================== */
-html.env-web .grid-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
-  max-width: 100%;
+/* 実際の倍率は main.js が画面幅から計算して入れる（JS が動く前の保険として等倍を置く） */
+html.env-web {
+  --web-scale: 1;
 }
-html.env-web .host-panel {
-  aspect-ratio: 16 / 9;        /* 横長で1枚ずつ大きく表示 */
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-}
-html.env-web .host-panel .host-name { font-size: 28px; letter-spacing: 3px; }
-html.env-web .host-panel .host-title { font-size: 14px; }
-html.env-web .selecting-badges { top: 10px; right: 10px; gap: 6px; }
-html.env-web .selecting-badge { font-size: 11px; padding: 4px 10px; }
-html.env-web .cast-checkbox { bottom: 12px; right: 12px; }
-html.env-web .cast-checkbox .cb-mark { width: 36px; height: 36px; }
 
-/* 768px 以上のブラウザ (PC・タブレット) では従来 grid に戻す */
-@media (min-width: 768px) {
-  html.env-web .grid-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-  html.env-web .host-panel {
-    aspect-ratio: 3 / 4;
-  }
+/* 列数・比率はアプリ（既定）と同じ。余白だけ画面幅に合わせて詰める */
+html.env-web .grid-container {
+  padding: calc(8px * var(--web-scale));
+  gap: calc(6px * var(--web-scale));
+}
+
+html.env-web .host-panel .overlay {
+  padding: calc(24px * var(--web-scale)) calc(10px * var(--web-scale)) calc(10px * var(--web-scale));
+}
+html.env-web .host-panel .host-name { font-size: calc(var(--name-font-size, 20px) * var(--web-scale)); }
+html.env-web .host-panel .host-title { font-size: calc(var(--title-font-size, 13px) * var(--web-scale)); }
+
+html.env-web .new-badge {
+  top: calc(8px * var(--web-scale));
+  left: calc(8px * var(--web-scale));
+  font-size: calc(16px * var(--web-scale));
+}
+html.env-web .selecting-badges {
+  top: calc(6px * var(--web-scale));
+  right: calc(6px * var(--web-scale));
+  gap: calc(4px * var(--web-scale));
+}
+html.env-web .selecting-badge {
+  font-size: calc(10px * var(--web-scale));
+  padding: calc(3px * var(--web-scale)) calc(8px * var(--web-scale));
+}
+html.env-web .cast-checkbox {
+  bottom: calc(8px * var(--web-scale));
+  right: calc(8px * var(--web-scale));
+}
+html.env-web .cast-checkbox .cb-mark {
+  width: calc(28px * var(--web-scale));
+  height: calc(28px * var(--web-scale));
+  border-width: max(1px, calc(2px * var(--web-scale)));
+  border-radius: calc(6px * var(--web-scale));
 }
 
 /* キャストカード色枠フォールバック: box-shadow が効かない環境でも border で色を出す */
