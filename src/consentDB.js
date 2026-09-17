@@ -69,7 +69,7 @@ export async function getConsentImage(key) {
 }
 
 // クラウド送信が済んだ 1 件に印を付ける
-export async function markSynced(id, synced = true) {
+export async function markSynced(id, synced = true, serverSignedAt = '') {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(META_STORE, 'readwrite');
@@ -80,6 +80,8 @@ export async function markSynced(id, synced = true) {
       if (row) {
         row.synced = !!synced;
         row.syncedAt = synced ? new Date().toISOString() : '';
+        // クラウドが打った署名時刻（端末の時計に依らない正）。受け取れた時だけ残す
+        if (serverSignedAt) row.serverSignedAt = serverSignedAt;
         store.put(row);
       }
     };

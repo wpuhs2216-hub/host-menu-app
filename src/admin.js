@@ -1539,14 +1539,24 @@ function initConsentTestMode() {
       } else {
         listEl.innerHTML = '';
         for (const r of rows) {
-          const d = new Date(r.signedAt);
-          const when = `${d.getMonth() + 1}/${d.getDate()} `
-            + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          // 表示はクラウドが打った時刻（正）を優先する。無ければ端末時刻
+          const fmtWhen = (v) => {
+            const d = new Date(v);
+            return `${d.getMonth() + 1}/${d.getDate()} `
+              + `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          };
+          const when = fmtWhen(r.serverSignedAt || r.signedAt);
+          // 端末の時計がずれている（5分以上離れている）ら印を出す
+          const gapMin = r.serverSignedAt
+            ? Math.abs(new Date(r.serverSignedAt) - new Date(r.signedAt)) / 60000 : 0;
+          const clockBadge = gapMin >= 5
+            ? `<span class="cr-badge cr-clock" title="端末の時計は ${fmtWhen(r.signedAt)} でした">時計ずれ</span>` : '';
           const row = document.createElement('div');
           row.className = 'consent-row';
           row.innerHTML = `
             <span class="cr-when">${when}</span>
             <span class="cr-route">${r.customerName || '（署名のみ）'}／${routeLabels[r.route] || '―'}／身分証${r.idChecked ? '済' : '未'}</span>
+            ${clockBadge}
             ${r.isTest ? '<span class="cr-badge cr-test">テスト</span>' : '<span class="cr-badge cr-real">本番</span>'}
             ${r.synced ? '<span class="cr-badge cr-synced">クラウド済</span>' : '<span class="cr-badge">端末のみ</span>'}`;
           row.addEventListener('click', async () => {

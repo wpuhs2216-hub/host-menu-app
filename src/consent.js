@@ -415,7 +415,7 @@ export async function pushConsentToCloud(meta) {
   if (signatureImage) await uploadPng(signaturePath, signatureImage);
   if (documentImage) await uploadPng(documentPath, documentImage);
 
-  const { error } = await supabase.from('consents').insert({
+  const { data, error } = await supabase.from('consents').insert({
     id: meta.id,
     store_id: meta.storeId,
     route: meta.route,
@@ -429,10 +429,14 @@ export async function pushConsentToCloud(meta) {
     device_id: meta.deviceId || '',
     hash: meta.hash || '',
     is_test: !!meta.isTest,
-    signed_at: meta.signedAt,
-  });
+    // 署名時刻はサーバが打つ（端末の時計を変えても偽装できないように）。
+    // 端末が主張した時刻は参考値として device_signed_at に残す
+    device_signed_at: meta.signedAt,
+  }).select('signed_at').single();
   if (error) throw error;
-  await markSynced(meta.id, true);
+  const serverSignedAt = data?.signed_at || '';
+  if (serverSignedAt) meta.serverSignedAt = serverSignedAt;
+  await markSynced(meta.id, true, serverSignedAt);
   return true;
 }
 

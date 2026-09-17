@@ -431,3 +431,9 @@
   background: rgba(212, 175, 55, 0.22);
   color: #e8cf7a;
 }
+
+/* 端末の時計がクラウドの記録と食い違っている印（管理画面の一覧） */
+.consent-row .cr-badge.cr-clock {
+  background: rgba(255, 149, 0, 0.22);
+  color: #ffb340;
+}
