@@ -641,6 +641,12 @@ function fsImageList(item) {
 
 function renderFsImage() {
   resetZoom();
+  // 名前のない札（料金表などのメニュー画像）は黒い余白を出さず画面いっぱいに広げる。
+  // 位置はサムネと同じ「表示範囲」（img_x / img_y）に従う。キャスト写真は全体表示のまま
+  const item = visibleItems[currentIndex];
+  const cover = !!item && !item.name;
+  fsImage.classList.toggle('fs-cover', cover);
+  fsImage.style.objectPosition = cover ? `${item.imgX ?? 50}% ${item.imgY ?? 50}%` : '';
   if (fsImages.length > 0) {
     fsImage.src = fsImages[fsImgIndex]?.src || fsImages[0].src;
     fsImage.style.display = 'block';
