@@ -136,6 +136,8 @@ const DEFAULT_SETTINGS = {
   lockPattern: '',          // 9点パターンロック（空=未設定。設定するとパスワード入力の代わりに使う）
   orderAuth: false,         // パネル送信のときに解錠（パスワード/パターン）を求める
   hideThumbName: false,     // サムネイルに源氏名・役職を出さない（既定は表示。拡大表示には影響しない）
+  hideCheckbox: false,      // 選択ボックスを出さない（見せるだけの運用。長押しでチェックはできる）
+  hideConfirmBtn: false,    // 確定（送信）ボタンを出さない
 };
 
 export function loadSettings() {

@@ -367,10 +367,13 @@ async function render() {
     .filter((item) => item.visible !== false)
     .sort((a, b) => a.order - b.order);
 
-  const hideThumbName = !!loadSettings().hideThumbName;   // サムネに名前を出さない設定（端末ごと）
+  const settingsNow = loadSettings();
+  const hideThumbName = !!settingsNow.hideThumbName;   // サムネに名前を出さない設定（端末ごと）
+  const hideCheckbox = !!settingsNow.hideCheckbox;     // 選択ボックスを出さない（長押しでチェック）
   visibleItems.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = `host-panel placeholder-bg-${i % 9}`;
+    el.dataset.id = item.id;
     applyPanelStyle(el, item.id);
 
     const img = imageCache[item.id] || '';
@@ -409,8 +412,16 @@ async function render() {
       el.classList.add('panel-locked');
     }
 
-    // キャストパネルのみチェックボックス（選択不可でなければ）
-    if (isCast(item) && !locked) {
+    // キャストパネルのみチェックボックス（選択不可でなければ）。
+    // 選択ボックスを消す設定では、代わりに長押しでチェックを切り替える（見せるだけの運用向け）
+    if (isCast(item) && !locked && hideCheckbox) {
+      attachLongPress(el, () => {
+        togglePickColor(item.id);
+        applyPanelStyle(el, item.id);
+        updateConfirmBtn();
+      });
+    }
+    if (isCast(item) && !locked && !hideCheckbox) {
       const cb = document.createElement('label');
       cb.className = 'cast-checkbox';
       cb.innerHTML = `<input type="checkbox" data-id="${item.id}" /><span class="cb-mark"></span>`;
@@ -426,12 +437,45 @@ async function render() {
       el.appendChild(cb);
     }
 
-    // タップで全画面表示（選択不可パネルは拡大しない）
+    // タップで全画面表示（選択不可パネルは拡大しない。長押し直後のクリックは開かない）
     if (!locked) {
-      el.addEventListener('click', () => openFullscreen(i));
+      el.addEventListener('click', () => { if (!consumeLongPress(el)) openFullscreen(i); });
     }
     grid.appendChild(el);
   });
+}
+
+// === 長押し（選択ボックスを消した時のチェック手段） ===
+// 550ms 押し続けたら onFire。指が動いたら（スクロール）取りやめる。発火後の click は consumeLongPress で捨てる
+const LONG_PRESS_MS = 550;
+function attachLongPress(el, onFire) {
+  let timer = null;
+  let start = null;
+  const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button != null && e.button !== 0) return;
+    start = { x: e.clientX, y: e.clientY };
+    cancel();
+    timer = setTimeout(() => {
+      timer = null;
+      el.dataset.longPressed = '1';
+      try { navigator.vibrate?.(30); } catch { /* ignore */ }
+      onFire();
+    }, LONG_PRESS_MS);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!timer || !start) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) cancel();
+  });
+  el.addEventListener('pointerup', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('pointerleave', cancel);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());   // 長押しのメニューを出さない
+}
+function consumeLongPress(el) {
+  if (el.dataset.longPressed !== '1') return false;
+  delete el.dataset.longPressed;
+  return true;
 }
 
 // pickColor で id の色を toggle（含まれていれば外す、なければ追加）
@@ -485,7 +529,8 @@ function updateConfirmBtn() {
     if (stateColor) btn.classList.add(`color-${stateColor}`);
   }
 
-  if (count > 0) {
+  // 送信ボタンを消す設定（見せるだけの運用）では、選択があっても出さない
+  if (count > 0 && !loadSettings().hideConfirmBtn) {
     confirmCount.textContent = count;
     confirmBtn.style.display = 'flex';
     fsConfirmCount.textContent = count;
@@ -697,7 +742,7 @@ function showCurrentItem() {
 
   // 全画面チェックボックス（キャストかつ選択可のみ）
   if (isCast(item) && item.selectable !== false) {
-    fsCheckbox.style.display = 'flex';
+    fsCheckbox.style.display = loadSettings().hideCheckbox ? 'none' : 'flex';
     applyCheckboxStyle(fsCheckbox, item.id);
   } else {
     fsCheckbox.style.display = 'none';
@@ -717,12 +762,11 @@ fsCheckbox.addEventListener('click', (e) => {
 });
 
 function syncGridCheckbox(id) {
-  const gridCb = grid.querySelector(`input[data-id="${id}"]`);
-  if (!gridCb) return;
-  const panel = gridCb.closest('.host-panel');
-  const cb = gridCb.closest('.cast-checkbox');
+  const panel = grid.querySelector(`.host-panel[data-id="${id}"]`);
+  if (!panel) return;
   applyPanelStyle(panel, id);
-  applyCheckboxStyle(cb, id);
+  const cb = panel.querySelector('.cast-checkbox');     // 選択ボックスを消している時は無い
+  if (cb) applyCheckboxStyle(cb, id);
 }
 
 function closeFullscreen() {
@@ -805,7 +849,32 @@ let touchStartY = 0;
 let touchDeltaX = 0;
 let swiping = false;
 
+// 全画面の長押し（選択ボックスを消している時のチェック手段）
+let fsLongTimer = null;
+let fsLongStart = null;
+function cancelFsLongPress() { if (fsLongTimer) { clearTimeout(fsLongTimer); fsLongTimer = null; } }
+function startFsLongPress(t) {
+  cancelFsLongPress();
+  if (!loadSettings().hideCheckbox) return;
+  const item = visibleItems[currentIndex];
+  if (!item || !isCast(item) || item.selectable === false) return;
+  fsLongStart = { x: t.clientX, y: t.clientY };
+  fsLongTimer = setTimeout(() => {
+    fsLongTimer = null;
+    swiping = false;
+    fsSwipeArea.style.transform = '';
+    try { navigator.vibrate?.(30); } catch { /* ignore */ }
+    togglePickColor(item.id);
+    applyCheckboxStyle(fsCheckbox, item.id);
+    syncGridCheckbox(item.id);
+    updateConfirmBtn();
+  }, LONG_PRESS_MS);
+}
+fsSwipeArea.addEventListener('contextmenu', (e) => e.preventDefault());
+
 fsSwipeArea.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1 && zoomScale <= 1) startFsLongPress(e.touches[0]);
+  else cancelFsLongPress();
   if (e.touches.length >= 2) {
     // ピンチ開始（スワイプ中だったら位置を戻す）
     swiping = false;
@@ -853,6 +922,7 @@ fsSwipeArea.addEventListener('touchmove', (e) => {
     applyZoom();
     return;
   }
+  if (fsLongTimer && fsLongStart && Math.hypot(e.touches[0].clientX - fsLongStart.x, e.touches[0].clientY - fsLongStart.y) > 10) cancelFsLongPress();
   if (!swiping) return;
   touchDeltaX = e.touches[0].clientX - touchStartX;
   const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
@@ -861,6 +931,7 @@ fsSwipeArea.addEventListener('touchmove', (e) => {
 }, { passive: false });
 
 fsSwipeArea.addEventListener('touchend', (e) => {
+  cancelFsLongPress();
   if (pinching) {
     if (e.touches.length >= 2) return;
     pinching = false;

@@ -1443,6 +1443,18 @@ function initFontSettings() {
     });
   }
 
+  // 見せるだけの運用: 選択ボックス／確定ボタンを消す
+  for (const [elId, key] of [['setting-hide-checkbox', 'hideCheckbox'], ['setting-hide-confirm', 'hideConfirmBtn']]) {
+    const cb = document.getElementById(elId);
+    if (!cb) continue;
+    cb.checked = !!s[key];
+    cb.addEventListener('change', () => {
+      const cur = loadSettings();
+      cur[key] = cb.checked;
+      saveSettings(cur);
+    });
+  }
+
   // パネル送信時のロック解除
   const orderAuthCb = document.getElementById('setting-order-auth');
   if (orderAuthCb) {
