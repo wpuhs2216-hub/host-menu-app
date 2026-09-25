@@ -2195,3 +2195,33 @@ body.home-active .color-picker {
 body.confirm-visible .grid-container {
   padding-bottom: 104px;
 }
+
+/* === ページを滑らせるアニメーション（タブの切り替え） === */
+
+/* はみ出した分を隠すだけの入れ物。高さは中身なりなので縦は切れない */
+.grid-viewport {
+  overflow: hidden;
+}
+
+/* 動かしている間だけ動きを付ける（ふだんは付けない＝描き直しが重くならない） */
+.grid-container.page-anim {
+  transition: transform 170ms ease, opacity 170ms ease;
+}
+
+/* 出ていく向き。次へ＝左へ流れる／前へ＝右へ流れる */
+.grid-container.page-out-left  { transform: translateX(-25%); opacity: 0; }
+.grid-container.page-out-right { transform: translateX(25%);  opacity: 0; }
+
+/* 入ってくる時の立ち位置。反対側から戻ってくる */
+.grid-container.page-from-right { transform: translateX(25%);  opacity: 0; }
+.grid-container.page-from-left  { transform: translateX(-25%); opacity: 0; }
+
+/* 動きを減らす設定の端末では滑らせない（酔いやすい人向けのOS設定） */
+@media (prefers-reduced-motion: reduce) {
+  .grid-container.page-anim { transition: none; }
+}
+
+/* 選択画面の時は入れ物ごと隠す */
+body.home-active .grid-viewport {
+  display: none !important;
+}

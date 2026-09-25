@@ -77,7 +77,10 @@
     <span class="ce-sub">タップして署名画面を開く</span>
   </button>
 
-  <main class="grid-container" id="grid"></main>
+  <!-- 札置き場。外側の入れ物はページを滑らせる時に、はみ出した分を隠すためのもの -->
+  <div class="grid-viewport" id="grid-viewport">
+    <main class="grid-container" id="grid"></main>
+  </div>
 
   <!-- 確定ボタン（チェック時のみ表示） -->
   <button class="confirm-btn" id="confirm-btn" style="display:none">

@@ -432,7 +432,7 @@ async function goMenuPage(step) {
   if (i === -1) return;
   const target = pages[i + step];
   if (!target) return;
-  await openMenuGroup(target.id);
+  await openMenuGroup(target.id, step);
 }
 
 // 選択画面と札一覧の出し分け
@@ -450,19 +450,70 @@ function applyMenuMode() {
 // 選択画面へ戻る
 // こちらは先に隠す。隠してから中身を空にすれば、消える途中が見えない。
 async function showMenuHome() {
+  clearPageAnimClasses();
   menuGroup = null;
   applyMenuMode();
   await render();
 }
 
+// ページを滑らせる時間（CSS の transition と合わせる）
+const PAGE_ANIM_MS = 170;
+
+// 切り替え中に次の切り替えが重ならないようにする印
+let pageSwitching = false;
+
+function waitMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function clearPageAnimClasses() {
+  grid.classList.remove('page-anim', 'page-out-left', 'page-out-right', 'page-from-right', 'page-from-left');
+}
+
+function prefersReducedMotion() {
+  try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+}
+
 // 選んだメニューの札一覧へ
 // ⚠ 順番が大事: 先に中身を入れ替えてから見せる。
 //   逆にすると、入れ替わるまでの間だけ前の画面の札が見えてしまう。
-async function openMenuGroup(group) {
-  menuGroup = group;
-  await render();
-  applyMenuMode();
-  window.scrollTo(0, 0);
+// dir: 1 = 次のページへ（左へ流れる） / -1 = 前のページへ（右へ流れる） / 0 = 滑らせない
+async function openMenuGroup(group, dir = 0) {
+  if (pageSwitching) return;
+  const animate = dir !== 0 && menuGroup !== null && !prefersReducedMotion();
+
+  if (!animate) {
+    menuGroup = group;
+    await render();
+    applyMenuMode();
+    window.scrollTo(0, 0);
+    return;
+  }
+
+  pageSwitching = true;
+  try {
+    // ① 今の中身を横へ流して消す
+    clearPageAnimClasses();
+    grid.classList.add('page-anim', dir > 0 ? 'page-out-left' : 'page-out-right');
+    await waitMs(PAGE_ANIM_MS);
+
+    // ② 見えていない間に中身を入れ替える
+    menuGroup = group;
+    await render();
+    applyMenuMode();
+    window.scrollTo(0, 0);
+
+    // ③ 反対側へ瞬間移動してから、元の位置へ戻す
+    clearPageAnimClasses();
+    grid.classList.add(dir > 0 ? 'page-from-right' : 'page-from-left');
+    void grid.offsetWidth;                      // ここまでの位置を確定させる
+    grid.classList.add('page-anim');
+    grid.classList.remove('page-from-right', 'page-from-left');
+    await waitMs(PAGE_ANIM_MS + 40);
+  } finally {
+    clearPageAnimClasses();
+    pageSwitching = false;
+  }
 }
 
 function initMenuSplit() {
