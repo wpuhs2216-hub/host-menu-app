@@ -3,7 +3,7 @@
 const IS_CAPACITOR = !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
 document.documentElement.classList.add(IS_CAPACITOR ? 'env-app' : 'env-web');
 
-import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, FRAME_OPTIONS, frameSrc } from './store.js';
+import { loadData, saveData, resetData, fileToBase64, generateId, loadOrders, deleteOrder, clearOrders, updateOrder, loadSettings, saveSettings, exportAllData, importAllData, FRAME_OPTIONS, frameSrc, SHARED_SETTINGS, getSettingOverride, setSettingOverride, getStoreDefault, hasStoreDefault } from './store.js';
 import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFromLocalStorage } from './imageDB.js';
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
@@ -235,6 +235,7 @@ function createSortableItem(item, imageSrc) {
   const displayName = item.name || item.label || '（未設定）';
   const displaySub = item.name ? item.title : '';
   const newTag = item.isNewFace ? '<span class="admin-new-tag">NEW</span>' : '';
+  const officerTag = item.isOfficer ? '<span class="admin-officer-tag">役職</span>' : '';
 
   el.innerHTML = `
     <div class="reorder-btns">
@@ -243,7 +244,7 @@ function createSortableItem(item, imageSrc) {
     </div>
     <div class="item-thumb"></div>
     <div class="item-info">
-      <div class="info-name">${escapeHtml(displayName)} ${newTag}</div>
+      <div class="info-name">${escapeHtml(displayName)} ${newTag}${officerTag}</div>
       ${displaySub ? `<div class="info-title">${escapeHtml(displaySub)}</div>` : ''}
     </div>
     <div class="item-actions">
@@ -484,6 +485,7 @@ const editRuby = document.getElementById('edit-ruby');
 const editTitle = document.getElementById('edit-title');
 const editLabel = document.getElementById('edit-label');
 const editNewFace = document.getElementById('edit-newface');
+const editOfficer = document.getElementById('edit-officer');
 const editImage = document.getElementById('edit-image');
 const uploadText = document.getElementById('upload-text');
 const uploadPreview = document.getElementById('upload-preview');
@@ -709,6 +711,7 @@ async function openModal(item = null) {
     editTitle.value = item.title || '';
     editLabel.value = item.label || '';
     editNewFace.checked = !!item.isNewFace;
+    editOfficer.checked = !!item.isOfficer;
 
     const img = await getImage(item.id);
     pendingImage = img || null;
@@ -746,6 +749,7 @@ async function openModal(item = null) {
     editTitle.value = '';
     editLabel.value = '';
     editNewFace.checked = false;
+    editOfficer.checked = false;
     pendingImage = null;
     originalExtras = [];
     pendingExtras = [];
@@ -791,6 +795,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
   const title = editTitle.value.trim();
   const label = editLabel.value.trim();
   const isNewFace = editNewFace.checked;
+  const isOfficer = editOfficer.checked;   // 役職メニューに出す印
   // DB 側は integer 列なので保存時に整数へ丸める（ドラッグ操作で小数になるため）
   const imgX = Math.round(Number(editImgX.value) || 0);
   const imgY = Math.round(Number(editImgY.value) || 0);
@@ -808,6 +813,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       item.title = title;
       item.label = label;
       item.isNewFace = isNewFace;
+      item.isOfficer = isOfficer;
       item.imgX = imgX;
       item.imgY = imgY;
       item.imgScale = imgScale;
@@ -839,6 +845,7 @@ document.getElementById('modal-save').addEventListener('click', async () => {
       order: data.items.length,
       visible: true,
       isNewFace,
+      isOfficer,
       selectable: true,
     };
     data.items.push(savedItem);
@@ -1413,6 +1420,80 @@ const settingsKeyMap = {
   fsTitle: 'fsTitleFontSize',
 };
 
+// === 店で既定を決めて、端末ごとに上書きできる設定（三択） ===
+// 効き方: 端末の上書き → 店の既定 → プログラムの既定値
+// 画面の再描画用に、各行の塗り直し関数を覚えておく（店の既定を保存した後に「今:」を更新するため）
+const sharedSettingRepaints = [];
+
+function renderSharedSettings(section, containerId, onChange) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  box.innerHTML = '';
+  for (const def of SHARED_SETTINGS.filter((x) => x.section === section)) {
+    const row = document.createElement('div');
+    row.className = 'form-group tri-row';
+    row.innerHTML = `
+      <label class="tri-label">${escapeHtml(def.label)}</label>
+      <div class="tri-controls">
+        <select class="tri-select app-dialog-input">
+          <option value="">店にあわせる</option>
+          <option value="on">この端末だけ オン</option>
+          <option value="off">この端末だけ オフ</option>
+        </select>
+        <span class="tri-now"></span>
+      </div>`;
+    const sel = row.querySelector('.tri-select');
+    const nowEl = row.querySelector('.tri-now');
+    const paint = () => {
+      sel.value = getSettingOverride(def.key);
+      const eff = loadSettings()[def.key] ? 'オン' : 'オフ';
+      const store = getStoreDefault(def.key) ? 'オン' : 'オフ';
+      const note = hasStoreDefault(def.key) ? '' : '・未設定';
+      nowEl.textContent = `今: ${eff}（店の既定: ${store}${note}）`;
+    };
+    paint();
+    sel.addEventListener('change', () => {
+      setSettingOverride(def.key, sel.value);
+      paint();
+      if (onChange) onChange(def.key, !!loadSettings()[def.key]);
+    });
+    box.appendChild(row);
+    sharedSettingRepaints.push(paint);
+  }
+}
+
+function repaintSharedSettings() {
+  for (const paint of sharedSettingRepaints) {
+    try { paint(); } catch { /* 画面が閉じていても無視 */ }
+  }
+}
+
+// 店の既定（店舗設定の欄）。保存ボタンを押した時にまとめてクラウドへ送る
+function renderStoreDefaultList() {
+  const box = document.getElementById('store-default-list');
+  if (!box) return;
+  box.innerHTML = '';
+  for (const def of SHARED_SETTINGS) {
+    const row = document.createElement('div');
+    row.className = 'form-group check-row';
+    row.innerHTML = `<label class="check-label"><input type="checkbox" /><span>${escapeHtml(def.label)}</span></label>`;
+    const cb = row.querySelector('input');
+    cb.dataset.key = def.key;
+    // まだ店で決めていない設定は、プログラムの既定値を初期状態にする。
+    // （ここを一律 false にすると、保存した瞬間に「既定オン」の設定がオフに変わってしまう）
+    cb.checked = getStoreDefault(def.key);
+    box.appendChild(row);
+  }
+}
+
+function collectStoreDefaults() {
+  const out = {};
+  document.querySelectorAll('#store-default-list input[type="checkbox"]').forEach((cb) => {
+    out[cb.dataset.key] = cb.checked;
+  });
+  return out;
+}
+
 function initFontSettings() {
   const s = loadSettings();
   fsSliders.name.value = s.nameFontSize;
@@ -1421,50 +1502,8 @@ function initFontSettings() {
   fsSliders.fsTitle.value = s.fsTitleFontSize;
   Object.keys(fsVals).forEach((k) => { fsVals[k].textContent = fsSliders[k].value + 'px'; });
 
-  // スキップ設定
-  const skipCb = document.getElementById('setting-skip-order-input');
-  if (skipCb) {
-    skipCb.checked = !!s.skipOrderInput;
-    skipCb.addEventListener('change', async () => {
-      const cur = loadSettings();
-      cur.skipOrderInput = skipCb.checked;
-      saveSettings(cur);
-    });
-  }
-
-  // サムネイルの名前を隠す
-  const hideNameCb = document.getElementById('setting-hide-thumb-name');
-  if (hideNameCb) {
-    hideNameCb.checked = !!s.hideThumbName;
-    hideNameCb.addEventListener('change', () => {
-      const cur = loadSettings();
-      cur.hideThumbName = hideNameCb.checked;
-      saveSettings(cur);
-    });
-  }
-
-  // 見せるだけの運用: 選択ボックス／確定ボタンを消す
-  for (const [elId, key] of [['setting-hide-checkbox', 'hideCheckbox'], ['setting-hide-confirm', 'hideConfirmBtn']]) {
-    const cb = document.getElementById(elId);
-    if (!cb) continue;
-    cb.checked = !!s[key];
-    cb.addEventListener('change', () => {
-      const cur = loadSettings();
-      cur[key] = cb.checked;
-      saveSettings(cur);
-    });
-  }
-
-  // パネル送信時のロック解除
-  const orderAuthCb = document.getElementById('setting-order-auth');
-  if (orderAuthCb) {
-    orderAuthCb.checked = !!s.orderAuth;
-    orderAuthCb.addEventListener('change', () => {
-      const cur = loadSettings();
-      cur.orderAuth = orderAuthCb.checked;
-      saveSettings(cur);
-    });
-  }
+  // 店で既定を決めて台ごとに上書きできる設定（三択）
+  renderSharedSettings('general', 'shared-settings-general');
 
   // パターンロック（既定オフ。オンにすると 9 点の登録画面を出し、登録できた時だけ有効になる）
   const patternCb = document.getElementById('setting-lock-pattern');
@@ -1615,52 +1654,12 @@ function initConsentTestMode() {
 
   document.getElementById('btn-consent-reload')?.addEventListener('click', refreshList);
 
-  // メニュー画面に同意書ボタンを出すか（既定オフ）
-  const menuBtnCb = document.getElementById('setting-consent-menu-btn');
-  if (menuBtnCb) {
-    menuBtnCb.checked = !!loadSettings().consentMenuButton;
-    menuBtnCb.addEventListener('change', () => {
-      const cur = loadSettings();
-      cur.consentMenuButton = menuBtnCb.checked;
-      saveSettings(cur);
-    });
-  }
-
-  // 伝票名（ひらがな）の入力欄を出すか（既定オフ）
-  const nameFieldCb = document.getElementById('setting-consent-name-field');
-  if (nameFieldCb) {
-    nameFieldCb.checked = !!loadSettings().consentNameField;
-    nameFieldCb.addEventListener('change', () => {
-      const cur = loadSettings();
-      cur.consentNameField = nameFieldCb.checked;
-      saveSettings(cur);
-    });
-  }
-
-  // 端末のアルバムにも保存するか（既定オン）
-  const albumCb = document.getElementById('setting-consent-album');
-  if (albumCb) {
-    albumCb.checked = loadSettings().consentAlbumSave !== false;
-    albumCb.addEventListener('change', () => {
-      const cur = loadSettings();
-      cur.consentAlbumSave = albumCb.checked;
-      saveSettings(cur);
-    });
-  }
-
-  // クラウドにも保存するか（オフ＝この端末の中だけ）
-  const cloudCb = document.getElementById('setting-consent-cloud');
-  if (cloudCb) {
-    cloudCb.checked = !!loadSettings().consentCloudSave;
-    cloudCb.addEventListener('change', async () => {
-      const cur = loadSettings();
-      cur.consentCloudSave = cloudCb.checked;
-      saveSettings(cur);
-      if (cloudCb.checked) {
-        dlg.toast('以降の署名はクラウドにも保存されます', { type: 'info' });
-      }
-    });
-  }
+  // 署名まわりの設定（店の既定＋台ごとの上書き）
+  renderSharedSettings('consent', 'shared-settings-consent', (key, effective) => {
+    if (key === 'consentCloudSave' && effective) {
+      dlg.toast('以降の署名はクラウドにも保存されます', { type: 'info' });
+    }
+  });
 
   document.getElementById('btn-consent-push')?.addEventListener('click', async () => {
     const mod = await ensureModule();
@@ -1721,6 +1720,8 @@ function initStoreSettingsUI() {
       if (labelInputs[c]) labelInputs[c].value = labels[c] || '';
     }
     if (fontSelect) { fontSelect.value = getFont(); applyPreview(getFont()); }
+    renderStoreDefaultList();
+    repaintSharedSettings();
   };
   populate();
 
@@ -1735,9 +1736,10 @@ function initStoreSettingsUI() {
     const colorLabels = {};
     for (const c of COLOR_KEYS) colorLabels[c] = (labelInputs[c]?.value || '').trim();
     const font = fontSelect ? fontSelect.value : getFont();
+    const deviceDefaults = collectStoreDefaults();
     btnSave.disabled = true;
     try {
-      await saveStoreSettings({ seatOptions, colorLabels, font });
+      await saveStoreSettings({ seatOptions, colorLabels, font, deviceDefaults });
       if (statusEl) statusEl.textContent = '保存しました（全端末に反映されます）';
       populate();
     } catch (e) {
@@ -1752,7 +1754,8 @@ function initStoreSettingsUI() {
   pullStoreSettings().then(() => {
     const editing = document.activeElement === seatInput
       || document.activeElement === fontSelect
-      || COLOR_KEYS.some((c) => document.activeElement === labelInputs[c]);
+      || COLOR_KEYS.some((c) => document.activeElement === labelInputs[c])
+      || !!document.activeElement?.closest?.('#store-default-list');
     if (!editing) populate();
   }).catch(() => {});
 }

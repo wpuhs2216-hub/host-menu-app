@@ -884,3 +884,68 @@
   padding: 6px 12px;
   align-self: flex-start;
 }
+
+/* 役職タグ（一覧で「役職メニューに出す」札に付く） */
+.admin-officer-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, #b8912f, #d4af37);
+  color: #1a1a1a;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* 店で既定を決めて端末ごとに上書きできる設定（三択） */
+.tri-note {
+  font-size: 0.85em;
+  opacity: 0.7;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.tri-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.tri-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.tri-label {
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+
+.tri-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tri-controls .tri-select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 200px;
+  max-width: 320px;
+}
+
+.tri-now {
+  font-size: 0.82em;
+  opacity: 0.65;
+}
+
+/* 店舗設定の中の「店の既定」一覧 */
+.store-default-list .form-group {
+  margin-bottom: 4px;
+}

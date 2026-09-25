@@ -1,6 +1,6 @@
 // Supabase 同期レイヤ
 // - panels テーブル: id, name, ruby, title, label, image_path, img_x, img_y, img_scale,
-//   "order", visible, is_new_face, selectable, has_image, updated_at
+//   "order", visible, is_new_face, is_officer, selectable, has_image, updated_at
 // - storage: panel-images バケットに <id>.jpg を保存
 // - 注文履歴・フォントサイズ・パスワードはローカルのまま
 
@@ -48,6 +48,7 @@ function rowToItem(row) {
     order: row.order ?? 0,
     visible: row.visible !== false,
     isNewFace: !!row.is_new_face,
+    isOfficer: !!row.is_officer,            // 役職メニューに出す印
     selectable: row.selectable !== false,
     hasImage: !!row.has_image,
     imageVersion: row.image_version ?? 0,   // 画像差し替え検知用
@@ -79,6 +80,7 @@ function itemToRow(item) {
     order: Number(item.order ?? 0),
     visible: item.visible !== false,
     is_new_face: !!item.isNewFace,
+    is_officer: !!item.isOfficer,
     selectable: item.selectable !== false,
     has_image: !!item.hasImage,
     extra_images: (item.extraImages || [])
@@ -312,6 +314,7 @@ export async function syncPatchPanel(id, patch) {
     const row = {};
     if ('visible' in patch) row.visible = !!patch.visible;
     if ('isNewFace' in patch) row.is_new_face = !!patch.isNewFace;
+    if ('isOfficer' in patch) row.is_officer = !!patch.isOfficer;
     if ('selectable' in patch) row.selectable = patch.selectable !== false;
     if (Object.keys(row).length === 0) return;
     const { error } = await supabase.from('panels').update(row).eq('id', id).eq('store_id', getStoreId());

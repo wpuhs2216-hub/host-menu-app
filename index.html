@@ -40,6 +40,28 @@
     <div class="header-clock" id="header-clock"></div>
   </header>
 
+  <!-- 最初のメニュー選択画面（設定「最初にメニュー選択画面を出す」がオンの時だけ表示） -->
+  <div class="home-screen" id="home-screen" style="display:none">
+    <div class="home-inner">
+      <button class="home-btn home-btn-consent" id="home-consent" type="button" style="display:none">
+        <span class="hb-title">ご新規様同意書</span>
+        <span class="hb-sub">タップして署名画面を開く</span>
+      </button>
+      <button class="home-btn" id="home-price" type="button">
+        <span class="hb-title">料金システム</span>
+      </button>
+      <button class="home-btn" id="home-cast" type="button">
+        <span class="hb-title">ALLCAST</span>
+      </button>
+      <button class="home-btn" id="home-officer" type="button" style="display:none">
+        <span class="hb-title">役職メニュー</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- メニュー選択画面へ戻る（選択画面を使っている時だけ表示） -->
+  <button class="menu-back" id="menu-back" type="button" style="display:none">← メニューに戻る</button>
+
   <!-- 同意書ボタン（設定でオンにした時だけ表示。パネルの上に横長で置く） -->
   <button class="consent-entry" id="consent-entry" type="button" style="display:none">
     <span class="ce-title">ご新規様同意書</span>

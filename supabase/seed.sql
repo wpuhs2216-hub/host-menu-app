@@ -33,8 +33,12 @@ on conflict (store_id) do nothing;
 
 -- テスト用パネル（画像なし。表示・並べ替え・同期の確認用）
 -- 検証は必ず store_id='test-store'（パスワード 00000）で行う。実店舗の id は使わない
-insert into public.panels (id, store_id, name, title, "order", visible, selectable, has_image) values
-  ('test-1', 'test-store', 'テスト太郎', '代表', 0, true, true, false),
-  ('test-2', 'test-store', 'テスト次郎', '幹部', 1, true, true, false),
-  ('test-3', 'test-store', 'テスト三郎', '',     2, true, true, false)
+-- name が空の札＝料金システム側、name が入っている札＝ALLCAST 側。
+-- is_officer を付けた札だけが「役職メニュー」に出る（メニュー分けの確認用）
+insert into public.panels (id, store_id, name, title, label, "order", visible, selectable, has_image, is_officer) values
+  ('test-price-1', 'test-store', '',           '',     '料金表',     -2, true, true, false, false),
+  ('test-price-2', 'test-store', '',           '',     'セット料金', -1, true, true, false, false),
+  ('test-1',       'test-store', 'テスト太郎', '代表', '',            0, true, true, false, true),
+  ('test-2',       'test-store', 'テスト次郎', '幹部', '',            1, true, true, false, false),
+  ('test-3',       'test-store', 'テスト三郎', '',     '',            2, true, true, false, false)
 on conflict (id) do nothing;

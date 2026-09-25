@@ -1,9 +1,22 @@
 // データ管理（localStorage使用のプロトタイプ版）
 // 全アイテム統一型：画像＋源氏名＋役職
+//
+// 設定は二段構え（2026-09-25）:
+//   1) 台の上書き（この端末だけ）  2) 店の既定（全台共通）  3) プログラムの既定値
+// 上から順に見て、最初に見つかった値が効く。読む側は今までどおり loadSettings() を呼ぶだけでよい。
 
+import { getStoreDeviceDefaults } from './storeSettings.js';
+
+// @ハジメル 札の控え: クラウドの札をこの端末に写した物（画像の本体は別の棚）
 const STORAGE_KEY = 'host-menu-data';
+// @ハジメル 指名履歴の控え: この端末で出した指名の記録
 const ORDERS_KEY = 'host-menu-orders';
+// @ハジメル 台の設定: この端末だけの設定（文字の大きさ・鍵・テスト用）
 const SETTINGS_KEY = 'host-menu-settings';
+// @ハジメル 台の上書き: 店の既定に逆らってこの台だけ変えた設定。{ 設定名: 'on' | 'off' }
+const OVERRIDES_KEY = 'host-menu-setting-overrides';
+// @ハジメル 上書きの引っ越し済み印: 昔の設定を上書きへ移し終えたかどうか
+const OVERRIDES_MIGRATED_KEY = 'host-menu-setting-overrides-migrated';
 const PW_KEY = 'host-menu-admin-pw';
 const DEFAULT_PW = '2020';
 
@@ -138,18 +151,118 @@ const DEFAULT_SETTINGS = {
   hideThumbName: false,     // サムネイルに源氏名・役職を出さない（既定は表示。拡大表示には影響しない）
   hideCheckbox: false,      // 選択ボックスを出さない（見せるだけの運用。長押しでチェックはできる）
   hideConfirmBtn: false,    // 確定（送信）ボタンを出さない
+  menuSplit: false,         // 最初に「料金システム / ALLCAST / 役職メニュー」の選択画面を出す
 };
 
-export function loadSettings() {
-  const saved = localStorage.getItem(SETTINGS_KEY);
-  if (saved) {
-    try { return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }; } catch { /* fall through */ }
-  }
-  return { ...DEFAULT_SETTINGS };
+// 店で既定を決めて、台ごとに上書きできる設定。
+// label は管理画面にそのまま出る文言。section は管理画面のどの欄に並べるか。
+export const SHARED_SETTINGS = [
+  { key: 'menuSplit',         section: 'general', label: '最初にメニュー選択画面を出す（料金システム / ALLCAST / 役職メニュー）' },
+  { key: 'skipOrderInput',    section: 'general', label: '確定時に席番・お客様名の入力をスキップ（後から編集可）' },
+  { key: 'hideThumbName',     section: 'general', label: 'サムネイルに名前を表示しない（拡大表示には出ます）' },
+  { key: 'hideCheckbox',      section: 'general', label: '選択ボックスを表示しない（見せるだけの運用。長押しでチェックはできます）' },
+  { key: 'hideConfirmBtn',    section: 'general', label: '確定（送信）ボタンを表示しない' },
+  { key: 'orderAuth',         section: 'general', label: 'パネル送信のときにロック解除を求める（お客様の誤送信を防ぐ）' },
+  { key: 'consentMenuButton', section: 'consent', label: 'メニュー画面に同意書ボタンを表示する' },
+  { key: 'consentNameField',  section: 'consent', label: '伝票名（ひらがな）の入力欄を表示する' },
+  { key: 'consentAlbumSave',  section: 'consent', label: '端末のアルバムにも保存する（写真アプリの「同意書」に入ります）' },
+  { key: 'consentCloudSave',  section: 'consent', label: 'クラウドにも保存する（オフならこの端末の中だけに保存）' },
+];
+
+const SHARED_KEYS = SHARED_SETTINGS.map((x) => x.key);
+
+export function isSharedSetting(key) {
+  return SHARED_KEYS.includes(key);
 }
 
+// === 台の上書き（'on' / 'off' / 無し＝店にあわせる） ===
+
+function readOverrides() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}');
+    const out = {};
+    for (const k of SHARED_KEYS) {
+      if (raw[k] === 'on' || raw[k] === 'off') out[k] = raw[k];
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+// 昔の設定の引っ越し（1 回だけ）。
+// 今その台で「プログラムの既定値と違う状態にしてある」設定だけ、台の上書きとして引き継ぐ。
+// 触っていない設定は「店にあわせる」になる。店の既定は最初すべて空なので、引っ越し直後の動きは今までと同じ。
+function migrateOverridesOnce() {
+  try {
+    if (localStorage.getItem(OVERRIDES_MIGRATED_KEY)) return;
+    const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    const overrides = readOverrides();
+    for (const k of SHARED_KEYS) {
+      if (k in overrides) continue;
+      if (!(k in raw)) continue;
+      if (!!raw[k] === !!DEFAULT_SETTINGS[k]) continue;   // 既定値のままなら店にあわせる
+      overrides[k] = raw[k] ? 'on' : 'off';
+    }
+    localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+    localStorage.setItem(OVERRIDES_MIGRATED_KEY, '1');
+  } catch { /* 引っ越しに失敗しても既定値で動く */ }
+}
+migrateOverridesOnce();
+
+// その設定の台の上書き。'' なら「店にあわせる」
+export function getSettingOverride(key) {
+  return readOverrides()[key] || '';
+}
+
+// 台の上書きを決める。'' を渡すと「店にあわせる」に戻る
+export function setSettingOverride(key, value) {
+  if (!isSharedSetting(key)) return;
+  const overrides = readOverrides();
+  if (value === 'on' || value === 'off') overrides[key] = value;
+  else delete overrides[key];
+  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+}
+
+// 店の既定値（決まっていなければプログラムの既定値）
+export function getStoreDefault(key) {
+  let defaults = {};
+  try { defaults = getStoreDeviceDefaults() || {}; } catch { /* 取れなければ既定値 */ }
+  if (typeof defaults[key] === 'boolean') return defaults[key];
+  return !!DEFAULT_SETTINGS[key];
+}
+
+// 店の既定値が決められているか（管理画面の表示用）
+export function hasStoreDefault(key) {
+  try { return typeof (getStoreDeviceDefaults() || {})[key] === 'boolean'; } catch { return false; }
+}
+
+// 実際に効く設定を返す。共有できる設定は 台の上書き → 店の既定 → プログラムの既定値 の順で決まる。
+// 読む側（メニュー画面・同意書など）は今までどおりこれを呼ぶだけでよい。
+export function loadSettings() {
+  let local = {};
+  const saved = localStorage.getItem(SETTINGS_KEY);
+  if (saved) {
+    try { local = JSON.parse(saved); } catch { local = {}; }
+  }
+  const out = { ...DEFAULT_SETTINGS, ...local };
+  const overrides = readOverrides();
+  for (const key of SHARED_KEYS) {
+    const ov = overrides[key];
+    out[key] = ov ? ov === 'on' : getStoreDefault(key);
+  }
+  return out;
+}
+
+// 台だけの設定を保存する。
+// 共有できる設定はここでは保存しない（setSettingOverride で決める）。
+// loadSettings() の戻りをそのまま渡しても、店の既定が台に焼き付かないようにするため。
 export function saveSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  const out = {};
+  for (const [k, v] of Object.entries(settings || {})) {
+    if (!SHARED_KEYS.includes(k)) out[k] = v;
+  }
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(out));
 }
 
 // === バックアップ/復元 ===

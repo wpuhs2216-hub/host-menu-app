@@ -2061,3 +2061,94 @@ html.env-web #btn-clear-own-orders { display: none !important; }
   font-size: clamp(10px, 1.4vw, 14px);
   opacity: 0.75;
 }
+
+/* =========================================================
+   最初のメニュー選択画面（料金システム / ALLCAST / 役職メニュー）
+   設定「最初にメニュー選択画面を出す」がオンの時だけ出る。既定はオフ。
+   ========================================================= */
+
+.home-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  min-height: calc(100vh - 56px);
+  box-sizing: border-box;
+}
+
+.home-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 720px;
+}
+
+.home-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: clamp(76px, 13vh, 132px);
+  padding: 18px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.06));
+  color: #f0e2b6;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.home-btn:active {
+  transform: scale(0.99);
+  background: rgba(212, 175, 55, 0.24);
+}
+
+.home-btn .hb-title {
+  font-size: clamp(20px, 3.4vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.home-btn .hb-sub {
+  font-size: clamp(10px, 1.4vw, 14px);
+  opacity: 0.75;
+}
+
+/* 署名は用途が違うので少し控えめにして区別する */
+.home-btn-consent {
+  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* メニュー選択画面へ戻る */
+.menu-back {
+  display: block;
+  width: calc(100% - 16px);
+  max-width: 1184px;
+  margin: 8px auto 0;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ddd;
+  font-size: clamp(13px, 1.8vw, 17px);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-back:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 選択画面を出している間は、札・席・色・確定ボタンを隠す */
+body.home-active .grid-container,
+body.home-active .consent-entry,
+body.home-active .confirm-btn,
+body.home-active .seat-btn,
+body.home-active .color-picker {
+  display: none !important;
+}

@@ -83,36 +83,11 @@
           <label>端末名（履歴に表示されます。例: フロア / 受付 / 1階タブレット）</label>
           <input type="text" id="setting-device-name" placeholder="未設定" />
         </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-skip-order-input" />
-            <span>確定時に席番・お客様名の入力をスキップ（後から編集可）</span>
-          </label>
+        <div class="tri-note">
+          下の設定は「店舗設定（全端末共通）」で店の既定を決められます。
+          この端末だけ変えたいときは「この端末だけ オン／オフ」を選んでください。
         </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-hide-thumb-name" />
-            <span>サムネイルに名前を表示しない（拡大表示には出ます）</span>
-          </label>
-        </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-hide-checkbox" />
-            <span>選択ボックスを表示しない（見せるだけの運用。長押しでチェックはできます）</span>
-          </label>
-        </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-hide-confirm" />
-            <span>確定（送信）ボタンを表示しない</span>
-          </label>
-        </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-order-auth" />
-            <span>パネル送信のときにロック解除を求める（お客様の誤送信を防ぐ）</span>
-          </label>
-        </div>
+        <div id="shared-settings-general"></div>
         <div class="form-group check-row">
           <label class="check-label">
             <input type="checkbox" id="setting-lock-pattern" />
@@ -131,30 +106,7 @@
       <!-- デジタル署名（テストモード時のみ表示） -->
       <div class="section" id="consent-section" style="display:none">
         <div class="section-title"><span>デジタル署名（テスト）</span></div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-consent-menu-btn" />
-            <span>メニュー画面に同意書ボタンを表示する</span>
-          </label>
-        </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-consent-name-field" />
-            <span>伝票名（ひらがな）の入力欄を表示する</span>
-          </label>
-        </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-consent-album" />
-            <span>端末のアルバムにも保存する（写真アプリの「同意書」に入ります）</span>
-          </label>
-        </div>
-        <div class="form-group check-row">
-          <label class="check-label">
-            <input type="checkbox" id="setting-consent-cloud" />
-            <span>クラウドにも保存する（オフならこの端末の中だけに保存）</span>
-          </label>
-        </div>
+        <div id="shared-settings-consent"></div>
         <div class="form-group" style="opacity:0.7;font-size:0.85em">
           ここからの署名は<strong>テスト記録</strong>として保存されます。
           実際のお客様には、メニュー画面の同意書ボタンから署名してもらってください。
@@ -188,6 +140,10 @@
           <label>フォント（源氏名・役職の書体。選ぶとプレビューに反映）</label>
           <select id="setting-font" class="app-dialog-input"></select>
           <div id="setting-font-preview" class="font-preview">夜職 太郎 <span class="fp-title">代表</span></div>
+        </div>
+        <div class="form-group">
+          <label>店の既定（全端末の初期状態。端末ごとに上書きできます）</label>
+          <div id="store-default-list" class="store-default-list"></div>
         </div>
         <div class="toolbar">
           <button class="btn btn-primary" id="btn-save-store-settings">店舗設定を保存</button>
@@ -321,6 +277,12 @@
           <label class="check-label">
             <input type="checkbox" id="edit-newface" />
             <span>新人タグを表示</span>
+          </label>
+        </div>
+        <div class="form-group check-row">
+          <label class="check-label">
+            <input type="checkbox" id="edit-officer" />
+            <span>役職（役職メニューに出す）</span>
           </label>
         </div>
         <div class="form-group">

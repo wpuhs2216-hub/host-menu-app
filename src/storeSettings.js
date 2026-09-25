@@ -6,6 +6,7 @@
 import { supabase } from './supabaseClient.js';
 import { getStoreId } from './storeContext.js';
 
+// @ハジメル 店の設定の控え: クラウドの店の設定をこの端末に写した物。圏外でも使えるように置く
 // storeContext.logoutStore からも参照されるキャッシュキー（店舗切替時に破棄）
 export const STORE_SETTINGS_KEY = 'host-menu-store-settings';
 
@@ -42,6 +43,8 @@ function normalize(raw) {
     seatOptions: [...DEFAULT_SEAT_OPTIONS],
     colorLabels: { ...DEFAULT_COLOR_LABELS },
     font: '',
+    // 店ごとの既定設定（台に上書きが無い時に効く）。{ 設定名: true/false }
+    deviceDefaults: {},
   };
   if (raw && Array.isArray(raw.seatOptions)) {
     out.seatOptions = raw.seatOptions.map((s) => String(s).trim()).filter(Boolean);
@@ -53,6 +56,11 @@ function normalize(raw) {
   }
   if (raw && typeof raw.font === 'string' && FONT_OPTIONS.some((f) => f.id === raw.font)) {
     out.font = raw.font;
+  }
+  if (raw && raw.deviceDefaults && typeof raw.deviceDefaults === 'object') {
+    for (const [k, v] of Object.entries(raw.deviceDefaults)) {
+      if (typeof v === 'boolean') out.deviceDefaults[k] = v;
+    }
   }
   return out;
 }
@@ -99,6 +107,11 @@ export function getRawColorLabels() {
   return loadStoreSettings().colorLabels;
 }
 
+// 店ごとの既定設定（{ 設定名: true/false }）。行が無い店は空＝すべてプログラムの既定値のまま
+export function getStoreDeviceDefaults() {
+  return loadStoreSettings().deviceDefaults;
+}
+
 // 選択中フォント id
 export function getFont() {
   return loadStoreSettings().font;
@@ -127,7 +140,7 @@ export function applyMenuFont(id = getFont()) {
 export async function pullStoreSettings() {
   const { data, error } = await supabase
     .from('store_settings')
-    .select('seat_options, color_labels, ui_font')
+    .select('seat_options, color_labels, ui_font, device_defaults')
     .eq('store_id', getStoreId())
     .maybeSingle();
   if (error) throw error;
@@ -137,20 +150,33 @@ export async function pullStoreSettings() {
     saveSwCache(current);
     return current;
   }
-  const settings = normalize({ seatOptions: data.seat_options, colorLabels: data.color_labels, font: data.ui_font });
+  const settings = normalize({
+    seatOptions: data.seat_options,
+    colorLabels: data.color_labels,
+    font: data.ui_font,
+    deviceDefaults: data.device_defaults,
+  });
   saveLocal(settings);
   return settings;
 }
 
 // 保存（ローカル即時反映 + クラウド upsert。クラウド失敗時は throw）
-export async function saveStoreSettings({ seatOptions, colorLabels, font }) {
-  const settings = normalize({ seatOptions, colorLabels, font });
+export async function saveStoreSettings({ seatOptions, colorLabels, font, deviceDefaults }) {
+  // deviceDefaults を渡さなかった時は今の値を保つ（卓番だけ保存しても既定設定が消えないように）
+  const keep = loadStoreSettings();
+  const settings = normalize({
+    seatOptions,
+    colorLabels,
+    font,
+    deviceDefaults: deviceDefaults === undefined ? keep.deviceDefaults : deviceDefaults,
+  });
   saveLocal(settings);
   const { error } = await supabase.from('store_settings').upsert({
     store_id: getStoreId(),
     seat_options: settings.seatOptions,
     color_labels: settings.colorLabels,
     ui_font: settings.font,
+    device_defaults: settings.deviceDefaults,
   });
   if (error) throw error;
   return settings;

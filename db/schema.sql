@@ -2,6 +2,7 @@
 -- 使い方: Supabase Dashboard → SQL Editor → このファイルの中身を全部貼って Run
 
 -- ===== panels テーブル =====
+-- @ハジメル 札: メニューに出す1枚1枚（料金表の画像・キャストの写真）。店ごとに分かれる #重要 #一覧
 create table if not exists public.panels (
   id text primary key,
   name text default '',
@@ -68,6 +69,7 @@ values ('panel-images', 'panel-images', true)
 on conflict (id) do update set public = true;
 
 -- ===== orders テーブル（注文履歴を全端末で共有） =====
+-- @ハジメル 指名履歴: どの席でどのキャストが選ばれたかの記録。店ごとに分かれる #一覧
 create table if not exists public.orders (
   id text primary key,
   seat text default '',
@@ -106,6 +108,7 @@ end $$;
 -- ===== selections テーブル（チェック中キャスト共有） =====
 -- 1キャストに複数色を許す: PK は (panel_id, color) 複合
 drop table if exists public.selections cascade;
+-- @ハジメル 選択中: いまチェックが付いているキャストと色。確定すると消える一時置き場
 create table public.selections (
   panel_id text not null,
   color text not null,
@@ -171,6 +174,7 @@ alter table public.selections replica identity full;
 
 -- ===== store_settings テーブル（店舗ごとの卓番リスト・色ラベル）=====
 -- 詳細・単体実行用は db/migration-store-settings.sql
+-- @ハジメル 店の設定: 店ごとの卓番・色ラベル・書体・台の既定設定。全台で共通 #重要
 create table if not exists public.store_settings (
   store_id text primary key,
   seat_options jsonb not null default '[]'::jsonb,
@@ -194,3 +198,7 @@ alter table public.panels add column if not exists extra_images jsonb not null d
 
 -- 店舗フォント設定（db/migration-store-font.sql）
 alter table public.store_settings add column if not exists ui_font text not null default '';
+
+-- メニュー分け＋設定の二段構え（db/migration-menu-groups.sql）
+alter table public.panels add column if not exists is_officer boolean not null default false;
+alter table public.store_settings add column if not exists device_defaults jsonb not null default '{}'::jsonb;

@@ -340,26 +340,98 @@ headerClock.addEventListener('click', () => {
 // === メイン描画（非同期：IndexedDBから画像読み込み） ===
 
 // === 同意書ボタン（設定でオンの時だけメニューに出す） ===
+
+// 署名画面を開く。メニュー画面・最初の選択画面の両方から呼ぶ。
+async function openConsentFromMenu(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const mod = await import('./consent.js');
+    // メニュー画面からの署名は本番運用の記録として残す（設定画面からのものはテスト扱い）
+    await mod.openConsentDialog({ isTest: false });
+  } catch (err) {
+    dlg.alert(`同意書画面を開けませんでした。\n${err?.message || err}`, { title: 'エラー' });
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function initConsentEntry() {
   const btn = document.getElementById('consent-entry');
   if (!btn) return;
-  if (!loadSettings().consentMenuButton) {
+  // 最初の選択画面を使う時は、そちらの「ご新規様同意書」ボタンが入口になるのでここには出さない
+  if (!loadSettings().consentMenuButton || menuSplitOn()) {
     btn.style.display = 'none';
     return;
   }
   btn.style.display = '';
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    try {
-      const mod = await import('./consent.js');
-      // メニュー画面からの署名は本番運用の記録として残す（設定画面からのものはテスト扱い）
-      await mod.openConsentDialog({ isTest: false });
-    } catch (err) {
-      dlg.alert(`同意書画面を開けませんでした。\n${err?.message || err}`, { title: 'エラー' });
-    } finally {
-      btn.disabled = false;
-    }
-  });
+  btn.addEventListener('click', () => openConsentFromMenu(btn));
+}
+
+// === 最初のメニュー選択画面（料金システム / ALLCAST / 役職メニュー） ===
+// 設定「最初にメニュー選択画面を出す」がオンの時だけ出る。既定はオフ（今までどおり札が全部並ぶ）。
+// どの札がどこに出るか:
+//   price   … 源氏名が空の札（料金表などの案内画像）
+//   cast    … 源氏名が入っている札すべて
+//   officer … 源氏名が入っていて「役職」の印が付いた札だけ
+let menuGroup = null;   // null = 選択画面を表示中
+
+function menuSplitOn() {
+  return !!loadSettings().menuSplit;
+}
+
+function isCastItem(item) {
+  return !!(item.name || '').trim();
+}
+
+function matchesMenuGroup(item, group) {
+  if (!group) return true;
+  if (group === 'price') return !isCastItem(item);
+  if (group === 'cast') return isCastItem(item);
+  if (group === 'officer') return isCastItem(item) && !!item.isOfficer;
+  return true;
+}
+
+// 選択画面と札一覧の出し分け
+function applyMenuMode() {
+  const on = menuSplitOn();
+  const home = document.getElementById('home-screen');
+  const back = document.getElementById('menu-back');
+  const showHome = on && menuGroup === null;
+  document.body.classList.toggle('home-active', showHome);
+  if (home) home.style.display = showHome ? '' : 'none';
+  if (back) back.style.display = (on && menuGroup !== null) ? '' : 'none';
+}
+
+// 選択画面へ戻る
+async function showMenuHome() {
+  menuGroup = null;
+  applyMenuMode();
+  await render();
+}
+
+// 選んだメニューの札一覧へ
+async function openMenuGroup(group) {
+  menuGroup = group;
+  applyMenuMode();
+  await render();
+  window.scrollTo(0, 0);
+}
+
+function initMenuSplit() {
+  const on = menuSplitOn();
+  menuGroup = on ? null : null;   // オフの時は常に「全部」（matchesMenuGroup が null で素通し）
+
+  const consentBtn = document.getElementById('home-consent');
+  if (consentBtn) {
+    consentBtn.style.display = loadSettings().consentMenuButton ? '' : 'none';
+    consentBtn.addEventListener('click', () => openConsentFromMenu(consentBtn));
+  }
+  document.getElementById('home-price')?.addEventListener('click', () => openMenuGroup('price'));
+  document.getElementById('home-cast')?.addEventListener('click', () => openMenuGroup('cast'));
+  document.getElementById('home-officer')?.addEventListener('click', () => openMenuGroup('officer'));
+  document.getElementById('menu-back')?.addEventListener('click', () => { showMenuHome(); });
+
+  applyMenuMode();
 }
 
 async function render() {
@@ -376,8 +448,16 @@ async function render() {
 
   grid.innerHTML = '';
 
+  // 役職の札が 1 枚も無ければ「役職メニュー」ボタンは出さない（開いても空になるため）
+  const officerBtn = document.getElementById('home-officer');
+  if (officerBtn) {
+    const hasOfficer = data.items.some((item) => item.visible !== false && isCastItem(item) && item.isOfficer);
+    officerBtn.style.display = (menuSplitOn() && hasOfficer) ? '' : 'none';
+  }
+
   visibleItems = data.items
     .filter((item) => item.visible !== false)
+    .filter((item) => !menuSplitOn() || matchesMenuGroup(item, menuGroup))
     .sort((a, b) => a.order - b.order);
 
   const settingsNow = loadSettings();
@@ -1091,6 +1171,8 @@ window.addEventListener('popstate', () => {
     orderModal.classList.remove('active');
   } else if (fullscreen.classList.contains('active')) {
     closeFullscreen();
+  } else if (menuSplitOn() && menuGroup !== null) {
+    showMenuHome();
   }
   history.pushState(null, '', location.href);
 });
@@ -1115,6 +1197,7 @@ window.addEventListener('popstate', () => {
   }
   applyColorPickerLabels();
   applyMenuFont();
+  initMenuSplit();
   initConsentEntry();
   await render();
   try {
