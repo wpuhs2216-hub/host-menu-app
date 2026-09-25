@@ -2123,25 +2123,62 @@ html.env-web #btn-clear-own-orders { display: none !important; }
   background: rgba(255, 255, 255, 0.04);
 }
 
-/* メニュー選択画面へ戻る */
-.menu-back {
-  display: block;
+/* ページの切り替えバー（左＝前のページ / 真ん中＝メニューに戻る / 右＝次のページ） */
+.menu-tabs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 6px;
   width: calc(100% - 16px);
   max-width: 1184px;
   margin: 8px auto 0;
-  padding: 10px 16px;
+}
+
+.menu-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   color: #ddd;
-  font-size: clamp(13px, 1.8vw, 17px);
+  font-size: clamp(12px, 1.7vw, 16px);
   font-family: inherit;
-  text-align: left;
   cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-.menu-back:active {
+.menu-tabs button:active {
   background: rgba(255, 255, 255, 0.12);
+}
+
+/* 真ん中の「メニューに戻る」は少し目立たせる */
+.menu-tabs .mt-home {
+  border-color: rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f0e2b6;
+  font-weight: 700;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.menu-tabs .mt-prev { justify-content: flex-start; }
+.menu-tabs .mt-next { justify-content: flex-end; }
+
+.menu-tabs .mt-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-tabs .mt-arrow {
+  font-size: 1.35em;
+  line-height: 1;
+  opacity: 0.8;
+  flex: 0 0 auto;
 }
 
 /* 選択画面を出している間は、札・席・色・確定ボタンを隠す */
@@ -2151,4 +2188,10 @@ body.home-active .confirm-btn,
 body.home-active .seat-btn,
 body.home-active .color-picker {
   display: none !important;
+}
+
+/* 確定ボタンが出ている間は、一番下の札が隠れないように余白を足す
+   （ボタンは position:fixed で浮いているため、札置き場の高さには入らない） */
+body.confirm-visible .grid-container {
+  padding-bottom: 104px;
 }

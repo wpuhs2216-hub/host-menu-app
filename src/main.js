@@ -375,6 +375,13 @@ function initConsentEntry() {
 //   officer … 源氏名が入っていて「役職」の印が付いた札だけ
 let menuGroup = null;   // null = 選択画面を表示中
 
+// ページの並び順。左右の送りとスワイプはこの順に動く
+const MENU_PAGES = [
+  { id: 'price',   label: '料金システム' },
+  { id: 'cast',    label: 'ALLCAST' },
+  { id: 'officer', label: '役職メニュー' },
+];
+
 function menuSplitOn() {
   return !!loadSettings().menuSplit;
 }
@@ -384,25 +391,64 @@ function isCastItem(item) {
 }
 
 function matchesMenuGroup(item, group) {
-  if (!group) return true;
+  // 選択画面を出している間（group が無い）は 1 枚も並べない。
+  // 裏に札を残しておくと、次に開いた時に前の画面の札が一瞬見えてしまう。
+  if (!group) return false;
   if (group === 'price') return !isCastItem(item);
   if (group === 'cast') return isCastItem(item);
   if (group === 'officer') return isCastItem(item) && !!item.isOfficer;
-  return true;
+  return false;
+}
+
+// 中身が 1 枚でもあるページだけを返す（空のページには行けないようにする）
+function availableMenuPages() {
+  const items = loadData().items.filter((it) => it.visible !== false);
+  return MENU_PAGES.filter((pg) => items.some((it) => matchesMenuGroup(it, pg.id)));
+}
+
+// 左右のページ送りボタンの中身を書き換える。
+// 行き先が無い側は隠す（場所は残すので「メニューに戻る」は真ん中のまま）
+function updateMenuTabs() {
+  const prevBtn = document.getElementById('menu-prev');
+  const nextBtn = document.getElementById('menu-next');
+  if (!prevBtn || !nextBtn) return;
+  const pages = availableMenuPages();
+  const i = pages.findIndex((pg) => pg.id === menuGroup);
+  const prev = i > 0 ? pages[i - 1] : null;
+  const next = i >= 0 && i < pages.length - 1 ? pages[i + 1] : null;
+  const paint = (btn, pg) => {
+    btn.querySelector('.mt-label').textContent = pg ? pg.label : '';
+    btn.style.visibility = pg ? 'visible' : 'hidden';
+    btn.disabled = !pg;
+  };
+  paint(prevBtn, prev);
+  paint(nextBtn, next);
+}
+
+// 今のページから左右に 1 つ動く（行き先が無ければ何もしない）
+async function goMenuPage(step) {
+  const pages = availableMenuPages();
+  const i = pages.findIndex((pg) => pg.id === menuGroup);
+  if (i === -1) return;
+  const target = pages[i + step];
+  if (!target) return;
+  await openMenuGroup(target.id);
 }
 
 // 選択画面と札一覧の出し分け
 function applyMenuMode() {
   const on = menuSplitOn();
   const home = document.getElementById('home-screen');
-  const back = document.getElementById('menu-back');
+  const tabs = document.getElementById('menu-tabs');
   const showHome = on && menuGroup === null;
   document.body.classList.toggle('home-active', showHome);
   if (home) home.style.display = showHome ? '' : 'none';
-  if (back) back.style.display = (on && menuGroup !== null) ? '' : 'none';
+  if (tabs) tabs.style.display = (on && menuGroup !== null) ? '' : 'none';
+  updateMenuTabs();
 }
 
 // 選択画面へ戻る
+// こちらは先に隠す。隠してから中身を空にすれば、消える途中が見えない。
 async function showMenuHome() {
   menuGroup = null;
   applyMenuMode();
@@ -410,10 +456,12 @@ async function showMenuHome() {
 }
 
 // 選んだメニューの札一覧へ
+// ⚠ 順番が大事: 先に中身を入れ替えてから見せる。
+//   逆にすると、入れ替わるまでの間だけ前の画面の札が見えてしまう。
 async function openMenuGroup(group) {
   menuGroup = group;
-  applyMenuMode();
   await render();
+  applyMenuMode();
   window.scrollTo(0, 0);
 }
 
@@ -430,8 +478,44 @@ function initMenuSplit() {
   document.getElementById('home-cast')?.addEventListener('click', () => openMenuGroup('cast'));
   document.getElementById('home-officer')?.addEventListener('click', () => openMenuGroup('officer'));
   document.getElementById('menu-back')?.addEventListener('click', () => { showMenuHome(); });
+  document.getElementById('menu-prev')?.addEventListener('click', () => { goMenuPage(-1); });
+  document.getElementById('menu-next')?.addEventListener('click', () => { goMenuPage(1); });
 
+  initMenuSwipe();
   applyMenuMode();
+}
+
+// 札置き場を左右になぞってページを移る。
+// 縦スクロールと長押しチェックを邪魔しないよう、
+// 「横に 60px 以上」かつ「縦より横の方がはっきり大きい」時だけ動かす。
+function initMenuSwipe() {
+  const area = document.getElementById('grid');
+  if (!area) return;
+  let startX = 0;
+  let startY = 0;
+  let tracking = false;
+
+  area.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+
+  area.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+
+  area.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    if (!menuSplitOn() || menuGroup === null) return;
+    if (fullscreen.classList.contains('active')) return;   // 全画面は全画面側のスワイプに任せる
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    goMenuPage(dx < 0 ? 1 : -1);   // 左へなぞる＝次のページ
+  }, { passive: true });
 }
 
 async function render() {
@@ -454,6 +538,8 @@ async function render() {
     const hasOfficer = data.items.some((item) => item.visible !== false && isCastItem(item) && item.isOfficer);
     officerBtn.style.display = (menuSplitOn() && hasOfficer) ? '' : 'none';
   }
+
+  updateMenuTabs();
 
   visibleItems = data.items
     .filter((item) => item.visible !== false)
@@ -642,7 +728,8 @@ function updateConfirmBtn() {
   }
 
   // 送信ボタンを消す設定（見せるだけの運用）では、選択があっても出さない
-  if (count > 0 && !loadSettings().hideConfirmBtn) {
+  const showConfirm = count > 0 && !loadSettings().hideConfirmBtn;
+  if (showConfirm) {
     confirmCount.textContent = count;
     confirmBtn.style.display = 'flex';
     fsConfirmCount.textContent = count;
@@ -651,6 +738,9 @@ function updateConfirmBtn() {
     confirmBtn.style.display = 'none';
     fsConfirmBtn.style.display = 'none';
   }
+  // 確定ボタンは画面の下に浮いているので、出ている間は札置き場の下に余白を足して
+  // 一番下の札が隠れないようにする（CSS の body.confirm-visible）
+  document.body.classList.toggle('confirm-visible', showConfirm);
 }
 
 // 色ごとにキャストをグルーピング

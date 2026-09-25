@@ -59,8 +59,17 @@
     </div>
   </div>
 
-  <!-- メニュー選択画面へ戻る（選択画面を使っている時だけ表示） -->
-  <button class="menu-back" id="menu-back" type="button" style="display:none">← メニューに戻る</button>
+  <!-- ページの切り替え（真ん中＝メニューに戻る／左右＝前後のページ）。
+       左右のスワイプでも同じように動く。選択画面を使っている時だけ表示 -->
+  <nav class="menu-tabs" id="menu-tabs" style="display:none">
+    <button class="mt-side mt-prev" id="menu-prev" type="button">
+      <span class="mt-arrow">‹</span><span class="mt-label"></span>
+    </button>
+    <button class="mt-home" id="menu-back" type="button">メニューに戻る</button>
+    <button class="mt-side mt-next" id="menu-next" type="button">
+      <span class="mt-label"></span><span class="mt-arrow">›</span>
+    </button>
+  </nav>
 
   <!-- 同意書ボタン（設定でオンにした時だけ表示。パネルの上に横長で置く） -->
   <button class="consent-entry" id="consent-entry" type="button" style="display:none">
