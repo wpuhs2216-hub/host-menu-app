@@ -99,21 +99,21 @@
         <div class="form-group check-row">
           <label class="check-label">
             <input type="checkbox" id="setting-consent-test" />
-            <span>デジタル署名テストモード（ご新規様同意書の試用）</span>
+            <span>デジタル署名を使う（ご新規様同意書の設定と署名の一覧をこの画面に出す）</span>
           </label>
         </div>
       </div>
 
-      <!-- デジタル署名（テストモード時のみ表示） -->
+      <!-- デジタル署名（「デジタル署名を使う」をオンにした台だけ表示） -->
       <div class="section" id="consent-section" style="display:none">
-        <div class="section-title"><span>デジタル署名（テスト）</span></div>
+        <div class="section-title"><span>デジタル署名</span></div>
         <div id="shared-settings-consent"></div>
         <div class="form-group" style="opacity:0.7;font-size:0.85em">
-          ここからの署名は<strong>テスト記録</strong>として保存されます。
-          実際のお客様には、メニュー画面の同意書ボタンから署名してもらってください。
+          お客様にはメニュー画面の同意書ボタンから署名してもらいます。
+          下の「ここで署名する」から署名した分も、同じ本番の記録として残ります（あとから消せません）。
         </div>
         <div class="toolbar">
-          <button class="btn btn-primary" id="btn-consent-new">テスト署名を試す</button>
+          <button class="btn btn-primary" id="btn-consent-new">ここで署名する</button>
           <button class="btn btn-secondary" id="btn-consent-reload">一覧を更新</button>
           <button class="btn btn-secondary" id="btn-consent-push">未送信をクラウドへ送る</button>
         </div>

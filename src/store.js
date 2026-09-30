@@ -141,7 +141,7 @@ const DEFAULT_SETTINGS = {
   fsNameFontSize: 44,
   fsTitleFontSize: 24,
   skipOrderInput: false,
-  consentTestMode: false,   // デジタル署名（ご新規様同意書）のテストモード
+  consentTestMode: false,   // デジタル署名を使う（管理画面に署名の設定と一覧を出す）。名前は昔のまま
   consentCloudSave: false,  // 署名をクラウドにも保存する（オフ=この端末の中だけ）
   consentAlbumSave: true,   // 署名した書類を端末のアルバム（写真アプリ）にも保存する
   consentMenuButton: false, // メニュー画面に同意書ボタンを表示する

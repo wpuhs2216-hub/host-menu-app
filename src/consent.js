@@ -1,4 +1,4 @@
-// デジタル署名（ご新規様同意書）— テストモード用
+// デジタル署名（ご新規様同意書）
 // - 書類は HTML で表示し、署名は canvas に手書きする
 // - 保存時に「署名だけの透過PNG」と「書類全体を焼いた画像」を storage に上げ、
 //   consents テーブルへ 1 行 insert する（追記専用。DB 側で UPDATE/DELETE は拒否）
@@ -454,7 +454,7 @@ export async function pushPendingConsents() {
 // === 保存 ===
 // まず端末内（IndexedDB）に確定保存し、そのあとで必要ならクラウドへ送る。
 // 通信が無くても署名は取れる／消えない、という順序にしてある。
-export async function saveConsent({ route, idChecked, customerName, pad, isTest = true }) {
+export async function saveConsent({ route, idChecked, customerName, pad, isTest = false }) {
   const id = genId();
   const signedAt = new Date();
   const docText = buildDocText();
@@ -586,7 +586,7 @@ export function consentImageUrl(path) {
 
 // === 署名モーダル ===
 // 完了したら保存済みの行を、キャンセルなら null を返す
-export function openConsentDialog({ isTest = true } = {}) {
+export function openConsentDialog({ isTest = false } = {}) {
   return new Promise((resolve) => {
     // 伝票名の入力欄は設定でオンにした時だけ出す（既定は非表示）
     const showNameField = isNameFieldEnabled();

@@ -1539,7 +1539,7 @@ function initFontSettings() {
     });
   }
 
-  // デジタル署名テストモード
+  // デジタル署名（使う台だけ設定と一覧を出す）
   initConsentTestMode();
 
   // 端末名
@@ -1555,8 +1555,9 @@ function initFontSettings() {
   initStoreSwitch();
 }
 
-// === デジタル署名テストモード ===
-// 既定オフ。オンにした端末だけ「デジタル署名（テスト）」セクションが出る。
+// === デジタル署名 ===
+// 既定オフ。「デジタル署名を使う」をオンにした端末だけ「デジタル署名」セクションが出る。
+// 設定の中身の名前（consentTestMode）は、各台に保存済みの値を消さないため昔のまま。
 // 保存先は consents テーブル（追記専用）で、既存のパネル/履歴には一切触れない。
 function initConsentTestMode() {
   const cb = document.getElementById('setting-consent-test');
@@ -1596,7 +1597,7 @@ function initConsentTestMode() {
             <span class="cr-when">${when}</span>
             <span class="cr-route">${r.customerName || '（署名のみ）'}／${routeLabels[r.route] || '―'}／身分証${r.idChecked ? '済' : '未'}</span>
             ${clockBadge}
-            ${r.isTest ? '<span class="cr-badge cr-test">テスト</span>' : '<span class="cr-badge cr-real">本番</span>'}
+            ${r.isTest ? '<span class="cr-badge cr-test">試しの記録</span>' : ''}
             ${r.synced ? '<span class="cr-badge cr-synced">クラウド済</span>' : '<span class="cr-badge">端末のみ</span>'}`;
           row.addEventListener('click', async () => {
             const ok = await consentMod.openConsentImage(r.id);
@@ -1612,7 +1613,7 @@ function initConsentTestMode() {
     }
   }
 
-  // モジュールはテストモードをオンにした時だけ読み込む（通常運用の起動を重くしない）
+  // モジュールは「デジタル署名を使う」をオンにした時だけ読み込む（通常運用の起動を重くしない）
   let consentMod = null;
   async function ensureModule() {
     if (!consentMod) consentMod = await import('./consent.js');
@@ -1639,7 +1640,8 @@ function initConsentTestMode() {
 
   document.getElementById('btn-consent-new')?.addEventListener('click', async () => {
     const mod = await ensureModule();
-    const saved = await mod.openConsentDialog({ isTest: true });
+    // 2026-10-01 本番運用中なので、管理画面からの署名も本番の記録として残す
+    const saved = await mod.openConsentDialog({ isTest: false });
     if (saved) {
       if (saved.albumError === 'PERMISSION_DENIED') {
         dlg.toast('端末に保存しました（アルバム保存は権限が許可されていません）', { type: 'error' });
