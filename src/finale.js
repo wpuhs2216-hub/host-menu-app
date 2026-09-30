@@ -40,6 +40,8 @@ const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
 const heroImagePath = (store, ym) => `finale/${store}/hero-${ym}-${Date.now()}.webp`;
 // @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
 const facesPath = (store) => `finale/${store}/faces.json`;
+// @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
+const settingsPath = (store) => `finale/${store}/settings.json`;
 
 let storeId = '';
 let calendar = null;
@@ -48,6 +50,7 @@ let ym = '';             // 表示中の月 'YYYY-MM'
 let ledger = emptyLedger();
 let prevLedger = emptyLedger();
 let faces = {};          // { panelId: { x, y, z, v, auto } }（x・y は写真の中の中心の位置 0〜1、z は拡大率）
+let viewSettings = { showNames: true };
 
 function emptyLedger() {
   return { version: 1, days: [], hero: null };
@@ -230,6 +233,55 @@ function drawCrop(ctx, img, r, crop) {
   ctx.drawImage(img, q.sx, q.sy, q.sw, q.sh, r.x, r.y, r.w, r.h);
 }
 
+// ===== 表示設定 =====
+async function loadViewSettings() {
+  const res = await fetch(`${publicImageUrl(settingsPath(storeId))}?t=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) return { showNames: true };
+  try { return { showNames: true, ...(await res.json()) }; } catch { return { showNames: true }; }
+}
+
+async function saveViewSettings(patch) {
+  const latest = { ...(await loadViewSettings()), ...patch };
+  const blob = new Blob([JSON.stringify(latest)], { type: 'application/json' });
+  const { error } = await supabase.storage.from(PANEL_BUCKET).upload(settingsPath(storeId), blob, {
+    contentType: 'application/json',
+    upsert: true,
+    cacheControl: '0',
+  });
+  if (error) throw error;
+  viewSettings = latest;
+}
+
+// ===== 枠の名前の組み方 =====
+// 文字数では切らない。枠の幅（元絵の画素）に収まるよう 2 行まで折り返し、それでも入らなければ文字を小さくする。
+// 画面と「画像で保存」で同じ結果になるよう、ここで 1 回決めた大きさと行を両方で使う。
+const NAME_FONT = "'Noto Sans JP', sans-serif";
+const NAME_MAX_W = SLOT_W - 8;
+const NAME_SIZES = [17, 16, 15, 14, 13, 12, 11, 10, 9, 8];
+const measureCtx = document.createElement('canvas').getContext('2d');
+
+function breakLines(text, size) {
+  measureCtx.font = `700 ${size}px ${NAME_FONT}`;
+  const lines = [];
+  let cur = '';
+  for (const ch of [...text]) {
+    if (cur && measureCtx.measureText(cur + ch).width > NAME_MAX_W) { lines.push(cur); cur = ch.trim() ? ch : ''; }
+    else cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function fitName(text) {
+  const t = String(text || '').trim();
+  for (const size of NAME_SIZES) {
+    const lines = breakLines(t, size);
+    if (lines.length <= 2) return { size, lines };
+  }
+  const size = NAME_SIZES[NAME_SIZES.length - 1];
+  return { size, lines: breakLines(t, size) }; // とても長い名前は小さい字で 3 行以上になっても全部出す
+}
+
 // ===== 上の大枠の人を決める =====
 // 手で選んだ人がいればその人。いなければ前月の回数がいちばん多い人（同じ回数なら先にその回数へ届いた人）
 function resolveHero() {
@@ -294,8 +346,13 @@ function render() {
       }
       const name = document.createElement('span');
       name.className = 'fc-slot-name';
-      name.textContent = d.name || '';
-      el.appendChild(name);
+      const fit = fitName(d.name);
+      name.style.fontSize = `${(fit.size / SLOT_W) * 100}cqw`; // 枠の幅に対する割合（保存画像と同じ比率）
+      for (const [k, line] of fit.lines.entries()) {
+        if (k) name.appendChild(document.createElement('br'));
+        name.appendChild(document.createTextNode(line));
+      }
+      if (viewSettings.showNames && d.name) el.appendChild(name);
       el.addEventListener('click', () => onFilledSlot(i));
     } else if (i < next) {
       // 途中で消して空いた枠。押せばまた入れられる
@@ -696,17 +753,24 @@ async function onSave() {
       const c = castById(d.panelId);
       const img = await loadImg(castPhoto(c));
       if (img) drawCrop(ctx, img, r, cropOf(c));
-      // 名前（下に薄い帯）
-      const g = ctx.createLinearGradient(0, r.y + r.h - 34, 0, r.y + r.h);
+      // 名前（下に薄い帯）。名前を出さない設定の時は描かない
+      if (!viewSettings.showNames || !d.name) continue;
+      const fit = fitName(d.name);
+      const lineH = Math.round(fit.size * 1.2);
+      const bandH = Math.min(r.h, lineH * fit.lines.length + 16);
+      const g = ctx.createLinearGradient(0, r.y + r.h - bandH, 0, r.y + r.h);
       g.addColorStop(0, 'rgba(0,0,0,0)');
       g.addColorStop(1, 'rgba(0,0,0,0.75)');
       ctx.fillStyle = g;
-      ctx.fillRect(r.x, r.y + r.h - 34, r.w, 34);
+      ctx.fillRect(r.x, r.y + r.h - bandH, r.w, bandH);
       ctx.fillStyle = '#fff';
-      ctx.font = "700 17px 'Noto Sans JP', sans-serif";
+      ctx.font = `700 ${fit.size}px ${NAME_FONT}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(d.name || '', r.x + r.w / 2, r.y + r.h - 8, r.w - 8);
+      fit.lines.forEach((line, k) => {
+        const y = r.y + r.h - 7 - (fit.lines.length - 1 - k) * lineH;
+        ctx.fillText(line, r.x + r.w / 2, y);
+      });
     }
 
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
@@ -729,7 +793,8 @@ async function onSave() {
 // ===== 月の切り替え =====
 async function openMonth(month) {
   ym = month;
-  [ledger, prevLedger, faces] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces()]);
+  [ledger, prevLedger, faces, viewSettings] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces(), loadViewSettings()]);
+  document.getElementById('fc-show-names').checked = viewSettings.showNames !== false;
   render();
 }
 
@@ -756,5 +821,18 @@ async function openMonth(month) {
   document.getElementById('fc-hero-file').addEventListener('change', onHeroFile);
   document.getElementById('fc-hero-file-clear').addEventListener('click', onHeroFileClear);
   document.getElementById('fc-face-list-open').addEventListener('click', toggleFaceList);
+  document.getElementById('fc-show-names').addEventListener('change', async (e) => {
+    const on = e.target.checked;
+    try {
+      await saveViewSettings({ showNames: on });
+      render();
+      dlg.toast(on ? '枠に名前を出します' : '枠の名前を消しました');
+    } catch (err) {
+      e.target.checked = !on;
+      await dlg.alert(`保存できませんでした。\n${err.message || err}`);
+    }
+  });
+  // 名前の幅を正しく測るため、書体が届くのを待つ（届かなくても 3 秒で先へ進む）
+  try { await Promise.race([document.fonts.load(`700 17px ${NAME_FONT}`, 'あ'), new Promise((r) => setTimeout(r, 3000))]); } catch { /* ignore */ }
   await openMonth(businessYm());
 })();
