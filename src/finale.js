@@ -71,13 +71,21 @@ async function loadLedger(month) {
   if (!res.ok) return emptyLedger(); // まだ無い月は空
   try {
     const json = await res.json();
-    return { ...emptyLedger(), ...json, days: Array.isArray(json.days) ? json.days : [] };
+    return { ...emptyLedger(), ...json, days: trimDays(Array.isArray(json.days) ? json.days : []) };
   } catch {
     return emptyLedger();
   }
 }
 
+// 途中の日を消した所は null（空いた枠）で残す。うしろの空きは詰める（次の DAY がずれないように）
+function trimDays(days) {
+  const out = days.map((d) => (d && d.panelId ? d : null));
+  while (out.length && !out[out.length - 1]) out.pop();
+  return out;
+}
+
 async function saveLedger() {
+  ledger.days = trimDays(ledger.days);
   ledger.updatedAt = new Date().toISOString();
   const blob = new Blob([JSON.stringify(ledger)], { type: 'application/json' });
   const { error } = await supabase.storage.from(PANEL_BUCKET).upload(ledgerPath(storeId, ym), blob, {
@@ -224,6 +232,11 @@ function render() {
       name.textContent = d.name || '';
       el.appendChild(name);
       el.addEventListener('click', () => onFilledSlot(i));
+    } else if (i < next) {
+      // 途中で消して空いた枠。押せばまた入れられる
+      el.classList.add('fc-slot-hole');
+      el.innerHTML = '<span class="fc-plus">＋</span>';
+      el.addEventListener('click', () => onHoleSlot(i));
     } else if (i === next) {
       el.classList.add('fc-slot-next');
       el.innerHTML = '<span class="fc-plus">＋</span>';
@@ -272,7 +285,7 @@ function pickCast(title, { allowRemove = false } = {}) {
         <div class="fc-picker-title"></div>
         <div class="fc-picker-grid"></div>
         <div class="fc-picker-actions">
-          ${allowRemove ? '<button type="button" class="fc-remove">この日を外す</button>' : ''}
+          ${allowRemove ? '<button type="button" class="fc-remove">この枠から消す</button>' : ''}
           <button type="button" class="fc-cancel">やめる</button>
         </div>
       </div>`;
@@ -331,15 +344,31 @@ async function onNextSlot() {
   await persist(`DAY${ledger.days.length} に「${c.name}」さんを入れました`);
 }
 
+// 途中で空いた枠に入れる
+async function onHoleSlot(i) {
+  const c = await pickCast(`DAY${i + 1} のファイナル（空いている枠）`);
+  if (!c || c === 'remove') return;
+  ledger = await loadLedger(ym);
+  if (ledger.days[i]) { render(); dlg.toast(`DAY${i + 1} にはもう「${ledger.days[i].name}」さんが入っています`); return; }
+  while (ledger.days.length <= i) ledger.days.push(null);
+  ledger.days[i] = { panelId: c.id, name: c.name, at: new Date().toISOString() };
+  await persist(`DAY${i + 1} に「${c.name}」さんを入れました`);
+}
+
 async function onFilledSlot(i) {
-  const isLast = i === ledger.days.length - 1;
-  const c = await pickCast(`DAY${i + 1}（いまは「${ledger.days[i].name}」さん）を変える`, { allowRemove: isLast });
+  const name = ledger.days[i].name;
+  const c = await pickCast(`DAY${i + 1}（いまは「${name}」さん）を別の人に変える・この枠から消す`, { allowRemove: true });
   if (!c) return;
+  if (c === 'remove') {
+    const later = i < ledger.days.length - 1;
+    const ok = await dlg.confirm(`DAY${i + 1} の「${name}」さんを消しますか？${later ? `\nうしろの日は詰めず、DAY${i + 1} の枠だけが空きます。あとで押せばまた入れられます。` : ''}`, { okLabel: '消す', danger: true });
+    if (!ok) return;
+  }
   ledger = await loadLedger(ym);
   if (!ledger.days[i]) { render(); return; }
   if (c === 'remove') {
-    ledger.days.splice(i, 1);
-    await persist(`DAY${i + 1} を外しました`);
+    ledger.days[i] = null;
+    await persist(`DAY${i + 1} を消しました`);
   } else {
     ledger.days[i] = { ...ledger.days[i], panelId: c.id, name: c.name };
     await persist(`DAY${i + 1} を「${c.name}」さんに変えました`);
@@ -579,6 +608,7 @@ async function onSave() {
     // 日の枠
     for (let i = 0; i < ledger.days.length && i < MAX_DAYS; i++) {
       const d = ledger.days[i];
+      if (!d) continue; // 空いた枠は灰色のまま
       const c = castById(d.panelId);
       const r = slotRect(i);
       const img = await loadImg(castPhoto(c));

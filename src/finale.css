@@ -82,6 +82,8 @@
   outline-offset: -2px;
   animation: fc-pulse 1.6s ease-in-out infinite;
 }
+.fc-slot-hole { background: rgba(212, 175, 55, 0.06); outline: 1px dashed rgba(212, 175, 55, 0.6); outline-offset: -2px; }
+.fc-slot-hole .fc-plus { opacity: 0.6; }
 .fc-plus { color: #d4af37; font-size: clamp(16px, 5vw, 30px); font-weight: 700; }
 @keyframes fc-pulse {
   0%, 100% { background: rgba(212, 175, 55, 0.08); }
