@@ -1,0 +1,345 @@
+/* ===== 初回案内 LAB（試し用の新しい見た目・2026-10-01） =====
+   lab.html だけが読む。本番の index.html / preview.html / アプリには効かない。
+   方向: 五つ星ホテル・高級ジュエリーの「細い線と余白」。太い金装飾は使わない。
+   すべて body.lab の中だけに効かせ、今の style.css を上から塗り替える。 */
+
+body.lab {
+  --lab-ink: #07080d;
+  --lab-night: #0b0f1d;
+  --lab-gold: #d9c08a;          /* シャンパンゴールド（今の #d4af37 より落ち着かせる） */
+  --lab-gold-hi: #f4e7c3;
+  --lab-gold-line: rgba(217, 192, 138, 0.42);
+  --lab-gold-faint: rgba(217, 192, 138, 0.16);
+  --lab-text: #f3efe6;
+  --lab-sub: rgba(243, 239, 230, 0.62);
+  --lab-serif: 'Shippori Mincho B1', 'Hiragino Mincho ProN', serif;
+  --lab-latin: 'Cormorant Garamond', 'Shippori Mincho B1', serif;
+  font-variant-numeric: lining-nums tabular-nums; /* 数字は沈まない形でそろえる */
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(64, 78, 140, 0.28), transparent 60%),
+    radial-gradient(900px 500px at 100% 100%, rgba(120, 90, 50, 0.12), transparent 60%),
+    var(--lab-ink);
+  background-attachment: fixed;
+  color: var(--lab-text);
+}
+
+/* --- 上のバー: 薄いガラス＋下に光る髪の毛ほどの金線 --- */
+body.lab .header {
+  background: rgba(8, 10, 20, 0.62);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 0;
+  padding: 10px 24px;
+}
+body.lab .header::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lab-gold-line) 20%, var(--lab-gold-hi) 50%, var(--lab-gold-line) 80%, transparent);
+  opacity: 0.8;
+}
+body.lab .preview-badge {
+  font-family: var(--lab-latin);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  background: none;
+  border: 1px solid var(--lab-gold-line);
+  color: var(--lab-gold);
+  border-radius: 999px;
+  padding: 1px 10px 1px 13px;
+}
+body.lab .header-clock {
+  font-family: var(--lab-serif);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--lab-sub);
+}
+body.lab .header-link {
+  border: 1px solid var(--lab-gold-faint);
+  color: var(--lab-sub);
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+/* 席ボタン: 細い金の輪郭だけ */
+body.lab .seat-btn {
+  font-family: var(--lab-serif);
+  background: transparent;
+  border: 1px solid var(--lab-gold-line);
+  color: var(--lab-gold-hi);
+  border-radius: 999px;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+/* 色の丸: ベタ塗りをやめ、宝石のような艶と細い輪で見せる */
+body.lab .color-picker { gap: 16px; }
+body.lab .color-btn-wrap { gap: 6px; }
+body.lab .color-btn {
+  width: 30px; height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #0b0b0b;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.55), inset 0 -6px 10px rgba(0, 0, 0, 0.28);
+}
+body.lab .color-btn.color-yellow { background: radial-gradient(circle at 35% 30%, #fff3cf, #d9c08a 45%, #8e7440); }
+body.lab .color-btn.color-red    { background: radial-gradient(circle at 35% 30%, #ffd4d4, #d9707a 45%, #7c2c36); color: #fff; }
+body.lab .color-btn.color-blue   { background: radial-gradient(circle at 35% 30%, #dbe9ff, #7aa6e6 45%, #2d4f86); color: #fff; }
+body.lab .color-btn.color-green  { background: radial-gradient(circle at 35% 30%, #dcf8e3, #73cf8d 45%, #2c6b40); }
+body.lab .color-btn.active {
+  border-color: transparent;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 2px var(--lab-ink),
+    0 0 0 3px var(--lab-gold-hi),
+    0 0 18px rgba(244, 231, 195, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+body.lab .color-count { font-family: var(--lab-serif); font-weight: 700; font-size: 14px; }
+body.lab .color-btn-label { color: var(--lab-sub); letter-spacing: 0.08em; }
+body.lab .reset-btn {
+  background: transparent;
+  border: 1px solid var(--lab-gold-faint);
+  color: var(--lab-sub);
+  border-radius: 999px;
+}
+
+/* --- 札置き場 --- */
+body.lab .grid-container { gap: 14px; padding: 18px 20px 120px; }
+/* 試しの画面だという案内は札 1 枚分の場所を取らず、上に 1 行で */
+body.lab.is-preview .grid-container::before {
+  content: 'LAB ─ 新しい見た目の試し画面（指名の送信は試し扱い）';
+  grid-column: 1 / -1;
+  justify-self: center;
+  color: var(--lab-sub);
+  font-family: var(--lab-serif);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  padding: 2px 0 4px;
+}
+
+/* 札: 小さな角丸、極細の金の縁、写真の下に深い影 */
+body.lab .host-panel {
+  border-radius: 6px;
+  border: 0;
+  background: #0d101b;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  transition: transform 0.35s cubic-bezier(.2, .8, .2, 1), box-shadow 0.35s;
+}
+body.lab .host-panel::before {
+  /* 髪の毛ほどの金の縁（上が明るく、下へ消える） */
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(160deg, rgba(244, 231, 195, 0.75), rgba(217, 192, 138, 0.25) 35%, rgba(217, 192, 138, 0.08) 70%, rgba(244, 231, 195, 0.45));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 3;
+}
+body.lab .host-panel .panel-image { transition: transform 0.6s cubic-bezier(.2, .8, .2, 1), filter 0.4s; }
+body.lab .host-panel:active { transform: scale(0.985); }
+
+/* 名前: 縁取りの太い黒をやめ、下からの闇に明朝で静かに乗せる */
+body.lab .host-panel .overlay {
+  padding: 56px 16px 16px;
+  background: linear-gradient(180deg, transparent, rgba(6, 8, 16, 0.55) 45%, rgba(6, 8, 16, 0.92));
+}
+body.lab .host-panel .host-title {
+  font-family: var(--lab-serif);
+  font-weight: 500;
+  color: var(--lab-gold);
+  letter-spacing: 0.32em;
+  font-size: calc(var(--title-font-size, 13px) * 0.92);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+  margin-bottom: 6px;
+}
+body.lab .host-panel .host-name {
+  font-family: var(--lab-serif);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--lab-text);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
+}
+body.lab .host-panel .host-name rt {
+  font-family: var(--lab-serif);
+  font-weight: 500;
+  letter-spacing: 0.35em;
+  color: var(--lab-gold);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+/* 名前の下に短い金の線を一本だけ */
+body.lab .host-panel .host-name::after {
+  content: '';
+  display: block;
+  width: 28px; height: 1px;
+  margin-top: 8px;
+  background: linear-gradient(90deg, var(--lab-gold-hi), transparent);
+}
+body.lab .host-panel .host-name.label-only { font-family: var(--lab-serif); color: var(--lab-gold); letter-spacing: 0.2em; }
+body.lab .host-panel .host-name.label-only::after { display: none; }
+
+/* NEW: 赤い塊をやめ、細い金枠のイタリック */
+body.lab .new-badge {
+  top: 12px; left: 12px;
+  background: rgba(8, 10, 20, 0.45);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(244, 231, 195, 0.7);
+  color: var(--lab-gold-hi);
+  font-family: var(--lab-latin);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.35em;
+  padding: 3px 10px 3px 14px;
+  border-radius: 2px;
+  text-shadow: none;
+}
+
+/* チェック枠: 細い正方形。選ぶとその色で満ちる */
+body.lab .cast-checkbox { bottom: 14px; right: 14px; }
+body.lab .cast-checkbox .cb-mark {
+  border: 1px solid rgba(244, 231, 195, 0.75);
+  border-radius: 3px;
+  background: rgba(6, 8, 16, 0.35);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+/* 選んだ札: 太い内枠をやめ、その色の細い線＋外へにじむ光 */
+body.lab .host-panel.checked { border: 0 !important; transform: translateY(-2px); }
+body.lab .host-panel.checked .panel-image { transform: scale(1.03); }
+body.lab .host-panel.checked.color-yellow { box-shadow: 0 0 0 1.5px #e9d39c, 0 0 28px rgba(233, 211, 156, 0.45), 0 18px 40px -18px #000 !important; }
+body.lab .host-panel.checked.color-red    { box-shadow: 0 0 0 1.5px #e98a93, 0 0 28px rgba(233, 138, 147, 0.45), 0 18px 40px -18px #000 !important; }
+body.lab .host-panel.checked.color-blue   { box-shadow: 0 0 0 1.5px #8fb6ee, 0 0 28px rgba(143, 182, 238, 0.45), 0 18px 40px -18px #000 !important; }
+body.lab .host-panel.checked.color-green  { box-shadow: 0 0 0 1.5px #86d8a0, 0 0 28px rgba(134, 216, 160, 0.45), 0 18px 40px -18px #000 !important; }
+body.lab .host-panel.checked.color-mixed  { box-shadow: 0 0 0 1.5px #ffffff, 0 0 28px rgba(255, 255, 255, 0.35), 0 18px 40px -18px #000 !important; }
+body.lab .host-panel.checked::before { opacity: 0; }
+
+/* 選択中の小さな札 */
+body.lab .selecting-badge {
+  font-family: var(--lab-serif);
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.08em;
+  border: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 選べない札 */
+body.lab .host-panel.panel-locked { filter: grayscale(1) brightness(0.45) contrast(0.9); }
+
+/* --- 確定ボタン: 浮かぶガラスの帯 --- */
+body.lab .confirm-btn {
+  font-family: var(--lab-serif);
+  font-weight: 600;
+  letter-spacing: 0.5em;
+  padding: 16px 30px 16px 44px;
+  border-radius: 999px;
+  animation: labFloat 3.2s ease-in-out infinite;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 14px 40px -8px rgba(0, 0, 0, 0.8), 0 0 40px rgba(233, 211, 156, 0.25);
+}
+body.lab .confirm-badge {
+  font-family: var(--lab-serif);
+  font-size: 13px;
+  letter-spacing: 0;
+  background: rgba(6, 8, 16, 0.85);
+  color: var(--lab-gold-hi);
+  margin-left: 18px;
+}
+@keyframes labFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-3px); }
+}
+
+/* --- 最初のメニュー選択画面: 大きな明朝と極細の線 --- */
+body.lab .home-inner { gap: 18px; max-width: 760px; }
+body.lab .home-btn {
+  position: relative;
+  border: 1px solid var(--lab-gold-line);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+  color: var(--lab-text);
+  transition: background 0.3s, border-color 0.3s;
+}
+body.lab .home-btn::before,
+body.lab .home-btn::after {
+  /* 左右に短い金の線（ホテルの案内板のような） */
+  content: '';
+  position: absolute; top: 50%;
+  width: 36px; height: 1px;
+  background: var(--lab-gold-line);
+}
+body.lab .home-btn::before { left: 22px; }
+body.lab .home-btn::after { right: 22px; }
+body.lab .home-btn .hb-title {
+  font-family: var(--lab-serif);
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  padding-left: 0.4em;
+}
+body.lab #home-cast .hb-title { font-family: var(--lab-latin); font-weight: 500; letter-spacing: 0.5em; }
+body.lab .home-btn .hb-sub { color: var(--lab-sub); letter-spacing: 0.2em; }
+body.lab .home-btn:active { background: rgba(217, 192, 138, 0.1); border-color: var(--lab-gold-hi); }
+
+body.lab .menu-tabs button {
+  border: 1px solid var(--lab-gold-faint);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--lab-sub);
+  font-family: var(--lab-serif);
+  letter-spacing: 0.12em;
+}
+body.lab .menu-tabs .mt-home {
+  border-color: var(--lab-gold-line);
+  background: rgba(217, 192, 138, 0.08);
+  color: var(--lab-gold-hi);
+  letter-spacing: 0.3em;
+}
+
+/* --- 全画面表示 --- */
+body.lab .fullscreen-overlay { background: rgba(4, 5, 10, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+body.lab .fullscreen-overlay .fs-name { font-family: var(--lab-serif); font-weight: 600; letter-spacing: 0.24em; }
+body.lab .fullscreen-overlay .fs-name rt { font-family: var(--lab-serif); letter-spacing: 0.35em; color: var(--lab-gold); }
+body.lab .fs-new-badge {
+  background: transparent;
+  border: 1px solid rgba(244, 231, 195, 0.7);
+  color: var(--lab-gold-hi);
+  font-family: var(--lab-latin);
+  font-style: italic;
+  letter-spacing: 0.35em;
+  border-radius: 2px;
+  text-shadow: none;
+}
+body.lab .fs-close {
+  border: 1px solid var(--lab-gold-faint);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--lab-gold-hi);
+  border-radius: 999px;
+}
+
+/* 動きを減らしたい端末では浮遊を止める */
+@media (prefers-reduced-motion: reduce) {
+  body.lab .confirm-btn { animation: none; }
+  body.lab .host-panel, body.lab .host-panel .panel-image { transition: none; }
+}
+
+/* 全画面のチェック枠と確定ボタンも一覧とそろえる */
+body.lab .fs-checkbox .fs-cb-mark {
+  border: 1px solid rgba(244, 231, 195, 0.75);
+  border-radius: 4px;
+  background: rgba(6, 8, 16, 0.35);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+body.lab .fs-confirm-btn {
+  font-family: var(--lab-serif);
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset, 0 14px 40px -8px rgba(0, 0, 0, 0.8), 0 0 30px rgba(233, 211, 156, 0.25);
+}
