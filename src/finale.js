@@ -33,6 +33,8 @@ const slotRect = (i) => ({ x: SLOT_XS[i % 7], y: SLOT_YS[Math.floor(i / 7)], w: 
 // @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真（倉庫の finale/<店>/<年-月>.json） #一覧
 const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
 const heroImagePath = (store, ym) => `finale/${store}/hero-${ym}-${Date.now()}.webp`;
+// @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
+const facesPath = (store) => `finale/${store}/faces.json`;
 
 let storeId = '';
 let calendar = null;
@@ -40,6 +42,7 @@ let casts = [];          // この店のキャスト（名前があって表示�
 let ym = '';             // 表示中の月 'YYYY-MM'
 let ledger = emptyLedger();
 let prevLedger = emptyLedger();
+let faces = {};          // { panelId: { x, y, z, v, auto } }（x・y は写真の中の中心の位置 0〜1、z は拡大率）
 
 function emptyLedger() {
   return { version: 1, days: [], hero: null };
@@ -103,6 +106,66 @@ function castPhoto(c) {
   return c && c.has_image && c.image_path ? `${publicImageUrl(c.image_path)}?v=${c.image_version || 0}` : '';
 }
 
+// ===== 枠の顔の位置 =====
+// メニューの写真の位置（img_x / img_y）とは別に持つ。メニューの見た目には効かない。
+// 写真を差し替えた人（image_version が違う人）の位置は使わず、真ん中寄りに戻す。
+const DEFAULT_CROP = { x: 0.5, y: 0.3, z: 1 };
+
+async function loadFaces() {
+  const res = await fetch(`${publicImageUrl(facesPath(storeId))}?t=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) return {};
+  try { return (await res.json()) || {}; } catch { return {}; }
+}
+
+// 1 人分だけ書き換える（書く直前に読み直して、ほかの人の分を消さない）
+async function saveFace(panelId, value) {
+  const latest = await loadFaces();
+  if (value) latest[panelId] = value; else delete latest[panelId];
+  const blob = new Blob([JSON.stringify(latest)], { type: 'application/json' });
+  const { error } = await supabase.storage.from(PANEL_BUCKET).upload(facesPath(storeId), blob, {
+    contentType: 'application/json',
+    upsert: true,
+    cacheControl: '0',
+  });
+  if (error) throw error;
+  faces = latest;
+}
+
+function cropOf(c) {
+  const f = c && faces[c.id];
+  if (!f || (f.v ?? 0) !== (c.image_version || 0)) return { ...DEFAULT_CROP };
+  return { x: f.x, y: f.y, z: f.z || 1 };
+}
+
+// 写真のどこを切り出すか（元の写真の画素）。枠の縦横比は bw:bh
+function srcRect(nw, nh, crop, bw = SLOT_W, bh = SLOT_H) {
+  const s = Math.max(bw / nw, bh / nh) * Math.max(1, crop.z || 1);
+  const sw = bw / s;
+  const sh = bh / s;
+  const sx = Math.min(Math.max(crop.x * nw - sw / 2, 0), nw - sw);
+  const sy = Math.min(Math.max(crop.y * nh - sh / 2, 0), nh - sh);
+  return { sx, sy, sw, sh };
+}
+
+// 画面の <img> を切り出し位置に合わせて置く（枠の中で % 指定）
+function applyCrop(img, crop, bw = SLOT_W, bh = SLOT_H) {
+  const place = () => {
+    if (!img.naturalWidth) return;
+    const r = srcRect(img.naturalWidth, img.naturalHeight, crop, bw, bh);
+    img.style.width = `${(img.naturalWidth / r.sw) * 100}%`;
+    img.style.height = `${(img.naturalHeight / r.sh) * 100}%`;
+    img.style.left = `${(-r.sx / r.sw) * 100}%`;
+    img.style.top = `${(-r.sy / r.sh) * 100}%`;
+  };
+  if (img.complete) place();
+  img.addEventListener('load', place);
+}
+
+function drawCrop(ctx, img, r, crop) {
+  const q = srcRect(img.naturalWidth, img.naturalHeight, crop, r.w, r.h);
+  ctx.drawImage(img, q.sx, q.sy, q.sw, q.sh, r.x, r.y, r.w, r.h);
+}
+
 // ===== 上の大枠の人を決める =====
 // 手で選んだ人がいればその人。いなければ前月の回数がいちばん多い人（同じ回数なら先にその回数へ届いた人）
 function resolveHero() {
@@ -151,7 +214,8 @@ function render() {
         img.crossOrigin = 'anonymous';
         img.alt = d.name || '';
         img.src = castPhoto(c);
-        img.style.objectPosition = `${c.img_x ?? 50}% ${c.img_y ?? 30}%`;
+        img.className = 'fc-crop';
+        applyCrop(img, cropOf(c));
         el.appendChild(img);
       }
       const name = document.createElement('span');
@@ -326,6 +390,128 @@ async function onHeroFileClear() {
   await persist('載せた写真を外しました');
 }
 
+// ===== 枠の顔の位置を直す =====
+function toggleFaceList() {
+  const list = document.getElementById('fc-face-list');
+  const open = list.hidden;
+  list.hidden = !open;
+  if (open) renderFaceList();
+}
+
+function renderFaceList() {
+  const list = document.getElementById('fc-face-list');
+  list.innerHTML = '';
+  for (const c of casts) {
+    if (!castPhoto(c)) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'fc-face-item';
+    const box = document.createElement('div');
+    box.className = 'fc-face-thumb';
+    const img = document.createElement('img');
+    img.className = 'fc-crop';
+    img.crossOrigin = 'anonymous';
+    img.alt = '';
+    img.src = castPhoto(c);
+    applyCrop(img, cropOf(c));
+    box.appendChild(img);
+    const name = document.createElement('span');
+    name.textContent = c.name;
+    b.append(box, name);
+    b.addEventListener('click', () => editFace(c));
+    list.appendChild(b);
+  }
+}
+
+// 1 人分の位置を直す小窓。指でずらす・つまみで大きさを変える
+function editFace(c) {
+  const saved = faces[c.id];
+  const fresh = saved && (saved.v ?? 0) === (c.image_version || 0);
+  const auto = fresh && saved.auto ? saved.auto : null; // 顔を見つけて決めた最初の位置
+  let crop = cropOf(c);
+
+  const host = document.createElement('div');
+  host.className = 'app-dialog-backdrop fc-picker-backdrop';
+  host.innerHTML = `
+    <div class="app-dialog-box fc-picker fc-face-editor">
+      <div class="fc-picker-title"></div>
+      <p class="fc-desc">写真を指でずらして、枠に映す所を決めてください。下のつまみで大きさを変えられます。</p>
+      <div class="fc-face-stage"><img class="fc-crop" alt="" /></div>
+      <label class="fc-zoom">大きさ <input type="range" min="1" max="4" step="0.01" /></label>
+      <div class="fc-picker-actions">
+        <button type="button" class="fc-reset"></button>
+        <button type="button" class="fc-cancel">やめる</button>
+        <button type="button" class="fc-ok">保存</button>
+      </div>
+    </div>`;
+  host.querySelector('.fc-picker-title').textContent = `${c.name} さんの枠の位置`;
+  const stage = host.querySelector('.fc-face-stage');
+  const img = stage.querySelector('img');
+  const zoom = host.querySelector('input[type=range]');
+  const reset = host.querySelector('.fc-reset');
+  reset.textContent = auto ? '顔に合わせた位置に戻す' : '真ん中に戻す';
+  img.src = castPhoto(c);
+  zoom.value = String(crop.z);
+
+  const draw = () => applyCrop(img, crop);
+  // 動かした後、写真の外へはみ出さないよう中心を収める
+  const clamp = () => {
+    if (!img.naturalWidth) return;
+    const r = srcRect(img.naturalWidth, img.naturalHeight, crop);
+    crop.x = (r.sx + r.sw / 2) / img.naturalWidth;
+    crop.y = (r.sy + r.sh / 2) / img.naturalHeight;
+  };
+  draw();
+
+  let drag = null;
+  stage.addEventListener('pointerdown', (e) => {
+    if (!img.naturalWidth) return;
+    stage.setPointerCapture(e.pointerId);
+    drag = { x: e.clientX, y: e.clientY, crop: { ...crop } };
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const r = srcRect(img.naturalWidth, img.naturalHeight, drag.crop);
+    const k = r.sw / stage.clientWidth; // 画面の 1px が写真の何画素か
+    crop = {
+      ...drag.crop,
+      x: drag.crop.x - ((e.clientX - drag.x) * k) / img.naturalWidth,
+      y: drag.crop.y - ((e.clientY - drag.y) * k) / img.naturalHeight,
+    };
+    clamp();
+    draw();
+  });
+  const endDrag = () => { drag = null; };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+  zoom.addEventListener('input', () => { crop = { ...crop, z: Number(zoom.value) }; clamp(); draw(); });
+  reset.addEventListener('click', () => {
+    crop = auto ? { ...auto } : { ...DEFAULT_CROP };
+    zoom.value = String(crop.z);
+    draw();
+  });
+
+  const close = () => host.remove();
+  host.querySelector('.fc-cancel').addEventListener('click', close);
+  host.querySelector('.fc-ok').addEventListener('click', async () => {
+    try {
+      const round = (v) => Math.round(v * 10000) / 10000;
+      await saveFace(c.id, {
+        x: round(crop.x), y: round(crop.y), z: round(crop.z),
+        v: c.image_version || 0,
+        ...(auto ? { auto } : {}),
+      });
+      close();
+      render();
+      renderFaceList();
+      dlg.toast(`${c.name} さんの位置を保存しました`);
+    } catch (err) {
+      await dlg.alert(`保存できませんでした。\n${err.message || err}`);
+    }
+  });
+  document.body.appendChild(host);
+}
+
 // ===== 画像で保存 =====
 function loadImg(src) {
   return new Promise((resolve) => {
@@ -395,7 +581,7 @@ async function onSave() {
       const c = castById(d.panelId);
       const r = slotRect(i);
       const img = await loadImg(castPhoto(c));
-      if (img) drawCover(ctx, img, r, c?.img_x ?? 50, c?.img_y ?? 30);
+      if (img) drawCrop(ctx, img, r, cropOf(c));
       // 名前（下に薄い帯）
       const g = ctx.createLinearGradient(0, r.y + r.h - 34, 0, r.y + r.h);
       g.addColorStop(0, 'rgba(0,0,0,0)');
@@ -429,7 +615,7 @@ async function onSave() {
 // ===== 月の切り替え =====
 async function openMonth(month) {
   ym = month;
-  [ledger, prevLedger] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1))]);
+  [ledger, prevLedger, faces] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces()]);
   render();
 }
 
@@ -455,5 +641,6 @@ async function openMonth(month) {
   document.getElementById('fc-hero-auto').addEventListener('click', onHeroAuto);
   document.getElementById('fc-hero-file').addEventListener('change', onHeroFile);
   document.getElementById('fc-hero-file-clear').addEventListener('click', onHeroFileClear);
+  document.getElementById('fc-face-list-open').addEventListener('click', toggleFaceList);
   await openMonth(businessYm());
 })();
