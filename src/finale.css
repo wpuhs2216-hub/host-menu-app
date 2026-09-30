@@ -170,3 +170,21 @@
 .fc-zoom input { flex: 1; }
 .fc-picker-actions .fc-ok { border-color: #d4af37; color: #d4af37; }
 .fc-picker-actions .fc-reset { margin-right: auto; font-size: 12px; }
+
+/* 店ごとのまとまり（人を選ぶ小窓・顔の位置の一覧） */
+.fc-picker-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px; }
+.fc-picker-body > .fc-picker-grid, .fc-store-group .fc-picker-grid { overflow: visible; }
+.fc-store-group summary {
+  cursor: pointer;
+  padding: 6px 4px;
+  font-size: 13px; font-weight: 700; color: #d4af37;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  margin-bottom: 8px;
+}
+.fc-face-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+.fc-face-list { display: flex; flex-direction: column; gap: 10px; }
+.fc-pick-photo { position: relative; overflow: hidden; aspect-ratio: 134 / 128; }

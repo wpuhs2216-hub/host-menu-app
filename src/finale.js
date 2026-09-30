@@ -5,14 +5,14 @@
 // - 記録は Supabase の表ではなく、写真置き場（panel-images バケット）に月ごとの JSON で置く
 
 import { supabase, PANEL_BUCKET, publicImageUrl } from './supabaseClient.js';
-import { getStoreId } from './storeContext.js';
+import { getStoreId, STORES } from './storeContext.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import * as dlg from './dialog.js';
 
 // 使える店と背景の絵。ここに無い店では画面を出さない
 const CALENDARS = {
-  'gently-diva': { bg: 'finale/diva-bg.jpg' },
-  'test-store': { bg: 'finale/diva-bg.jpg' }, // 動作確認用
+  'gently-diva': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg' },
+  'test-store': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg' }, // 動作確認用
 };
 
 // 元絵の大きさと、灰色の枠・大枠の位置（画素）
@@ -28,6 +28,11 @@ const HERO = { x: 248, y: 184, w: 744, h: 666 };
 // 営業終わりは日付をまたぐので、朝 6 時までは前の日（前の月）として扱う
 const DAY_CUTOFF_HOURS = 6;
 
+// 「ファイナルなし」の日に入れる印（人の代わりに店のロゴを出す）
+const NONE_ID = '__none__';
+const NONE_NAME = 'ファイナルなし';
+const NONE_CROP = { x: 0.5, y: 0.5, z: 1.3 };
+
 const slotRect = (i) => ({ x: SLOT_XS[i % 7], y: SLOT_YS[Math.floor(i / 7)], w: SLOT_W, h: SLOT_H });
 
 // @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真（倉庫の finale/<店>/<年-月>.json） #一覧
@@ -38,7 +43,7 @@ const facesPath = (store) => `finale/${store}/faces.json`;
 
 let storeId = '';
 let calendar = null;
-let casts = [];          // この店のキャスト（名前がある人。メニューで非表示の人も選べるように後ろへ並べる。写真が無い人は名前だけ出す）
+let casts = [];          // 系列の全店のキャスト（名前がある人）。自分の店を先に、店の中では表示中→非表示の順。写真が無い人は名前だけ出す
 let ym = '';             // 表示中の月 'YYYY-MM'
 let ledger = emptyLedger();
 let prevLedger = emptyLedger();
@@ -96,15 +101,65 @@ async function saveLedger() {
   if (error) throw error;
 }
 
+// 系列の全店（テスト店舗は自分がテスト店舗の時だけ）。自分の店を先頭に、あとは STORES の順
+function storeOrder() {
+  const ids = STORES.map((st) => st.id).filter((id) => id !== 'test-store' || id === storeId);
+  return [storeId, ...ids.filter((id) => id !== storeId)];
+}
+
+function storeLabel(id) {
+  return STORES.find((st) => st.id === id)?.name || id;
+}
+
 async function loadCasts() {
+  const order = storeOrder();
   const { data, error } = await supabase
     .from('panels')
-    .select('id, name, image_path, image_version, img_x, img_y, visible, has_image, "order"')
-    .eq('store_id', storeId)
+    .select('id, name, image_path, image_version, img_x, img_y, visible, has_image, "order", store_id')
+    .in('store_id', order)
     .order('order');
   if (error) throw error;
   const named = (data || []).filter((p) => (p.name || '').trim());
-  casts = [...named.filter((p) => p.visible), ...named.filter((p) => !p.visible)];
+  casts = order.flatMap((id) => {
+    const mine = named.filter((p) => p.store_id === id);
+    return [...mine.filter((p) => p.visible), ...mine.filter((p) => !p.visible)];
+  });
+}
+
+// 店ごとのまとまりに分ける（casts の並びのまま）
+function castGroups(list = casts) {
+  const groups = [];
+  for (const c of list) {
+    let g = groups[groups.length - 1];
+    if (!g || g.storeId !== c.store_id) { g = { storeId: c.store_id, name: storeLabel(c.store_id), items: [] }; groups.push(g); }
+    g.items.push(c);
+  }
+  return groups;
+}
+
+function castLabel(c) {
+  return c.visible ? c.name : `${c.name}（非表示）`;
+}
+
+// 枠と同じ切り取りの小さな写真（写真が無い人は灰色）
+function cropThumb(c, cls) {
+  const box = document.createElement('div');
+  box.className = cls;
+  const src = c === NONE_ID ? noneImage() : castPhoto(c);
+  if (src) {
+    const img = document.createElement('img');
+    img.className = 'fc-crop';
+    img.alt = '';
+    img.loading = 'lazy';
+    img.src = src;
+    applyCrop(img, c === NONE_ID ? NONE_CROP : cropOf(c));
+    box.appendChild(img);
+  }
+  return box;
+}
+
+function noneImage() {
+  return calendar?.none ? `${import.meta.env.BASE_URL}${calendar.none}` : '';
 }
 
 function castById(id) {
@@ -183,7 +238,7 @@ function resolveHero() {
   const counts = new Map();
   let best = null;
   for (const d of prevLedger.days) {
-    if (!d || !d.panelId) continue;
+    if (!d || !d.panelId || d.panelId === NONE_ID) continue;
     const n = (counts.get(d.panelId) || 0) + 1;
     counts.set(d.panelId, n);
     if (!best || n > best.count) best = { panelId: d.panelId, name: d.name, count: n };
@@ -216,7 +271,17 @@ function render() {
     el.type = 'button';
     el.className = 'fc-slot';
     placeBox(el, slotRect(i));
-    if (d) {
+    if (d && d.panelId === NONE_ID) {
+      if (noneImage()) {
+        const img = document.createElement('img');
+        img.alt = NONE_NAME;
+        img.src = noneImage();
+        img.className = 'fc-crop';
+        applyCrop(img, NONE_CROP);
+        el.appendChild(img);
+      }
+      el.addEventListener('click', () => onFilledSlot(i));
+    } else if (d) {
       const c = castById(d.panelId);
       if (castPhoto(c)) {
         const img = document.createElement('img');
@@ -276,37 +341,48 @@ function render() {
 }
 
 // ===== 人を選ぶ小窓 =====
-function pickCast(title, { allowRemove = false } = {}) {
+function pickCast(title, { allowRemove = false, allowNone = false } = {}) {
   return new Promise((resolve) => {
     const host = document.createElement('div');
     host.className = 'app-dialog-backdrop fc-picker-backdrop';
     host.innerHTML = `
       <div class="app-dialog-box fc-picker">
         <div class="fc-picker-title"></div>
-        <div class="fc-picker-grid"></div>
+        <div class="fc-picker-body"></div>
         <div class="fc-picker-actions">
           ${allowRemove ? '<button type="button" class="fc-remove">この枠から消す</button>' : ''}
           <button type="button" class="fc-cancel">やめる</button>
         </div>
       </div>`;
     host.querySelector('.fc-picker-title').textContent = title;
-    const grid = host.querySelector('.fc-picker-grid');
-    for (const c of casts) {
+    const body = host.querySelector('.fc-picker-body');
+    const tile = (c, label) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'fc-pick';
-      const img = document.createElement(castPhoto(c) ? 'img' : 'div');
-      img.className = 'fc-pick-photo';
-      if (castPhoto(c)) {
-        img.src = castPhoto(c);
-        img.alt = '';
-        img.style.objectPosition = `${c.img_x ?? 50}% ${c.img_y ?? 30}%`;
-      }
       const name = document.createElement('span');
-      name.textContent = c.visible ? c.name : `${c.name}（非表示）`;
-      b.append(img, name);
-      b.addEventListener('click', () => done(c));
-      grid.appendChild(b);
+      name.textContent = label;
+      b.append(cropThumb(c, 'fc-pick-photo'), name);
+      b.addEventListener('click', () => done(c === NONE_ID ? { id: NONE_ID, name: NONE_NAME } : c));
+      return b;
+    };
+    if (allowNone && noneImage()) {
+      const grid = document.createElement('div');
+      grid.className = 'fc-picker-grid';
+      grid.appendChild(tile(NONE_ID, NONE_NAME));
+      body.appendChild(grid);
+    }
+    for (const g of castGroups()) {
+      const grid = document.createElement('div');
+      grid.className = 'fc-picker-grid';
+      for (const c of g.items) grid.appendChild(tile(c, castLabel(c)));
+      const wrap = document.createElement('details');
+      wrap.className = 'fc-store-group';
+      wrap.open = g.storeId === storeId; // 自分の店だけ開いておく
+      const sum = document.createElement('summary');
+      sum.textContent = `${g.name}（${g.items.length} 人）`;
+      wrap.append(sum, grid);
+      body.appendChild(wrap);
     }
     const done = (v) => { host.remove(); resolve(v); };
     host.querySelector('.fc-cancel').addEventListener('click', () => done(null));
@@ -337,7 +413,7 @@ async function onNextSlot() {
     if (!ok) return;
   }
   const n = ledger.days.length + 1;
-  const c = await pickCast(`DAY${n} のファイナル`);
+  const c = await pickCast(`DAY${n} のファイナル`, { allowNone: true });
   if (!c || c === 'remove') return;
   ledger = await loadLedger(ym); // 他の端末が先に入れていないか読み直す
   ledger.days.push({ panelId: c.id, name: c.name, at: new Date().toISOString() });
@@ -346,7 +422,7 @@ async function onNextSlot() {
 
 // 途中で空いた枠に入れる
 async function onHoleSlot(i) {
-  const c = await pickCast(`DAY${i + 1} のファイナル（空いている枠）`);
+  const c = await pickCast(`DAY${i + 1} のファイナル（空いている枠）`, { allowNone: true });
   if (!c || c === 'remove') return;
   ledger = await loadLedger(ym);
   if (ledger.days[i]) { render(); dlg.toast(`DAY${i + 1} にはもう「${ledger.days[i].name}」さんが入っています`); return; }
@@ -357,7 +433,7 @@ async function onHoleSlot(i) {
 
 async function onFilledSlot(i) {
   const name = ledger.days[i].name;
-  const c = await pickCast(`DAY${i + 1}（いまは「${name}」さん）を別の人に変える・この枠から消す`, { allowRemove: true });
+  const c = await pickCast(`DAY${i + 1}（いまは「${name}」さん）を別の人に変える・この枠から消す`, { allowRemove: true, allowNone: true });
   if (!c) return;
   if (c === 'remove') {
     const later = i < ledger.days.length - 1;
@@ -431,25 +507,26 @@ function toggleFaceList() {
 function renderFaceList() {
   const list = document.getElementById('fc-face-list');
   list.innerHTML = '';
-  for (const c of casts) {
-    if (!castPhoto(c)) continue;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'fc-face-item';
-    const box = document.createElement('div');
-    box.className = 'fc-face-thumb';
-    const img = document.createElement('img');
-    img.className = 'fc-crop';
-    img.crossOrigin = 'anonymous';
-    img.alt = '';
-    img.src = castPhoto(c);
-    applyCrop(img, cropOf(c));
-    box.appendChild(img);
-    const name = document.createElement('span');
-    name.textContent = c.visible ? c.name : `${c.name}（非表示）`;
-    b.append(box, name);
-    b.addEventListener('click', () => editFace(c));
-    list.appendChild(b);
+  for (const g of castGroups(casts.filter((c) => castPhoto(c)))) {
+    const grid = document.createElement('div');
+    grid.className = 'fc-face-grid';
+    for (const c of g.items) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fc-face-item';
+      const name = document.createElement('span');
+      name.textContent = castLabel(c);
+      b.append(cropThumb(c, 'fc-face-thumb'), name);
+      b.addEventListener('click', () => editFace(c));
+      grid.appendChild(b);
+    }
+    const wrap = document.createElement('details');
+    wrap.className = 'fc-store-group';
+    wrap.open = g.storeId === storeId;
+    const sum = document.createElement('summary');
+    sum.textContent = `${g.name}（${g.items.length} 人）`;
+    wrap.append(sum, grid);
+    list.appendChild(wrap);
   }
 }
 
@@ -609,8 +686,14 @@ async function onSave() {
     for (let i = 0; i < ledger.days.length && i < MAX_DAYS; i++) {
       const d = ledger.days[i];
       if (!d) continue; // 空いた枠は灰色のまま
-      const c = castById(d.panelId);
       const r = slotRect(i);
+      if (d.panelId === NONE_ID) {
+        // ファイナルなしの日は店のロゴだけ（名前の帯は付けない）
+        const logo = await loadImg(noneImage());
+        if (logo) drawCrop(ctx, logo, r, NONE_CROP);
+        continue;
+      }
+      const c = castById(d.panelId);
       const img = await loadImg(castPhoto(c));
       if (img) drawCrop(ctx, img, r, cropOf(c));
       // 名前（下に薄い帯）
