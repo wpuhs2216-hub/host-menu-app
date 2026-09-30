@@ -38,7 +38,7 @@ const facesPath = (store) => `finale/${store}/faces.json`;
 
 let storeId = '';
 let calendar = null;
-let casts = [];          // この店のキャスト（名前があって表示中のものだけ。写真が無い人は名前だけ出す）
+let casts = [];          // この店のキャスト（名前がある人。メニューで非表示の人も選べるように後ろへ並べる。写真が無い人は名前だけ出す）
 let ym = '';             // 表示中の月 'YYYY-MM'
 let ledger = emptyLedger();
 let prevLedger = emptyLedger();
@@ -95,7 +95,8 @@ async function loadCasts() {
     .eq('store_id', storeId)
     .order('order');
   if (error) throw error;
-  casts = (data || []).filter((p) => p.visible && (p.name || '').trim());
+  const named = (data || []).filter((p) => (p.name || '').trim());
+  casts = [...named.filter((p) => p.visible), ...named.filter((p) => !p.visible)];
 }
 
 function castById(id) {
@@ -289,7 +290,7 @@ function pickCast(title, { allowRemove = false } = {}) {
         img.style.objectPosition = `${c.img_x ?? 50}% ${c.img_y ?? 30}%`;
       }
       const name = document.createElement('span');
-      name.textContent = c.name;
+      name.textContent = c.visible ? c.name : `${c.name}（非表示）`;
       b.append(img, name);
       b.addEventListener('click', () => done(c));
       grid.appendChild(b);
@@ -416,7 +417,7 @@ function renderFaceList() {
     applyCrop(img, cropOf(c));
     box.appendChild(img);
     const name = document.createElement('span');
-    name.textContent = c.name;
+    name.textContent = c.visible ? c.name : `${c.name}（非表示）`;
     b.append(box, name);
     b.addEventListener('click', () => editFace(c));
     list.appendChild(b);
