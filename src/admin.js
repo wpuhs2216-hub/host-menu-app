@@ -8,7 +8,7 @@ import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFro
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
-import { getStoreName, getStorePassword, logoutStore } from './storeContext.js';
+import { getStoreName, getStorePassword, logoutStore, getStoreId } from './storeContext.js';
 import { getSeatOptions, getColorLabel, getRawColorLabels, pullStoreSettings, saveStoreSettings, FONT_OPTIONS, getFont, applyMenuFont } from './storeSettings.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import { requireUnlock, openPatternSetup, hasLockPattern, clearLockPattern } from './lockAuth.js';
@@ -1825,6 +1825,10 @@ function renderSyncStatus(s) {
   syncStatusEl.className = `sync-status ${m.cls}`;
 }
 subscribeStatus(renderSyncStatus);
+
+// ファイナルカレンダーの入口（まず DIVA と テスト店舗 だけ）
+const linkFinale = document.getElementById('link-finale');
+if (linkFinale && ['gently-diva', 'test-store'].includes(getStoreId())) linkFinale.style.display = '';
 
 const btnLogout = document.getElementById('btn-logout');
 if (btnLogout) {

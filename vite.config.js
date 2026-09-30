@@ -53,11 +53,11 @@ export default defineConfig({
   plugins: [pagesRedirectIndexPlugin()],
   build: {
     rollupOptions: {
-      // Pages では admin / preview をビルド
+      // Pages では admin / preview / finale（ファイナルカレンダー）をビルド
       // index.html はリダイレクト用 HTML をプラグインで上書き出力
       input: isPages
-        ? { admin: 'admin.html', preview: 'preview.html' }
-        : { main: 'index.html', admin: 'admin.html' },
+        ? { admin: 'admin.html', preview: 'preview.html', finale: 'finale.html' }
+        : { main: 'index.html', admin: 'admin.html', finale: 'finale.html' },
     },
   },
   server: {

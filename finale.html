@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ファイナルカレンダー</title>
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" href="./admin-icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/finale.css" />
+</head>
+<body class="fc-body">
+  <header class="fc-bar">
+    <a href="./admin.html" class="fc-back">← 管理画面</a>
+    <div class="fc-month">
+      <button type="button" class="fc-nav" id="fc-prev" aria-label="前の月">‹</button>
+      <span id="fc-month-label">—</span>
+      <button type="button" class="fc-nav" id="fc-next" aria-label="次の月">›</button>
+    </div>
+    <button type="button" class="fc-save" id="fc-save">画像で保存</button>
+  </header>
+
+  <main class="fc-main">
+    <p class="fc-note" id="fc-note"></p>
+    <div class="fc-poster" id="fc-poster">
+      <img class="fc-bg" id="fc-bg" alt="" />
+      <div class="fc-hero" id="fc-hero"></div>
+      <div id="fc-slots"></div>
+    </div>
+
+    <section class="fc-panel" id="fc-hero-panel">
+      <h2>上の大枠（前月いちばんファイナルが多かった人）</h2>
+      <p id="fc-hero-desc" class="fc-desc"></p>
+      <div class="fc-actions">
+        <button type="button" id="fc-hero-pick">人を手で選ぶ</button>
+        <button type="button" id="fc-hero-auto">自動に戻す</button>
+        <label class="fc-file">背景を消した写真を載せる<input type="file" id="fc-hero-file" accept="image/png,image/webp" hidden /></label>
+        <button type="button" id="fc-hero-file-clear">載せた写真を外す</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/finale.js"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+/* ファイナルカレンダー（finale.html） */
+.fc-body {
+  user-select: auto;
+  padding-bottom: 32px;
+}
+
+.fc-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(10, 10, 10, 0.92);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+.fc-back { color: #aaa; text-decoration: none; font-size: 13px; white-space: nowrap; }
+.fc-month { display: flex; align-items: center; gap: 6px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; }
+.fc-nav {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: none; color: #d4af37;
+  font-size: 18px; line-height: 1; cursor: pointer;
+}
+.fc-save {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+  color: #d4af37; font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.fc-save:disabled { opacity: 0.5; }
+
+.fc-main { max-width: 620px; margin: 0 auto; padding: 12px 16px; }
+.fc-note { font-size: 13px; color: #ccc; line-height: 1.6; margin-bottom: 10px; }
+
+/* 元絵 1240×1754 と同じ縦横比の台。中身は % で重ねる */
+.fc-poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1240 / 1754;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #000;
+}
+.fc-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.fc-hero { position: absolute; pointer-events: none; }
+.fc-hero img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain; object-position: center bottom;
+}
+/* 背景を消していない写真は、ふちをぼかして丸く溶かす */
+.fc-hero-soft img {
+  object-fit: cover; object-position: center 30%;
+  -webkit-mask-image: radial-gradient(ellipse 50% 52% at 50% 45%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 52% at 50% 45%, #000 45%, transparent 100%);
+}
+
+.fc-slot {
+  position: absolute;
+  padding: 0; border: 0; background: none;
+  cursor: pointer; overflow: hidden;
+}
+.fc-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fc-slot-name {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 10% 2px 3%;
+  font-size: clamp(8px, 2.2vw, 13px); font-weight: 700; color: #fff;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+}
+.fc-slot-empty { cursor: default; }
+.fc-slot-next {
+  outline: 2px solid #d4af37;
+  outline-offset: -2px;
+  animation: fc-pulse 1.6s ease-in-out infinite;
+}
+.fc-plus { color: #d4af37; font-size: clamp(16px, 5vw, 30px); font-weight: 700; }
+@keyframes fc-pulse {
+  0%, 100% { background: rgba(212, 175, 55, 0.08); }
+  50% { background: rgba(212, 175, 55, 0.3); }
+}
+
+.fc-panel {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.fc-panel h2 { font-size: 14px; margin-bottom: 6px; color: #d4af37; }
+.fc-desc { font-size: 12px; color: #bbb; line-height: 1.6; margin-bottom: 10px; }
+.fc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.fc-actions button, .fc-file {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ddd; font-size: 12px; cursor: pointer;
+}
+
+/* 人を選ぶ小窓 */
+.fc-picker-backdrop { position: fixed; inset: 0; z-index: 1000; }
+.fc-picker { width: min(560px, calc(100vw - 32px)); max-height: 85vh; display: flex; flex-direction: column; }
+.fc-picker-title { font-weight: 700; margin-bottom: 10px; }
+.fc-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  padding: 2px;
+}
+.fc-pick {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 4px; border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff; cursor: pointer;
+}
+.fc-pick-photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; background: #333; }
+.fc-pick span { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-picker-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.fc-picker-actions button {
+  padding: 7px 14px; border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: none; color: #ddd; cursor: pointer;
+}
+.fc-picker-actions .fc-remove { color: #e0707a; border-color: rgba(220, 53, 69, 0.4); }
