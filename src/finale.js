@@ -22,7 +22,7 @@ const SLOT_XS = [58, 223, 388, 554, 719, 884, 1049];
 const SLOT_YS = [926, 1135, 1343];
 const SLOT_W = 134;
 const SLOT_H = 128;
-const MAX_DAYS = 20;
+const MAX_DAYS = 21; // 2026-10-01 背景の右下に DAY21 の枠を足した（DAY20 の枠を写して見出しを組み替えた）
 const HERO = { x: 248, y: 184, w: 744, h: 666 };
 
 // 営業終わりは日付をまたぐので、朝 6 時までは前の日（前の月）として扱う
@@ -271,7 +271,7 @@ function render() {
 
   const last = ledger.days[ledger.days.length - 1];
   document.getElementById('fc-note').textContent = next >= MAX_DAYS
-    ? `今月の 20 枠はすべて埋まりました。`
+    ? `今月の ${MAX_DAYS} 枠はすべて埋まりました。`
     : `枠の「＋」を押して、今日のファイナルの人を選んでください（次は DAY${next + 1}）。${last ? `最後に入れたのは DAY${next}「${last.name}」さんです。` : ''}`;
 }
 
