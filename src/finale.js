@@ -38,7 +38,7 @@ const NONE_CROP = { x: 0.5, y: 0.5, z: 1.3 };
 
 const slotRect = (i) => ({ x: SLOT_XS[i % 7], y: SLOT_YS[Math.floor(i / 7)], w: SLOT_W, h: SLOT_H });
 
-// @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真（倉庫の finale/<店>/<年-月>.json） #一覧
+// @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景（倉庫の finale/<店>/<年-月>.json） #一覧
 const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
 const heroImagePath = (store, ym) => `finale/${store}/hero-${ym}-${Date.now()}.webp`;
 // @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
@@ -289,7 +289,8 @@ function fitName(text) {
 // 手で選んだ人がいればその人。いなければ前月の回数がいちばん多い人（同じ回数なら先にその回数へ届いた人）
 function resolveHero() {
   const h = ledger.hero || {};
-  if (h.panelId) return { panelId: h.panelId, name: h.name, image: h.image || '', how: 'manual' };
+  // frame = 大枠の人を背景の絵ごと作り直した 1 枚（元絵と同じ 1240×1754）。あれば背景をこれに替え、大枠には何も重ねない
+  if (h.panelId) return { panelId: h.panelId, name: h.name, image: h.image || '', frame: h.frame || '', how: 'manual' };
   const counts = new Map();
   let best = null;
   for (const d of prevLedger.days) {
@@ -379,7 +380,10 @@ function render() {
   placeBox(box, HERO);
   box.innerHTML = '';
   box.classList.toggle('fc-hero-soft', !hero.image);
-  const src = hero.image ? publicImageUrl(hero.image) : castPhoto(castById(hero.panelId));
+  const bgEl = document.getElementById('fc-bg');
+  const bgSrc = hero.frame ? publicImageUrl(hero.frame) : `${import.meta.env.BASE_URL}${calendar.bg}`;
+  if (bgEl.getAttribute('src') !== bgSrc) bgEl.src = bgSrc;
+  const src = hero.frame ? '' : hero.image ? publicImageUrl(hero.image) : castPhoto(castById(hero.panelId));
   if (src) {
     const img = document.createElement('img');
     img.crossOrigin = 'anonymous';
@@ -392,7 +396,7 @@ function render() {
   if (hero.how === 'manual') desc.textContent = `いまは「${hero.name}」さんを手で選んでいます。`;
   else if (hero.how === 'auto') desc.textContent = `前月（${ymLabel(shiftYm(ym, -1))}）いちばん多かった「${hero.name}」さん（${hero.count} 回）を自動で出しています。${hero.tie ? '同じ回数の人がいます。先にその回数に届いた人を出しています。変えたい時は手で選んでください。' : ''}`;
   else desc.textContent = `前月（${ymLabel(shiftYm(ym, -1))}）の記録がありません。「人を手で選ぶ」で決めてください。`;
-  desc.textContent += hero.image ? ' 写真は背景を消した物を使っています。' : ' 写真はメニューの写真をふちをぼかして使っています。背景を消した写真を載せるときれいになります。';
+  desc.textContent += hero.frame ? ' 背景の絵ごと作り直した 1 枚を使っています。' : hero.image ? ' 写真は背景を消した物を使っています。' : ' 写真はメニューの写真をふちをぼかして使っています。背景を消した写真を載せるときれいになります。';
 
   const last = ledger.days[ledger.days.length - 1];
   document.getElementById('fc-note').textContent = next >= MAX_DAYS
@@ -516,8 +520,8 @@ async function onHeroPick() {
   const c = await pickCast('上の大枠に出す人');
   if (!c || c === 'remove') return;
   ledger = await loadLedger(ym);
-  const keepImage = ledger.hero?.panelId === c.id ? ledger.hero.image : '';
-  ledger.hero = { panelId: c.id, name: c.name, image: keepImage || '' };
+  const same = ledger.hero?.panelId === c.id;
+  ledger.hero = { panelId: c.id, name: c.name, image: (same && ledger.hero.image) || '', frame: (same && ledger.hero.frame) || '' };
   await persist(`上の大枠を「${c.name}」さんにしました`);
 }
 
@@ -551,8 +555,8 @@ async function onHeroFile(e) {
 
 async function onHeroFileClear() {
   ledger = await loadLedger(ym);
-  if (!ledger.hero?.image) { dlg.toast('載せた写真はありません'); return; }
-  ledger.hero = { ...ledger.hero, image: '' };
+  if (!ledger.hero?.image && !ledger.hero?.frame) { dlg.toast('載せた写真はありません'); return; }
+  ledger.hero = { ...ledger.hero, image: '', frame: '' };
   await persist('載せた写真を外しました');
 }
 
@@ -714,7 +718,9 @@ async function onSave() {
 
     // 上の大枠
     const hero = resolveHero();
-    if (hero.image) {
+    if (hero.frame) {
+      // 人入りの背景を使う月は、背景だけで大枠ができている
+    } else if (hero.image) {
       const img = await loadImg(publicImageUrl(hero.image));
       if (img) {
         const s = Math.min(HERO.w / img.naturalWidth, HERO.h / img.naturalHeight);
