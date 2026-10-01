@@ -18,6 +18,9 @@ const CALENDARS = {
 // 元絵の大きさと、灰色の枠・大枠の位置（画素）
 const ART_W = 1240;
 const ART_H = 1754;
+// 「画像で保存」の出来上がり（ストーリーの大きさ）
+const STORY_W = 1080;
+const STORY_H = 1920;
 const SLOT_XS = [58, 223, 388, 554, 719, 884, 1049];
 const SLOT_YS = [926, 1135, 1343];
 const SLOT_W = 134;
@@ -773,7 +776,18 @@ async function onSave() {
       });
     }
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    // ストーリーの大きさ（縦長 9:16）に入れ、上下の余りは黒で埋める
+    const story = document.createElement('canvas');
+    story.width = STORY_W;
+    story.height = STORY_H;
+    const sctx = story.getContext('2d');
+    sctx.fillStyle = '#000';
+    sctx.fillRect(0, 0, STORY_W, STORY_H);
+    sctx.imageSmoothingQuality = 'high';
+    const artH = Math.round((STORY_W * ART_H) / ART_W);
+    sctx.drawImage(canvas, 0, Math.round((STORY_H - artH) / 2), STORY_W, artH);
+
+    const blob = await new Promise((resolve) => story.toBlob(resolve, 'image/png'));
     if (!blob) throw new Error('画像を作れませんでした');
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
