@@ -7,8 +7,6 @@
 // ハジメルの設定画面から開かれた時（`?hj=<1 回きりの鍵>`）は、合言葉を打たずに入る。
 // 管理画面（admin.html）では、この設定画面の中に「ハジメル」の欄を足す（合言葉を決める・端末を外す）。
 // ⚠ 元の admin.html / admin.js は 1 文字も直さない。欄は起動後に差し込む。
-// 2026-09-26: 「台帳との照合」の欄も足す（ハジメルの道具の連携 ①）。台帳の名簿と、この板に残った名前を
-//   突き合わせて見せるだけ。店頭のタブレット（合言葉で入った端末）には口が返さないので、ハジメルから入った時だけ出る。
 
 import { isStoreFixed, fixStore, rememberPin, getStoreName, getStoreId } from './storeContext.js';
 
@@ -123,10 +121,6 @@ async function injectHajimeruSection() {
       <label>入っている端末（外すと、その端末はもう一度合言葉を打つまで板を見られません）</label>
       <div id="hj-devices" style="font-size:0.9em"></div>
     </div>
-    <div class="form-group">
-      <label>台帳との照合（ハジメルの台帳にいる人が、この板にも名前で残っているか。見るだけで、どちらも書き換えません）</label>
-      <div id="hj-links" style="font-size:0.9em"></div>
-    </div>
   `;
   anchor.after(sec);
   const status = sec.querySelector('#hj-pin-status');
@@ -150,22 +144,6 @@ async function injectHajimeruSection() {
       await render();
     });
   };
-  const renderLinks = async () => {
-    const box = sec.querySelector('#hj-links');
-    const res = await fetch(`${API}/links`, { credentials: 'same-origin' });
-    let json = null; try { json = await res.json(); } catch { /* ignore */ }
-    if (!res.ok || !json || json.error) { box.innerHTML = `<span style="opacity:.6">${esc(json?.error?.message || `読めません（HTTP ${res.status}）`)}</span>`; return; }
-    const l = json.data;
-    const day = (x) => (x ? String(x).slice(0, 10) : 'まだ');
-    const line = (name, right, left) => `
-      <div class="toolbar" style="justify-content:space-between;padding:.25em 0;border-bottom:1px solid rgba(255,255,255,.08)">
-        <span>${esc(name)}</span>
-        <span style="opacity:.75">この板 ${right.count} 件・最後 ${esc(day(right.lastAt))}${right.extra ? `・同意書 ${right.extra} 件` : ''}${left ? ` ／ 台帳 ${left.count} 回・最後 ${esc(day(left.lastAt))}` : ' ／ 台帳にいません'}</span>
-      </div>`;
-    const head = `<div style="opacity:.7;margin-bottom:.25em">名前と読みがなで突き合わせています（同じ名前の別の人は区別できません）。両方にいる人 ${l.both.length} 人・この板にだけある名前 ${l.rightOnly.length}${l.ambiguous.length ? `・台帳に同じ名前が複数あって決められなかった名前 ${l.ambiguous.length}` : ''}</div>`;
-    const rows = [...l.both.slice(0, 30).map((x) => line(x.name, x.right, x.left)), ...l.rightOnly.slice(0, 30).map((x) => line(x.name, x.right, null))];
-    box.innerHTML = head + (rows.join('') || '<span style="opacity:.6">まだ突き合わせられる名前はありません</span>');
-  };
   sec.querySelector('#hj-pin-save').addEventListener('click', async () => {
     const pin = sec.querySelector('#hj-pin').value.trim();
     if (!/^[0-9]{4,8}$/.test(pin)) { status.textContent = '4〜8 桁の数字にしてください'; return; }
@@ -178,7 +156,7 @@ async function injectHajimeruSection() {
     await render();
   });
   // 合鍵が付いてから読む（ensureStoreFixed の後）
-  const wait = setInterval(async () => { if (isStoreFixed()) { clearInterval(wait); await render(); await renderLinks(); } }, 500);
+  const wait = setInterval(async () => { if (isStoreFixed()) { clearInterval(wait); await render(); } }, 500);
 }
 
 function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
