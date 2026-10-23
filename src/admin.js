@@ -100,6 +100,8 @@ document.getElementById('pw-cancel').addEventListener('click', async () => {
 // その後、既ログインなら自動で admin に入る、未ログインならパスワード画面を表示。
 (async () => {
   await ensureStoreFixed({ grantAdmin: true });
+  // 店が決まってから入口の出し分けをやり直す（初回ログインの端末で出なかった対策）
+  updateFinaleLink();
   if (isLoggedIn()) {
     enterAdmin();
   } else {
@@ -1829,8 +1831,15 @@ function renderSyncStatus(s) {
 subscribeStatus(renderSyncStatus);
 
 // ファイナルカレンダーの入口（まず DIVA と テスト店舗 だけ）
-const linkFinale = document.getElementById('link-finale');
-if (linkFinale && ['gently-diva', 'test-store'].includes(getStoreId())) linkFinale.style.display = '';
+// ⚠ 店が決まる前に一度きり判定すると、入れたばかりの端末（PWA を入れた直後など）では
+//    店が空のまま判定されて一生出ない。店が決まった後にも必ず呼び直す。
+function updateFinaleLink() {
+  const linkFinale = document.getElementById('link-finale');
+  if (!linkFinale) return;
+  const 出す = ['gently-diva', 'test-store'].includes(getStoreId());
+  linkFinale.style.display = 出す ? '' : 'none';
+}
+updateFinaleLink();
 
 const btnLogout = document.getElementById('btn-logout');
 if (btnLogout) {
