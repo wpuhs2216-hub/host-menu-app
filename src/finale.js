@@ -12,9 +12,11 @@ import * as dlg from './dialog.js';
 // 使える店と背景の絵。ここに無い店では画面を出さない
 // layouts = その月から使う並び（新しい月ほど後ろ）。書いていない月は版 1（背景の絵に枠まで描いてある）
 const DIVA_LAYOUTS = [{ from: '2026-11', layout: 'v2' }];
+// monthStarts = 月の始まりを前へずらす日（営業日の日付）。2026-10-31 の営業から 11 月のカレンダーにする（本人指示 2026-10-29）
+const DIVA_MONTH_STARTS = { '2026-11': '2026-10-31' };
 const CALENDARS = {
-  'gently-diva': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg', layouts: DIVA_LAYOUTS },
-  'test-store': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg', layouts: DIVA_LAYOUTS }, // 動作確認用
+  'gently-diva': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg', layouts: DIVA_LAYOUTS, monthStarts: DIVA_MONTH_STARTS },
+  'test-store': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg', layouts: DIVA_LAYOUTS, monthStarts: DIVA_MONTH_STARTS }, // 動作確認用
 };
 
 // 元絵の大きさと、灰色の枠・大枠の位置（画素）
@@ -93,7 +95,11 @@ function emptyLedger() {
 
 function businessYm(d = new Date()) {
   const t = new Date(d.getTime() - DAY_CUTOFF_HOURS * 3600 * 1000);
-  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+  const month = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+  // 次の月の始まりが前にずらしてあれば、その日からは次の月
+  const day = `${month}-${String(t.getDate()).padStart(2, '0')}`;
+  const nextStart = calendar?.monthStarts?.[shiftYm(month, 1)];
+  return nextStart && day >= nextStart ? shiftYm(month, 1) : month;
 }
 
 function shiftYm(value, step) {
