@@ -47,6 +47,11 @@
   background: #000;
 }
 .fc-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* 背景の無い月（版 2 で季節の背景をまだ載せていない）は白 */
+.fc-poster-light { background: #fff; }
+/* 版 2 の枠の絵（白い所が透明）。人の写真の上、日の枠の写真の下 */
+.fc-frame { pointer-events: none; }
+.fc-bg[hidden] { display: none; }
 
 .fc-hero { position: absolute; pointer-events: none; }
 .fc-hero img {

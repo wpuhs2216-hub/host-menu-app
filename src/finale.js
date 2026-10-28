@@ -10,9 +10,11 @@ import { ensureStoreFixed } from './storeLogin.js';
 import * as dlg from './dialog.js';
 
 // 使える店と背景の絵。ここに無い店では画面を出さない
+// layouts = その月から使う並び（新しい月ほど後ろ）。書いていない月は版 1（背景の絵に枠まで描いてある）
+const DIVA_LAYOUTS = [{ from: '2026-11', layout: 'v2' }];
 const CALENDARS = {
-  'gently-diva': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg' },
-  'test-store': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg' }, // 動作確認用
+  'gently-diva': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg', layouts: DIVA_LAYOUTS },
+  'test-store': { bg: 'finale/diva-bg.jpg', none: 'finale/diva-none.jpg', layouts: DIVA_LAYOUTS }, // 動作確認用
 };
 
 // 元絵の大きさと、灰色の枠・大枠の位置（画素）
@@ -21,12 +23,35 @@ const ART_H = 1754;
 // 「画像で保存」の出来上がり（ストーリーの大きさ）
 const STORY_W = 1080;
 const STORY_H = 1920;
-const SLOT_XS = [58, 223, 388, 554, 719, 884, 1049];
-const SLOT_YS = [926, 1135, 1343];
+// 名前の字の大きさと、写真の切り取りの基準にする枠の大きさ（版 1 の枠）
 const SLOT_W = 134;
 const SLOT_H = 128;
-const MAX_DAYS = 21; // 2026-10-01 背景の右下に DAY21 の枠を足した（DAY20 の枠を写して見出しを組み替えた）
-const HERO = { x: 248, y: 184, w: 744, h: 666 };
+
+// 版 1（2026-10 まで）: 背景の絵 1 枚に枠も大枠も描いてある。DAY1〜21、上の真ん中に大枠
+const V1_XS = [58, 223, 388, 554, 719, 884, 1049];
+const V1_YS = [926, 1135, 1343];
+// 版 2（2026-11 から）: 白い所が透明な枠の絵（frame）を、季節の背景と左上の人の上に重ねる。
+// DAY1〜20 と、左の「Today's FINALE」の大きな枠（その月の最後に入れた人）。位置は元絵 1240×1754 の画素
+const V2_ROWS = [
+  { y: 945, xs: [391, 556, 721, 886, 1051] },
+  { y: 1155, xs: [391, 556, 721, 886, 1051] },
+  { y: 1365, xs: [60, 225, 391, 556, 721, 886, 1051] },
+  { y: 1575, xs: [60, 225, 391] },
+];
+const LAYOUTS = {
+  v1: {
+    frame: '',
+    slots: Array.from({ length: 21 }, (_, i) => ({ x: V1_XS[i % 7], y: V1_YS[Math.floor(i / 7)], w: SLOT_W, h: SLOT_H })),
+    hero: { x: 248, y: 184, w: 744, h: 666 },
+    today: null,
+  },
+  v2: {
+    frame: 'finale/diva-frame-v2.png',
+    slots: V2_ROWS.flatMap((row) => row.xs.map((x) => ({ x, y: row.y, w: 133, h: 126 }))),
+    hero: { x: 30, y: 40, w: 600, h: 870 }, // 下の端は枠の後ろに少しもぐる
+    today: { x: 60, y: 997, w: 299, h: 284 },
+  },
+};
 
 // 営業終わりは日付をまたぐので、朝 6 時までは前の日（前の月）として扱う
 const DAY_CUTOFF_HOURS = 6;
@@ -36,14 +61,21 @@ const NONE_ID = '__none__';
 const NONE_NAME = 'ファイナルなし';
 const NONE_CROP = { x: 0.5, y: 0.5, z: 1.3 };
 
-const slotRect = (i) => ({ x: SLOT_XS[i % 7], y: SLOT_YS[Math.floor(i / 7)], w: SLOT_W, h: SLOT_H });
+let layout = LAYOUTS.v1;  // 表示中の月の並び（openMonth で決める）
+function layoutOf(month) {
+  let key = 'v1';
+  for (const l of calendar?.layouts || []) if (month >= l.from) key = l.layout;
+  return LAYOUTS[key];
+}
+const maxDays = () => layout.slots.length;
 
 // @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景（倉庫の finale/<店>/<年-月>.json） #一覧
 const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
 const heroImagePath = (store, ym) => `finale/${store}/hero-${ym}-${Date.now()}.webp`;
+const seasonBgPath = (store, ym, ext) => `finale/${store}/season-${ym}-${Date.now()}.${ext}`;
 // @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
 const facesPath = (store) => `finale/${store}/faces.json`;
-// @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
+// @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか・季節の背景をどの月から使うか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
 const settingsPath = (store) => `finale/${store}/settings.json`;
 
 let storeId = '';
@@ -239,8 +271,9 @@ function drawCrop(ctx, img, r, crop) {
 // ===== 表示設定 =====
 async function loadViewSettings() {
   const res = await fetch(`${publicImageUrl(settingsPath(storeId))}?t=${Date.now()}`, { cache: 'no-store' });
-  if (!res.ok) return { showNames: true };
-  try { return { showNames: true, ...(await res.json()) }; } catch { return { showNames: true }; }
+  const base = { showNames: true, seasonBgs: [] }; // seasonBgs = [{ from: 'YYYY-MM', path }]。その月から次の背景までずっと使う
+  if (!res.ok) return base;
+  try { return { ...base, ...(await res.json()) }; } catch { return base; }
 }
 
 async function saveViewSettings(patch) {
@@ -314,6 +347,65 @@ function placeBox(el, r) {
   el.style.height = pct(r.h, ART_H);
 }
 
+// その月の最後に入れた人（空いた枠は飛ばす）
+function lastEntry() {
+  for (let i = ledger.days.length - 1; i >= 0; i--) if (ledger.days[i]) return ledger.days[i];
+  return null;
+}
+
+// その月に使う季節の背景（その月より前で、いちばん新しく載せた物）
+function seasonBgFor(month) {
+  let hit = null;
+  for (const b of viewSettings.seasonBgs || []) if (b.from <= month && (!hit || b.from > hit.from)) hit = b;
+  return hit;
+}
+
+// 枠より下に敷く絵。人入りの背景（hero.frame）> 版 2 は季節の背景 > 版 1 は店の背景の絵。無ければ白
+function posterBgSrc() {
+  const hero = resolveHero();
+  if (hero.frame) return publicImageUrl(hero.frame);
+  if (layout.frame) {
+    const season = seasonBgFor(ym);
+    return season ? publicImageUrl(season.path) : '';
+  }
+  return `${import.meta.env.BASE_URL}${calendar.bg}`;
+}
+
+// 枠の中身（写真と名前）を画面に置く。r は枠の大きさ（写真の切り取りに使う）
+function fillSlotEl(el, d, r) {
+  if (d.panelId === NONE_ID) {
+    if (noneImage()) {
+      const img = document.createElement('img');
+      img.alt = NONE_NAME;
+      img.src = noneImage();
+      img.className = 'fc-crop';
+      applyCrop(img, NONE_CROP, r.w, r.h);
+      el.appendChild(img);
+    }
+    return;
+  }
+  const c = castById(d.panelId);
+  if (castPhoto(c)) {
+    const img = document.createElement('img');
+    img.crossOrigin = 'anonymous';
+    img.alt = d.name || '';
+    img.src = castPhoto(c);
+    img.className = 'fc-crop';
+    applyCrop(img, cropOf(c), r.w, r.h);
+    el.appendChild(img);
+  }
+  if (!viewSettings.showNames || !d.name) return;
+  const name = document.createElement('span');
+  name.className = 'fc-slot-name';
+  const fit = fitName(d.name);
+  name.style.fontSize = `${(fit.size / SLOT_W) * 100}cqw`; // 枠の幅に対する割合（保存画像と同じ比率）
+  for (const [k, line] of fit.lines.entries()) {
+    if (k) name.appendChild(document.createElement('br'));
+    name.appendChild(document.createTextNode(line));
+  }
+  el.appendChild(name);
+}
+
 function render() {
   document.getElementById('fc-month-label').textContent = ymLabel(ym);
 
@@ -321,42 +413,15 @@ function render() {
   const wrap = document.getElementById('fc-slots');
   wrap.innerHTML = '';
   const next = ledger.days.length;
-  for (let i = 0; i < MAX_DAYS; i++) {
+  for (let i = 0; i < maxDays(); i++) {
     const d = ledger.days[i];
+    const r = layout.slots[i];
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'fc-slot';
-    placeBox(el, slotRect(i));
-    if (d && d.panelId === NONE_ID) {
-      if (noneImage()) {
-        const img = document.createElement('img');
-        img.alt = NONE_NAME;
-        img.src = noneImage();
-        img.className = 'fc-crop';
-        applyCrop(img, NONE_CROP);
-        el.appendChild(img);
-      }
-      el.addEventListener('click', () => onFilledSlot(i));
-    } else if (d) {
-      const c = castById(d.panelId);
-      if (castPhoto(c)) {
-        const img = document.createElement('img');
-        img.crossOrigin = 'anonymous';
-        img.alt = d.name || '';
-        img.src = castPhoto(c);
-        img.className = 'fc-crop';
-        applyCrop(img, cropOf(c));
-        el.appendChild(img);
-      }
-      const name = document.createElement('span');
-      name.className = 'fc-slot-name';
-      const fit = fitName(d.name);
-      name.style.fontSize = `${(fit.size / SLOT_W) * 100}cqw`; // 枠の幅に対する割合（保存画像と同じ比率）
-      for (const [k, line] of fit.lines.entries()) {
-        if (k) name.appendChild(document.createElement('br'));
-        name.appendChild(document.createTextNode(line));
-      }
-      if (viewSettings.showNames && d.name) el.appendChild(name);
+    placeBox(el, r);
+    if (d) {
+      fillSlotEl(el, d, r);
       el.addEventListener('click', () => onFilledSlot(i));
     } else if (i < next) {
       // 途中で消して空いた枠。押せばまた入れられる
@@ -374,15 +439,39 @@ function render() {
     wrap.appendChild(el);
   }
 
-  // 上の大枠
+  // 「Today's FINALE」の枠（版 2）: その月の最後に入れた人
+  const today = lastEntry();
+  if (layout.today && today) {
+    const el = document.createElement('div');
+    el.className = 'fc-slot fc-today';
+    placeBox(el, layout.today);
+    fillSlotEl(el, today, layout.today);
+    wrap.appendChild(el);
+  }
+
+  // 背景と枠の絵
+  const poster = document.getElementById('fc-poster');
+  const bgEl = document.getElementById('fc-bg');
+  const bgSrc = posterBgSrc();
+  poster.classList.toggle('fc-poster-light', !bgSrc);
+  bgEl.hidden = !bgSrc;
+  if (bgSrc && bgEl.getAttribute('src') !== bgSrc) bgEl.src = bgSrc;
+  const frameEl = document.getElementById('fc-frame');
+  const frameSrc = layout.frame ? `${import.meta.env.BASE_URL}${layout.frame}` : '';
+  frameEl.hidden = !frameSrc;
+  if (frameSrc && frameEl.getAttribute('src') !== frameSrc) frameEl.src = frameSrc;
+  document.getElementById('fc-season').hidden = !layout.frame;
+  const season = seasonBgFor(ym);
+  document.getElementById('fc-season-desc').textContent = season
+    ? `いまは ${ymLabel(season.from)} から載せた背景を使っています（次に載せ替えるまで、その後の月もずっと同じ背景です）。`
+    : 'まだ背景がありません（白のままです）。季節の背景を載せると、この月から使います。';
+
+  // 上の大枠（版 2 は左上）
   const hero = resolveHero();
   const box = document.getElementById('fc-hero');
-  placeBox(box, HERO);
+  placeBox(box, layout.hero);
   box.innerHTML = '';
   box.classList.toggle('fc-hero-soft', !hero.image);
-  const bgEl = document.getElementById('fc-bg');
-  const bgSrc = hero.frame ? publicImageUrl(hero.frame) : `${import.meta.env.BASE_URL}${calendar.bg}`;
-  if (bgEl.getAttribute('src') !== bgSrc) bgEl.src = bgSrc;
   const src = hero.frame ? '' : hero.image ? publicImageUrl(hero.image) : castPhoto(castById(hero.panelId));
   if (src) {
     const img = document.createElement('img');
@@ -399,8 +488,8 @@ function render() {
   desc.textContent += hero.frame ? ' 背景の絵ごと作り直した 1 枚を使っています。' : hero.image ? ' 写真は背景を消した物を使っています。' : ' 写真はメニューの写真をふちをぼかして使っています。背景を消した写真を載せるときれいになります。';
 
   const last = ledger.days[ledger.days.length - 1];
-  document.getElementById('fc-note').textContent = next >= MAX_DAYS
-    ? `今月の ${MAX_DAYS} 枠はすべて埋まりました。`
+  document.getElementById('fc-note').textContent = next >= maxDays()
+    ? `今月の ${maxDays()} 枠はすべて埋まりました。`
     : `枠の「＋」を押して、今日のファイナルの人を選んでください（次は DAY${next + 1}）。${last ? `最後に入れたのは DAY${next}「${last.name}」さんです。` : ''}`;
 }
 
@@ -469,7 +558,7 @@ async function persist(message) {
 }
 
 async function onNextSlot() {
-  if (ledger.days.length >= MAX_DAYS) return;
+  if (ledger.days.length >= maxDays()) return;
   // 同じ営業日を 2 回入れてしまうのを防ぐ（最後の記録から 12 時間以内なら聞く）
   const last = ledger.days[ledger.days.length - 1];
   if (last && Date.now() - new Date(last.at).getTime() < 12 * 3600 * 1000) {
@@ -558,6 +647,45 @@ async function onHeroFileClear() {
   if (!ledger.hero?.image && !ledger.hero?.frame) { dlg.toast('載せた写真はありません'); return; }
   ledger.hero = { ...ledger.hero, image: '', frame: '' };
   await persist('載せた写真を外しました');
+}
+
+// ===== 季節の背景（版 2）=====
+// 表示中の月から使う。次に載せ替えるまで、その後の月もずっと同じ背景
+async function onSeasonFile(e) {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = seasonBgPath(storeId, ym, ext);
+    const { error } = await supabase.storage.from(PANEL_BUCKET).upload(path, file, {
+      contentType: file.type || 'image/jpeg',
+      upsert: false,
+      cacheControl: '3600',
+    });
+    if (error) throw error;
+    const list = ((await loadViewSettings()).seasonBgs || []).filter((b) => b.from !== ym);
+    await saveViewSettings({ seasonBgs: [...list, { from: ym, path }] });
+    render();
+    dlg.toast(`${ymLabel(ym)} から、この背景を使います`);
+  } catch (err) {
+    await dlg.alert(`背景を載せられませんでした。\n${err.message || err}`);
+  }
+}
+
+async function onSeasonClear() {
+  const list = (await loadViewSettings()).seasonBgs || [];
+  if (!list.some((b) => b.from === ym)) {
+    await dlg.alert(`${ymLabel(ym)} から載せた背景はありません。前の月から続いている背景は、その月を開いて外してください。`);
+    return;
+  }
+  try {
+    await saveViewSettings({ seasonBgs: list.filter((b) => b.from !== ym) });
+    render();
+    dlg.toast(`${ymLabel(ym)} から載せた背景を外しました`);
+  } catch (err) {
+    await dlg.alert(`保存できませんでした。\n${err.message || err}`);
+  }
 }
 
 // ===== 枠の顔の位置を直す =====
@@ -705,6 +833,39 @@ function drawCover(ctx, img, r, posX = 50, posY = 30) {
   ctx.drawImage(img, sx, sy, sw, sh, r.x, r.y, r.w, r.h);
 }
 
+// 枠の中身（写真と名前）を保存画像に描く。名前は画面と同じく枠の幅に比例させる
+async function drawSlotEntry(ctx, d, r) {
+  if (d.panelId === NONE_ID) {
+    // ファイナルなしの日は店のロゴだけ（名前の帯は付けない）
+    const logo = await loadImg(noneImage());
+    if (logo) drawCrop(ctx, logo, r, NONE_CROP);
+    return;
+  }
+  const c = castById(d.panelId);
+  const img = await loadImg(castPhoto(c));
+  if (img) drawCrop(ctx, img, r, cropOf(c));
+  // 名前（下に薄い帯）。名前を出さない設定の時は描かない
+  if (!viewSettings.showNames || !d.name) return;
+  const k = r.w / SLOT_W;
+  const fit = fitName(d.name);
+  const size = fit.size * k;
+  const lineH = Math.round(size * 1.2);
+  const bandH = Math.min(r.h, lineH * fit.lines.length + 16 * k);
+  const g = ctx.createLinearGradient(0, r.y + r.h - bandH, 0, r.y + r.h);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.75)');
+  ctx.fillStyle = g;
+  ctx.fillRect(r.x, r.y + r.h - bandH, r.w, bandH);
+  ctx.fillStyle = '#fff';
+  ctx.font = `700 ${size}px ${NAME_FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  fit.lines.forEach((line, j) => {
+    const y = r.y + r.h - 7 * k - (fit.lines.length - 1 - j) * lineH;
+    ctx.fillText(line, r.x + r.w / 2, y);
+  });
+}
+
 async function onSave() {
   const btn = document.getElementById('fc-save');
   btn.disabled = true;
@@ -713,8 +874,11 @@ async function onSave() {
     canvas.width = ART_W;
     canvas.height = ART_H;
     const ctx = canvas.getContext('2d');
-    const bg = await loadImg(document.getElementById('fc-bg').src);
+    ctx.fillStyle = '#fff'; // 背景の無い月は白
+    ctx.fillRect(0, 0, ART_W, ART_H);
+    const bg = await loadImg(posterBgSrc());
     if (bg) ctx.drawImage(bg, 0, 0, ART_W, ART_H);
+    const HERO = layout.hero;
 
     // 上の大枠
     const hero = resolveHero();
@@ -748,39 +912,18 @@ async function onSave() {
       }
     }
 
-    // 日の枠
-    for (let i = 0; i < ledger.days.length && i < MAX_DAYS; i++) {
-      const d = ledger.days[i];
-      if (!d) continue; // 空いた枠は灰色のまま
-      const r = slotRect(i);
-      if (d.panelId === NONE_ID) {
-        // ファイナルなしの日は店のロゴだけ（名前の帯は付けない）
-        const logo = await loadImg(noneImage());
-        if (logo) drawCrop(ctx, logo, r, NONE_CROP);
-        continue;
-      }
-      const c = castById(d.panelId);
-      const img = await loadImg(castPhoto(c));
-      if (img) drawCrop(ctx, img, r, cropOf(c));
-      // 名前（下に薄い帯）。名前を出さない設定の時は描かない
-      if (!viewSettings.showNames || !d.name) continue;
-      const fit = fitName(d.name);
-      const lineH = Math.round(fit.size * 1.2);
-      const bandH = Math.min(r.h, lineH * fit.lines.length + 16);
-      const g = ctx.createLinearGradient(0, r.y + r.h - bandH, 0, r.y + r.h);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(1, 'rgba(0,0,0,0.75)');
-      ctx.fillStyle = g;
-      ctx.fillRect(r.x, r.y + r.h - bandH, r.w, bandH);
-      ctx.fillStyle = '#fff';
-      ctx.font = `700 ${fit.size}px ${NAME_FONT}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
-      fit.lines.forEach((line, k) => {
-        const y = r.y + r.h - 7 - (fit.lines.length - 1 - k) * lineH;
-        ctx.fillText(line, r.x + r.w / 2, y);
-      });
+    // 枠の絵（版 2）。人の写真の上、日の枠の写真の下
+    if (layout.frame) {
+      const frame = await loadImg(`${import.meta.env.BASE_URL}${layout.frame}`);
+      if (frame) ctx.drawImage(frame, 0, 0, ART_W, ART_H);
     }
+
+    // 日の枠
+    for (let i = 0; i < ledger.days.length && i < maxDays(); i++) {
+      if (ledger.days[i]) await drawSlotEntry(ctx, ledger.days[i], layout.slots[i]); // 空いた枠は灰色のまま
+    }
+    const today = lastEntry();
+    if (layout.today && today) await drawSlotEntry(ctx, today, layout.today);
 
     // ストーリーの大きさ（縦長 9:16）に入れ、上下の余りは黒で埋める
     const story = document.createElement('canvas');
@@ -813,6 +956,7 @@ async function onSave() {
 // ===== 月の切り替え =====
 async function openMonth(month) {
   ym = month;
+  layout = layoutOf(ym);
   [ledger, prevLedger, faces, viewSettings] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces(), loadViewSettings()]);
   document.getElementById('fc-show-names').checked = viewSettings.showNames !== false;
   render();
@@ -827,7 +971,6 @@ async function openMonth(month) {
     document.querySelector('.fc-main').innerHTML = '<p class="fc-note">この店舗では、ファイナルカレンダーはまだ使えません。</p>';
     return;
   }
-  document.getElementById('fc-bg').src = `${import.meta.env.BASE_URL}${calendar.bg}`;
   try {
     await loadCasts();
   } catch (e) {
@@ -841,6 +984,8 @@ async function openMonth(month) {
   document.getElementById('fc-hero-file').addEventListener('change', onHeroFile);
   document.getElementById('fc-hero-file-clear').addEventListener('click', onHeroFileClear);
   document.getElementById('fc-face-list-open').addEventListener('click', toggleFaceList);
+  document.getElementById('fc-season-file').addEventListener('change', onSeasonFile);
+  document.getElementById('fc-season-clear').addEventListener('click', onSeasonClear);
   document.getElementById('fc-show-names').addEventListener('change', async (e) => {
     const on = e.target.checked;
     try {

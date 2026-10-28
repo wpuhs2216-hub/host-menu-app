@@ -27,17 +27,27 @@
     <div class="fc-poster" id="fc-poster">
       <img class="fc-bg" id="fc-bg" alt="" />
       <div class="fc-hero" id="fc-hero"></div>
+      <img class="fc-bg fc-frame" id="fc-frame" alt="" hidden />
       <div id="fc-slots"></div>
     </div>
 
     <section class="fc-panel" id="fc-hero-panel">
-      <h2>上の大枠（前月いちばんファイナルが多かった人）</h2>
+      <h2>大きく出す人（前月いちばんファイナルが多かった人）</h2>
       <p id="fc-hero-desc" class="fc-desc"></p>
       <div class="fc-actions">
         <button type="button" id="fc-hero-pick">人を手で選ぶ</button>
         <button type="button" id="fc-hero-auto">自動に戻す</button>
         <label class="fc-file">背景を消した写真を載せる<input type="file" id="fc-hero-file" accept="image/png,image/webp" hidden /></label>
         <button type="button" id="fc-hero-file-clear">載せた写真を外す</button>
+      </div>
+    </section>
+
+    <section class="fc-panel" id="fc-season" hidden>
+      <h2>季節の背景</h2>
+      <p id="fc-season-desc" class="fc-desc"></p>
+      <div class="fc-actions">
+        <label class="fc-file">この月から使う背景を載せる<input type="file" id="fc-season-file" accept="image/png,image/jpeg,image/webp" hidden /></label>
+        <button type="button" id="fc-season-clear">この月から載せた背景を外す</button>
       </div>
     </section>
 
