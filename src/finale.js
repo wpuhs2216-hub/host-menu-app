@@ -73,10 +73,12 @@ const maxDays = () => layout.slots.length;
 
 // @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景（倉庫の finale/<店>/<年-月>.json） #一覧
 const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
-const heroImagePath = (store, ym) => `finale/${store}/hero-${ym}-${Date.now()}.webp`;
 const seasonBgPath = (store, ym, ext) => `finale/${store}/season-${ym}-${Date.now()}.${ext}`;
 // @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
 const facesPath = (store) => `finale/${store}/faces.json`;
+// @ハジメル 人ごとの透過写真: 大きく出す枠に使う、背景を消した写真の置き場所（人ごと。どの月にも効く。倉庫の finale/<店>/cutouts.json） #設定
+const cutoutsPath = (store) => `finale/${store}/cutouts.json`;
+const cutoutImagePath = (store, panelId, ext) => `finale/${store}/cutout-${panelId}-${Date.now()}.${ext}`;
 // @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか・季節の背景をどの月から使うか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
 const settingsPath = (store) => `finale/${store}/settings.json`;
 
@@ -86,6 +88,7 @@ let casts = [];          // 系列の全店のキャスト（名前がある人�
 let ym = '';             // 表示中の月 'YYYY-MM'
 let ledger = emptyLedger();
 let prevLedger = emptyLedger();
+let cutouts = {};        // { panelId: { path, at } }（その人の背景を消した写真。前もって作っておく）
 let faces = {};          // { panelId: { x, y, z, v, auto } }（x・y は写真の中の中心の位置 0〜1、z は拡大率）
 let viewSettings = { showNames: true };
 
@@ -225,6 +228,28 @@ async function loadFaces() {
   try { return (await res.json()) || {}; } catch { return {}; }
 }
 
+async function loadCutouts() {
+  const res = await fetch(`${publicImageUrl(cutoutsPath(storeId))}?t=${Date.now()}`, { cache: 'no-store' });
+  if (!res.ok) return {};
+  try { return (await res.json()) || {}; } catch { return {}; }
+}
+
+// 1 人分だけ書き換える（書く直前に読み直して、ほかの人の分を消さない）
+async function saveCutout(panelId, value) {
+  const latest = await loadCutouts();
+  if (value) latest[panelId] = value; else delete latest[panelId];
+  const blob = new Blob([JSON.stringify(latest)], { type: 'application/json' });
+  const { error } = await supabase.storage.from(PANEL_BUCKET).upload(cutoutsPath(storeId), blob, {
+    contentType: 'application/json',
+    upsert: true,
+    cacheControl: '0',
+  });
+  if (error) throw error;
+  cutouts = latest;
+}
+
+const cutoutOf = (panelId) => (panelId && cutouts[panelId]?.path) || '';
+
 // 1 人分だけ書き換える（書く直前に読み直して、ほかの人の分を消さない）
 async function saveFace(panelId, value) {
   const latest = await loadFaces();
@@ -329,7 +354,8 @@ function fitName(text) {
 function resolveHero() {
   const h = ledger.hero || {};
   // frame = 大枠の人を背景の絵ごと作り直した 1 枚（元絵と同じ 1240×1754）。あれば背景をこれに替え、大枠には何も重ねない
-  if (h.panelId) return { panelId: h.panelId, name: h.name, image: h.image || '', frame: h.frame || '', how: 'manual' };
+  // image = その月に載せた写真 > その人の透過写真（cutouts）
+  if (h.panelId) return { panelId: h.panelId, name: h.name, image: h.image || cutoutOf(h.panelId), frame: h.frame || '', how: 'manual' };
   const counts = new Map();
   let best = null;
   for (const d of prevLedger.days) {
@@ -340,7 +366,7 @@ function resolveHero() {
   }
   if (!best) return { panelId: '', name: '', image: h.image || '', how: 'none' };
   const tie = [...counts.values()].filter((n) => n === best.count).length > 1;
-  return { ...best, image: h.image || '', how: 'auto', tie };
+  return { ...best, image: h.image || cutoutOf(best.panelId), how: 'auto', tie };
 }
 
 // ===== 描く =====
@@ -633,16 +659,25 @@ async function onHeroFile(e) {
   const hero = resolveHero();
   if (!hero.panelId) { await dlg.alert('先に「人を手で選ぶ」で、大枠に出す人を決めてください。'); return; }
   try {
-    const path = heroImagePath(storeId, ym);
+    // その人の写真として覚える（月ごとではない）。その人が大きく出る月は、いつもこれを使う
+    const ext = file.type === 'image/webp' ? 'webp' : 'png';
+    const path = cutoutImagePath(storeId, hero.panelId, ext);
     const { error } = await supabase.storage.from(PANEL_BUCKET).upload(path, file, {
       contentType: file.type || 'image/png',
       upsert: false,
       cacheControl: '3600',
     });
     if (error) throw error;
+    await saveCutout(hero.panelId, { path, name: hero.name, at: new Date().toISOString() });
+    // 前にこの月だけ載せた写真があれば外す（人ごとの写真を使うため）
     ledger = await loadLedger(ym);
-    ledger.hero = { panelId: hero.panelId, name: hero.name, image: path };
-    await persist('大枠の写真を載せました');
+    if (ledger.hero?.image) {
+      ledger.hero = { ...ledger.hero, image: '' };
+      await persist(`「${hero.name}」さんの透過写真を覚えました`);
+    } else {
+      render();
+      dlg.toast(`「${hero.name}」さんの透過写真を覚えました。この人が大きく出る月は、いつもこれを使います`);
+    }
   } catch (err) {
     await dlg.alert(`写真を載せられませんでした。\n${err.message || err}`);
   }
@@ -650,9 +685,22 @@ async function onHeroFile(e) {
 
 async function onHeroFileClear() {
   ledger = await loadLedger(ym);
-  if (!ledger.hero?.image && !ledger.hero?.frame) { dlg.toast('載せた写真はありません'); return; }
-  ledger.hero = { ...ledger.hero, image: '', frame: '' };
-  await persist('載せた写真を外しました');
+  if (ledger.hero?.image || ledger.hero?.frame) {
+    ledger.hero = { ...ledger.hero, image: '', frame: '' };
+    await persist('載せた写真を外しました');
+    return;
+  }
+  const hero = resolveHero();
+  if (!cutouts[hero.panelId]) { dlg.toast('載せた写真はありません'); return; }
+  const ok = await dlg.confirm(`「${hero.name}」さんの透過写真を外しますか？\nほかの月でも、この人はメニューの写真（ふちをぼかした物）に戻ります。`, { okLabel: '外す' });
+  if (!ok) return;
+  try {
+    await saveCutout(hero.panelId, null);
+    render();
+    dlg.toast('透過写真を外しました');
+  } catch (err) {
+    await dlg.alert(`保存できませんでした。\n${err.message || err}`);
+  }
 }
 
 // ===== 季節の背景（版 2）=====
@@ -963,7 +1011,7 @@ async function onSave() {
 async function openMonth(month) {
   ym = month;
   layout = layoutOf(ym);
-  [ledger, prevLedger, faces, viewSettings] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces(), loadViewSettings()]);
+  [ledger, prevLedger, faces, viewSettings, cutouts] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces(), loadViewSettings(), loadCutouts()]);
   document.getElementById('fc-show-names').checked = viewSettings.showNames !== false;
   render();
 }
