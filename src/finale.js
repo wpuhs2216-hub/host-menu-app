@@ -48,7 +48,7 @@ const LAYOUTS = {
     today: null,
   },
   v2: {
-    frame: 'finale/diva-frame-v2b.png',
+    frame: 'finale/diva-frame-v2c.png',
     slots: V2_ROWS.flatMap((row) => row.xs.map((x) => ({ x, y: row.y, w: 133, h: 126 }))),
     hero: { x: 30, y: 40, w: 600, h: 870 }, // 下の端は枠の後ろに少しもぐる
     today: { x: 60, y: 997, w: 299, h: 284 },
