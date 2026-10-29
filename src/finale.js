@@ -40,9 +40,9 @@ const V2_ROWS = [
   { y: 1365, xs: [60, 225, 391, 556, 721, 886, 1051] },
   { y: 1575, xs: [60, 225, 391] },
 ];
-// 版 2 は、元絵のカレンダー部分（外枠の線の箱）を左右と下の縁ぎりぎり（V2_MARGIN）まで広げて使う。
-// 上の位置は元絵で測った値。枠の絵（diva-frame-v2e.png）も同じ倍率で作ってある
-const V2_MARGIN = 8;
+// 版 2 は、元絵のカレンダー部分（外枠の線の箱）を左右と下の縁にぴったり（V2_MARGIN）まで広げて使う。
+// 上の位置は元絵で測った値。枠の絵（diva-frame-v2f.png）も同じ倍率で作ってある
+const V2_MARGIN = 0;
 const V2_SRC = { x: 42, y: 876, w: 1161, h: 845 };
 const V2_SCALE = (ART_W - V2_MARGIN * 2) / V2_SRC.w;
 const V2_TOP = ART_H - V2_MARGIN - V2_SRC.h * V2_SCALE;
@@ -60,7 +60,7 @@ const LAYOUTS = {
     today: null,
   },
   v2: {
-    frame: 'finale/diva-frame-v2e.png',
+    frame: 'finale/diva-frame-v2f.png',
     slots: V2_ROWS.flatMap((row) => row.xs.map((x) => v2fit({ x, y: row.y, w: 133, h: 126 }))),
     // 左の端をカレンダーの左の縁にそろえる。下の端は枠の後ろに少しもぐる
     hero: { x: V2_MARGIN, y: 40, w: 600, h: V2_TOP + 30 - 40 },
