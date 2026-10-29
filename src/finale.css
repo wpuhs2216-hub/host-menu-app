@@ -200,3 +200,13 @@
 
 .fc-toggle { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #ddd; line-height: 1.5; cursor: pointer; }
 .fc-toggle input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+
+/* 枠の作り方（絵／プログラム）と日数 */
+.fc-sub { margin-top: 14px; }
+.fc-select {
+  padding: 6px 10px; border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #1a1a1a; color: #ddd; font-size: 12px;
+}
+.fc-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; }
+.fc-inline[hidden] { display: none; }

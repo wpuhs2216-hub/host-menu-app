@@ -8,6 +8,7 @@ import { supabase, PANEL_BUCKET, publicImageUrl } from './supabaseClient.js';
 import { getStoreId, STORES } from './storeContext.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import * as dlg from './dialog.js';
+import { drawFrame, frameGeometry, FRAME_FONT } from './finaleFrame.js';
 
 // 使える店と背景の絵。ここに無い店では画面を出さない
 // layouts = その月から使う並び（新しい月ほど後ろ）。書いていない月は版 1（背景の絵に枠まで描いてある）
@@ -55,12 +56,14 @@ const v2fit = (r) => ({
 const LAYOUTS = {
   v1: {
     frame: '',
+    seasonal: false,
     slots: Array.from({ length: 21 }, (_, i) => ({ x: V1_XS[i % 7], y: V1_YS[Math.floor(i / 7)], w: SLOT_W, h: SLOT_H })),
     hero: { x: 248, y: 184, w: 744, h: 666 },
     today: null,
   },
   v2: {
     frame: 'finale/diva-frame-v2f.png',
+    seasonal: true, // 季節の背景を敷く
     slots: V2_ROWS.flatMap((row) => row.xs.map((x) => v2fit({ x, y: row.y, w: 133, h: 126 }))),
     // 左の端をカレンダーの左の縁にそろえる。下の端は枠の後ろに少しもぐる
     hero: { x: V2_MARGIN, y: 40, w: 600, h: V2_TOP + 30 - 40 },
@@ -85,7 +88,42 @@ function layoutOf(month) {
 }
 const maxDays = () => layout.slots.length;
 
-// @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景（倉庫の finale/<店>/<年-月>.json） #一覧
+// ===== 枠をプログラムで描く版（試し・2026-10-29）=====
+// 店の表示設定 frameMode が 'code' の時だけ、版 2 の月を絵ではなくプログラムで描く（'image' に戻せばすぐ元の絵）。
+// 日数は月ごとに ledger.dayCount（無ければ 20）
+const DEFAULT_DAY_COUNT = 20;
+const LOGO_V3 = 'finale/diva-logo-v3.png';
+const frameCache = new Map(); // 日数 → 描いた枠（data URL）
+
+async function codeLayout(days) {
+  const geo = frameGeometry(days);
+  if (!frameCache.has(days)) {
+    try { await Promise.race([document.fonts.load(`30px ${FRAME_FONT}`, 'DAY1'), new Promise((r) => setTimeout(r, 3000))]); } catch { /* ignore */ }
+    const logo = await loadImg(`${import.meta.env.BASE_URL}${LOGO_V3}`);
+    frameCache.set(days, drawFrame(days, logo).canvas.toDataURL('image/png'));
+  }
+  return {
+    frame: '',
+    frameUrl: frameCache.get(days),
+    seasonal: true,
+    code: true,
+    slots: geo.days.map((d) => d.photo),
+    hero: { x: 0, y: 40, w: 600, h: geo.top + 30 - 40 },
+    heroAlign: 'left',
+    today: geo.today.photo,
+  };
+}
+
+// 表示中の月の並びを決める（月と、店の設定と、その月の日数から）
+async function buildLayout() {
+  const base = layoutOf(ym);
+  if (base === LAYOUTS.v2 && viewSettings.frameMode === 'code') return codeLayout(ledger.dayCount || DEFAULT_DAY_COUNT);
+  return base;
+}
+
+const frameSrcOf = (l) => l.frameUrl || (l.frame ? `${import.meta.env.BASE_URL}${l.frame}` : '');
+
+// @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景・枠の日数（倉庫の finale/<店>/<年-月>.json） #一覧
 const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
 const seasonBgPath = (store, ym, ext) => `finale/${store}/season-${ym}-${Date.now()}.${ext}`;
 // @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
@@ -93,7 +131,7 @@ const facesPath = (store) => `finale/${store}/faces.json`;
 // @ハジメル 人ごとの透過写真: 大きく出す枠に使う、背景を消した写真の置き場所（人ごと。どの月にも効く。倉庫の finale/<店>/cutouts.json） #設定
 const cutoutsPath = (store) => `finale/${store}/cutouts.json`;
 const cutoutImagePath = (store, panelId, ext) => `finale/${store}/cutout-${panelId}-${Date.now()}.${ext}`;
-// @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか・季節の背景をどの月から使うか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
+// @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか・季節の背景をどの月から使うか・枠を絵とプログラムのどちらで描くか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
 const settingsPath = (store) => `finale/${store}/settings.json`;
 
 let storeId = '';
@@ -410,7 +448,7 @@ function seasonBgFor(month) {
 function posterBgSrc() {
   const hero = resolveHero();
   if (hero.frame) return publicImageUrl(hero.frame);
-  if (layout.frame) {
+  if (layout.seasonal) {
     const season = seasonBgFor(ym);
     return season ? publicImageUrl(season.path) : '';
   }
@@ -503,10 +541,13 @@ function render() {
   bgEl.hidden = !bgSrc;
   if (bgSrc && bgEl.getAttribute('src') !== bgSrc) bgEl.src = bgSrc;
   const frameEl = document.getElementById('fc-frame');
-  const frameSrc = layout.frame ? `${import.meta.env.BASE_URL}${layout.frame}` : '';
+  const frameSrc = frameSrcOf(layout);
   frameEl.hidden = !frameSrc;
   if (frameSrc && frameEl.getAttribute('src') !== frameSrc) frameEl.src = frameSrc;
-  document.getElementById('fc-season').hidden = !layout.frame;
+  document.getElementById('fc-season').hidden = !layout.seasonal;
+  document.getElementById('fc-frame-mode').value = viewSettings.frameMode === 'code' ? 'code' : 'image';
+  document.getElementById('fc-day-count-row').hidden = !layout.code;
+  document.getElementById('fc-day-count').value = String(ledger.dayCount || DEFAULT_DAY_COUNT);
   const season = seasonBgFor(ym);
   document.getElementById('fc-season-desc').textContent = season
     ? `いまは ${ymLabel(season.from)} から載せた背景を使っています（次に載せ替えるまで、その後の月もずっと同じ背景です）。`
@@ -757,6 +798,41 @@ async function onSeasonClear() {
   }
 }
 
+// ===== 枠の作り方（絵／プログラム）と日数 =====
+async function onFrameMode(e) {
+  const mode = e.target.value;
+  try {
+    await saveViewSettings({ frameMode: mode });
+    layout = await buildLayout();
+    render();
+    dlg.toast(mode === 'code' ? '枠をプログラムで描いています（試し）' : '枠を元の絵に戻しました');
+  } catch (err) {
+    await dlg.alert(`保存できませんでした。\n${err.message || err}`);
+    render();
+  }
+}
+
+async function onDayCount(e) {
+  const n = Number(e.target.value);
+  ledger = await loadLedger(ym);
+  if (n < ledger.days.length) {
+    await dlg.alert(`もう DAY${ledger.days.length} まで入っているので、${n} 日にはできません。`);
+    render();
+    return;
+  }
+  ledger.dayCount = n;
+  try {
+    await saveLedger();
+    layout = await codeLayout(n); // 保存できた時だけ並びを変える
+    render();
+    dlg.toast(`${ymLabel(ym)} の枠を ${n} 日にしました`);
+  } catch (err) {
+    await dlg.alert(`保存できませんでした。通信を確かめてもう一度お試しください。\n${err.message || err}`);
+    ledger = await loadLedger(ym);
+    render();
+  }
+}
+
 // ===== 枠の顔の位置を直す =====
 function toggleFaceList() {
   const list = document.getElementById('fc-face-list');
@@ -983,8 +1059,8 @@ async function onSave() {
     }
 
     // 枠の絵（版 2）。人の写真の上、日の枠の写真の下
-    if (layout.frame) {
-      const frame = await loadImg(`${import.meta.env.BASE_URL}${layout.frame}`);
+    if (frameSrcOf(layout)) {
+      const frame = await loadImg(frameSrcOf(layout));
       if (frame) ctx.drawImage(frame, 0, 0, ART_W, ART_H);
     }
 
@@ -1026,8 +1102,8 @@ async function onSave() {
 // ===== 月の切り替え =====
 async function openMonth(month) {
   ym = month;
-  layout = layoutOf(ym);
   [ledger, prevLedger, faces, viewSettings, cutouts] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces(), loadViewSettings(), loadCutouts()]);
+  layout = await buildLayout();
   document.getElementById('fc-show-names').checked = viewSettings.showNames !== false;
   render();
 }
@@ -1056,6 +1132,8 @@ async function openMonth(month) {
   document.getElementById('fc-face-list-open').addEventListener('click', toggleFaceList);
   document.getElementById('fc-season-file').addEventListener('change', onSeasonFile);
   document.getElementById('fc-season-clear').addEventListener('click', onSeasonClear);
+  document.getElementById('fc-frame-mode').addEventListener('change', onFrameMode);
+  document.getElementById('fc-day-count').addEventListener('change', onDayCount);
   document.getElementById('fc-show-names').addEventListener('change', async (e) => {
     const on = e.target.checked;
     try {
