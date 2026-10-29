@@ -40,6 +40,18 @@ const V2_ROWS = [
   { y: 1365, xs: [60, 225, 391, 556, 721, 886, 1051] },
   { y: 1575, xs: [60, 225, 391] },
 ];
+// 版 2 は、元絵のカレンダー部分（外枠の線の箱）を左右と下の縁ぎりぎり（V2_MARGIN）まで広げて使う。
+// 上の位置は元絵で測った値。枠の絵（diva-frame-v2d.png）も同じ倍率で作ってある
+const V2_MARGIN = 8;
+const V2_SRC = { x: 42, y: 876, w: 1161, h: 845 };
+const V2_SCALE = (ART_W - V2_MARGIN * 2) / V2_SRC.w;
+const V2_TOP = ART_H - V2_MARGIN - V2_SRC.h * V2_SCALE;
+const v2fit = (r) => ({
+  x: V2_MARGIN + (r.x - V2_SRC.x) * V2_SCALE,
+  y: V2_TOP + (r.y - V2_SRC.y) * V2_SCALE,
+  w: r.w * V2_SCALE,
+  h: r.h * V2_SCALE,
+});
 const LAYOUTS = {
   v1: {
     frame: '',
@@ -48,10 +60,12 @@ const LAYOUTS = {
     today: null,
   },
   v2: {
-    frame: 'finale/diva-frame-v2c.png',
-    slots: V2_ROWS.flatMap((row) => row.xs.map((x) => ({ x, y: row.y, w: 133, h: 126 }))),
-    hero: { x: 30, y: 40, w: 600, h: 870 }, // 下の端は枠の後ろに少しもぐる
-    today: { x: 60, y: 997, w: 299, h: 284 },
+    frame: 'finale/diva-frame-v2d.png',
+    slots: V2_ROWS.flatMap((row) => row.xs.map((x) => v2fit({ x, y: row.y, w: 133, h: 126 }))),
+    // 左の端をカレンダーの左の縁にそろえる。下の端は枠の後ろに少しもぐる
+    hero: { x: V2_MARGIN, y: 40, w: 600, h: V2_TOP + 30 - 40 },
+    heroAlign: 'left',
+    today: v2fit({ x: 60, y: 997, w: 299, h: 284 }),
   },
 };
 
@@ -504,6 +518,7 @@ function render() {
   placeBox(box, layout.hero);
   box.innerHTML = '';
   box.classList.toggle('fc-hero-soft', !hero.image);
+  box.classList.toggle('fc-hero-left', layout.heroAlign === 'left');
   const src = hero.frame ? '' : hero.image ? publicImageUrl(hero.image) : castPhoto(castById(hero.panelId));
   if (src) {
     const img = document.createElement('img');
@@ -944,7 +959,8 @@ async function onSave() {
         const s = Math.min(HERO.w / img.naturalWidth, HERO.h / img.naturalHeight);
         const w = img.naturalWidth * s;
         const h = img.naturalHeight * s;
-        ctx.drawImage(img, HERO.x + (HERO.w - w) / 2, HERO.y + HERO.h - h, w, h);
+        const x = layout.heroAlign === 'left' ? HERO.x : HERO.x + (HERO.w - w) / 2;
+        ctx.drawImage(img, x, HERO.y + HERO.h - h, w, h);
       }
     } else if (hero.panelId) {
       const c = castById(hero.panelId);

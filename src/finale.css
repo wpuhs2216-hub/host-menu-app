@@ -59,6 +59,8 @@
   width: 100%; height: 100%;
   object-fit: contain; object-position: center bottom;
 }
+/* 版 2 は左の縁にそろえる（背景を消した写真のとき） */
+.fc-hero-left:not(.fc-hero-soft) img { object-position: left bottom; }
 /* 背景を消していない写真は、ふちをぼかして丸く溶かす */
 .fc-hero-soft img {
   object-fit: cover; object-position: center 30%;
