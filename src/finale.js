@@ -88,23 +88,24 @@ function layoutOf(month) {
 }
 const maxDays = () => layout.slots.length;
 
-// ===== 枠をプログラムで描く版（試し・2026-10-29）=====
-// 店の表示設定 frameMode が 'code' の時だけ、版 2 の月を絵ではなくプログラムで描く（'image' に戻せばすぐ元の絵）。
-// 日数は月ごとに ledger.dayCount（無ければ 20）
+// ===== 枠をプログラムで描く（2026-10-29 試し → 2026-10-31 版 2 はプログラムだけにした）=====
+// 版 2 の月は絵ではなくプログラムで描く。日数は月ごとに ledger.dayCount（無ければ 20）。
+// ロゴの下には「年.月 / FINAL CALENDAR」を描く（表示中の月で変わる）
 const DEFAULT_DAY_COUNT = 20;
 const LOGO_V3 = 'finale/diva-logo-v3.png';
-const frameCache = new Map(); // 日数 → 描いた枠（data URL）
+const frameCache = new Map(); // 「日数|年-月」→ 描いた枠（data URL）
 
 async function codeLayout(days) {
   const geo = frameGeometry(days);
-  if (!frameCache.has(days)) {
+  const key = `${days}|${ym}`;
+  if (!frameCache.has(key)) {
     try { await Promise.race([document.fonts.load(`30px ${FRAME_FONT}`, 'DAY1'), new Promise((r) => setTimeout(r, 3000))]); } catch { /* ignore */ }
     const logo = await loadImg(`${import.meta.env.BASE_URL}${LOGO_V3}`);
-    frameCache.set(days, drawFrame(days, logo).canvas.toDataURL('image/png'));
+    frameCache.set(key, drawFrame(days, logo, ym).canvas.toDataURL('image/png'));
   }
   return {
     frame: '',
-    frameUrl: frameCache.get(days),
+    frameUrl: frameCache.get(key),
     seasonal: true,
     code: true,
     slots: geo.days.map((d) => d.photo),
@@ -117,7 +118,7 @@ async function codeLayout(days) {
 // 表示中の月の並びを決める（月と、店の設定と、その月の日数から）
 async function buildLayout() {
   const base = layoutOf(ym);
-  if (base === LAYOUTS.v2 && viewSettings.frameMode === 'code') return codeLayout(ledger.dayCount || DEFAULT_DAY_COUNT);
+  if (base === LAYOUTS.v2) return codeLayout(ledger.dayCount || DEFAULT_DAY_COUNT);
   return base;
 }
 
@@ -545,7 +546,6 @@ function render() {
   frameEl.hidden = !frameSrc;
   if (frameSrc && frameEl.getAttribute('src') !== frameSrc) frameEl.src = frameSrc;
   document.getElementById('fc-season').hidden = !layout.seasonal;
-  document.getElementById('fc-frame-mode').value = viewSettings.frameMode === 'code' ? 'code' : 'image';
   document.getElementById('fc-day-count-row').hidden = !layout.code;
   document.getElementById('fc-day-count').value = String(ledger.dayCount || DEFAULT_DAY_COUNT);
   const season = seasonBgFor(ym);
@@ -798,20 +798,7 @@ async function onSeasonClear() {
   }
 }
 
-// ===== 枠の作り方（絵／プログラム）と日数 =====
-async function onFrameMode(e) {
-  const mode = e.target.value;
-  try {
-    await saveViewSettings({ frameMode: mode });
-    layout = await buildLayout();
-    render();
-    dlg.toast(mode === 'code' ? '枠をプログラムで描いています（試し）' : '枠を元の絵に戻しました');
-  } catch (err) {
-    await dlg.alert(`保存できませんでした。\n${err.message || err}`);
-    render();
-  }
-}
-
+// ===== 枠の日数 =====
 async function onDayCount(e) {
   const n = Number(e.target.value);
   ledger = await loadLedger(ym);
@@ -1132,7 +1119,6 @@ async function openMonth(month) {
   document.getElementById('fc-face-list-open').addEventListener('click', toggleFaceList);
   document.getElementById('fc-season-file').addEventListener('change', onSeasonFile);
   document.getElementById('fc-season-clear').addEventListener('click', onSeasonClear);
-  document.getElementById('fc-frame-mode').addEventListener('change', onFrameMode);
   document.getElementById('fc-day-count').addEventListener('change', onDayCount);
   document.getElementById('fc-show-names').addEventListener('change', async (e) => {
     const on = e.target.checked;

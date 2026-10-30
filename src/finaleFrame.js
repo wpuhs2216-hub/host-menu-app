@@ -172,8 +172,51 @@ function drawTodayLabel(ctx, cell, k) {
   }, TODAY_STRETCH));
 }
 
-// 枠の絵を 1 枚作る（1240×1754・透明の台）。logo はロゴと白い光だけの絵（台の上の部分 1240×800）
-export function drawFrame(days, logo) {
+// ロゴの下・カレンダーの真上に「2026.11 / FINAL CALENDAR」（年と月は表示中の月）
+// 置き場所はロゴの絵の文字の範囲（x 692〜1168）の真ん中。ロゴと同じく白い光を付けて、暗い背景でも読めるようにする
+const TITLE = { cx: 930, maxW: 476, gap: 24, ink: '#141414', glow: 'rgba(255, 255, 255, 0.95)' };
+
+function drawTitle(ctx, ym, top) {
+  const month = String(ym || '').replace('-', '.');
+  if (!month) return;
+  const sub = 'FINAL CALENDAR';
+  const bigSize = 74;
+  let subSize = 40;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `${subSize}px ${FRAME_FONT}`;
+  ctx.letterSpacing = '3px';
+  const w = ctx.measureText(sub).width;
+  if (w > TITLE.maxW) { subSize *= TITLE.maxW / w; ctx.font = `${subSize}px ${FRAME_FONT}`; }
+  const subBase = top - TITLE.gap;
+  const bigBase = subBase - subSize * 1.15;
+  const paint = (stroke = false) => {
+    const put = (t, y) => (stroke ? ctx.strokeText(t, TITLE.cx, y) : ctx.fillText(t, TITLE.cx, y));
+    ctx.font = `${bigSize}px ${FRAME_FONT}`;
+    ctx.letterSpacing = '2px';
+    put(month, bigBase);
+    ctx.font = `${subSize}px ${FRAME_FONT}`;
+    ctx.letterSpacing = '3px';
+    put(sub, subBase);
+  };
+  ctx.save();
+  // 白い光（ロゴと同じくらいの濃さ。大きいぼかしから順に重ね、最後に白い縁取り）
+  ctx.fillStyle = TITLE.glow;
+  ctx.shadowColor = TITLE.glow;
+  for (const blur of [40, 28, 18, 10, 5]) { ctx.shadowBlur = blur; paint(); }
+  ctx.shadowColor = 'transparent';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 7;
+  paint(true);
+  ctx.fillStyle = TITLE.ink;
+  paint();
+  ctx.restore();
+  ctx.letterSpacing = '0px';
+}
+
+// 枠の絵を 1 枚作る（1240×1754・透明の台）。logo はロゴと白い光だけの絵（台の上の部分 1240×800）。ym は「2026-11」の形
+export function drawFrame(days, logo, ym) {
   const geo = frameGeometry(days);
   const k = geo.scale;
   const canvas = document.createElement('canvas');
@@ -181,6 +224,7 @@ export function drawFrame(days, logo) {
   canvas.height = ART_H;
   const ctx = canvas.getContext('2d');
   if (logo) ctx.drawImage(logo, 0, 0); // ロゴの絵は台の左上から（幅 1240・高さ 800）
+  drawTitle(ctx, ym, geo.top);
 
   // 外枠（影 → 白いすき間 → 線）
   ctx.save();
