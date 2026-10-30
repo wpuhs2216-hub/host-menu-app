@@ -167,8 +167,8 @@ function drawTodayLabel(ctx, cell, k) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.font = `${size}px ${FRAME_FONT}`;
-    ctx.fillText('Today’s', 0, cell.y + 52 * k);
-    ctx.fillText('FINALE', 0, cell.y + 87 * k);
+    ctx.fillText('Today’s', 0, cell.y + 45 * k);
+    ctx.fillText('FINALE', 0, cell.y + 99 * k);
   }, TODAY_STRETCH));
 }
 
