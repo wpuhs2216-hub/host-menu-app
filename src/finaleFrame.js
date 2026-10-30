@@ -173,25 +173,30 @@ function drawTodayLabel(ctx, cell, k) {
 }
 
 // ロゴの下・カレンダーの真上に「2026.11 / FINAL CALENDAR」（年と月は表示中の月）
-// 置き場所はロゴの絵の文字の範囲（x 692〜1168）の真ん中。ロゴと同じく白い光を付けて、暗い背景でも読めるようにする
-const TITLE = { cx: 930, maxW: 476, gap: 24, ink: '#141414', glow: 'rgba(255, 255, 255, 0.95)' };
+// 横は左上の人の右（x 620）から台の右の縁の手前（x 1228）まで使う。2 行とも、この幅いっぱいになる大きさで描く
+// ロゴと同じく白い光を付けて、暗い背景でも読めるようにする
+const TITLE = { left: 620, right: 1228, gap: 22, maxBig: 150, ink: '#141414', glow: 'rgba(255, 255, 255, 0.95)' };
 
 function drawTitle(ctx, ym, top) {
   const month = String(ym || '').replace('-', '.');
   if (!month) return;
   const sub = 'FINAL CALENDAR';
-  const bigSize = 74;
-  let subSize = 40;
+  const cx = (TITLE.left + TITLE.right) / 2;
+  const maxW = TITLE.right - TITLE.left;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `${subSize}px ${FRAME_FONT}`;
-  ctx.letterSpacing = '3px';
-  const w = ctx.measureText(sub).width;
-  if (w > TITLE.maxW) { subSize *= TITLE.maxW / w; ctx.font = `${subSize}px ${FRAME_FONT}`; }
+  // 100px で測って、幅いっぱいになる大きさを出す
+  const fit = (text, spacing) => {
+    ctx.font = `100px ${FRAME_FONT}`;
+    ctx.letterSpacing = spacing;
+    return (100 * maxW) / ctx.measureText(text).width;
+  };
+  const subSize = fit(sub, '3px');
+  const bigSize = Math.min(TITLE.maxBig, fit(month, '2px'));
   const subBase = top - TITLE.gap;
-  const bigBase = subBase - subSize * 1.15;
+  const bigBase = subBase - subSize * 1.12;
   const paint = (stroke = false) => {
-    const put = (t, y) => (stroke ? ctx.strokeText(t, TITLE.cx, y) : ctx.fillText(t, TITLE.cx, y));
+    const put = (t, y) => (stroke ? ctx.strokeText(t, cx, y) : ctx.fillText(t, cx, y));
     ctx.font = `${bigSize}px ${FRAME_FONT}`;
     ctx.letterSpacing = '2px';
     put(month, bigBase);
@@ -207,7 +212,7 @@ function drawTitle(ctx, ym, top) {
   ctx.shadowColor = 'transparent';
   ctx.strokeStyle = '#ffffff';
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 7;
+  ctx.lineWidth = 9;
   paint(true);
   ctx.fillStyle = TITLE.ink;
   paint();
