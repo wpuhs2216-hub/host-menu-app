@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gently-diva-v2';
+const CACHE_NAME = 'gently-diva-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -47,8 +47,11 @@ self.addEventListener('fetch', (e) => {
   }
   if (!e.request.url.startsWith(self.location.origin)) return;
   if (e.request.method !== 'GET') return;
+  // ページ（HTML）は配信側の控え（10 分）を使わず毎回確かめる。新しい版を公開したらすぐ切り替わるように
+  const isPage = e.request.mode === 'navigate';
   e.respondWith(
-    fetch(e.request)
+    // （ページの頼みは形を変えられないので、同じ場所を新しく頼み直す）
+    (isPage ? fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(e.request))
       .then((res) => {
         try {
           const clone = res.clone();

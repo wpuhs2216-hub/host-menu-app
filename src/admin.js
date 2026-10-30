@@ -8,6 +8,7 @@ import { saveImage, getImage, deleteImage, getAllImages, clearImages, migrateFro
 import { compressImage, dataUrlByteSize } from './imageCompress.js';
 import * as dlg from './dialog.js';
 import { scheduleStartupCheck, manualCheck } from './updateCheck.js';
+import { watchWebUpdate } from './webUpdate.js';
 import { getStoreName, getStorePassword, logoutStore, getStoreId } from './storeContext.js';
 import { getSeatOptions, getColorLabel, getRawColorLabels, pullStoreSettings, saveStoreSettings, FONT_OPTIONS, getFont, applyMenuFont } from './storeSettings.js';
 import { ensureStoreFixed } from './storeLogin.js';
@@ -21,6 +22,8 @@ import {
   getDeviceName, setDeviceName, getSelfDeviceId,
   syncPushSubscriptionUpsert, syncPushSubscriptionDelete,
 } from './sync.js';
+// ブラウザ版: 新しい版が出たら下に帯を出す（ロック画面の時から見張る。入力の途中を消さないよう、押した時だけ読み直す）
+watchWebUpdate();
 
 const VAPID_PUBLIC_KEY = 'BKHpYZP-AyaG1CZOrG8I2nqL7dWZM1jiy6GHH1MBEl7e8RYbu1maw5TmkBkMZ5xxbmEZ0UMdEIYklFSMXL_wbd0';
 function urlBase64ToUint8Array(base64String) {

@@ -9,6 +9,7 @@ import { getStoreId, STORES } from './storeContext.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import * as dlg from './dialog.js';
 import { drawFrame, frameGeometry, FRAME_FONT } from './finaleFrame.js';
+import { watchWebUpdate } from './webUpdate.js';
 
 // 使える店と背景の絵。ここに無い店では画面を出さない
 // layouts = その月から使う並び（新しい月ほど後ろ）。書いていない月は版 1（背景の絵に枠まで描いてある）
@@ -1134,4 +1135,5 @@ async function openMonth(month) {
   // 名前の幅を正しく測るため、書体が届くのを待つ（届かなくても 3 秒で先へ進む）
   try { await Promise.race([document.fonts.load(`700 17px ${NAME_FONT}`, 'あ'), new Promise((r) => setTimeout(r, 3000))]); } catch { /* ignore */ }
   await openMonth(businessYm());
+  watchWebUpdate({ auto: true }); // 新しい版が出たら、画面に戻った時に読み直す
 })();
