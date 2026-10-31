@@ -259,14 +259,23 @@ export function drawFrame(days, logo, ym, labels = {}) {
   canvas.height = ART_H;
   const ctx = canvas.getContext('2d');
   if (logo) {
-    // ロゴの絵は台の左上から（幅 1240・高さ 800）。うしろに黒い影
+    // ロゴの絵は台の左上から（幅 1240・高さ 800）。うしろに黒い影（スマホで見ても分かる濃さ）
+    // 影だけを描くため、絵は台の外（左へ OFF）に置き、影だけを元の場所へずらして落とす
+    const OFF = 3000;
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetX = 4;
-    ctx.shadowOffsetY = 6;
-    ctx.drawImage(logo, 0, 0);
+    for (const sh of [
+      { blur: 6, x: 0, y: 0, color: 'rgba(0, 0, 0, 0.9)' },    // 字のまわりを締める濃い縁
+      { blur: 22, x: 7, y: 10, color: 'rgba(0, 0, 0, 0.95)' }, // 右下へ落ちる影
+      { blur: 40, x: 7, y: 12, color: 'rgba(0, 0, 0, 0.6)' },  // 広くうすい影
+    ]) {
+      ctx.shadowColor = sh.color;
+      ctx.shadowBlur = sh.blur;
+      ctx.shadowOffsetX = OFF + sh.x;
+      ctx.shadowOffsetY = sh.y;
+      ctx.drawImage(logo, -OFF, 0);
+    }
     ctx.restore();
+    ctx.drawImage(logo, 0, 0);
   }
   drawTitle(ctx, ym, geo.top);
 

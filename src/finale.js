@@ -93,7 +93,7 @@ const maxDays = () => layout.slots.length;
 // 版 2 の月は絵ではなくプログラムで描く。日数は月ごとに ledger.dayCount（無ければ 20）。
 // ロゴの下には「年.月 / FINAL CALENDAR」を描く（表示中の月で変わる）
 const DEFAULT_DAY_COUNT = 20;
-const LOGO = 'finale/diva-logo-v4.png'; // 光の無いロゴ（影はプログラムで付ける）
+const LOGO = 'finale/diva-logo-v5.png'; // 光の無いロゴ（白いふちを 1 画素削った物。影はプログラムで付ける）
 const frameCache = new Map(); // 「日数|年-月|DAY の文字」→ 描いた枠（data URL）
 
 const dayLabels = () => (ledger.labels && typeof ledger.labels === 'object' ? ledger.labels : {});
