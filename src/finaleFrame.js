@@ -249,7 +249,19 @@ function drawTitle(ctx, ym, top) {
   ctx.restore();
 }
 
-// 枠の絵を 1 枚作る（1240×1754・透明の台）。logo はロゴと白い光だけの絵（台の上の部分 1240×800）。ym は「2026-11」の形
+// ロゴ（GENTLY DIVA の絵）の大きさと、うしろの黒い光・影
+const LOGO = {
+  cx: 930, cy: 268, // 絵の中の字の真ん中
+  scale: 1.12,
+  shadows: [
+    { blur: 12, x: 0, y: 0, color: 'rgba(0, 0, 0, 0.95)' },  // 字のまわりの黒い光（濃い）
+    { blur: 30, x: 0, y: 0, color: 'rgba(0, 0, 0, 0.8)' },   // 字のまわりの黒い光（広い）
+    { blur: 34, x: 10, y: 15, color: 'rgba(0, 0, 0, 0.95)' }, // 右下へ落ちる影
+    { blur: 60, x: 10, y: 18, color: 'rgba(0, 0, 0, 0.6)' },  // 広くうすい影
+  ],
+};
+
+// 枠の絵を 1 枚作る（1240×1754・透明の台）。logo はロゴだけの絵（台の上の部分 1240×800）。ym は「2026-11」の形
 // labels は日ごとの好きな文字（{ '1': '感謝デー' }）。入っている日は「DAY1」の代わりに金の字で出す
 export function drawFrame(days, logo, ym, labels = {}) {
   const geo = frameGeometry(days);
@@ -259,23 +271,23 @@ export function drawFrame(days, logo, ym, labels = {}) {
   canvas.height = ART_H;
   const ctx = canvas.getContext('2d');
   if (logo) {
-    // ロゴの絵は台の左上から（幅 1240・高さ 800）。うしろに黒い影（スマホで見ても分かる濃さ）
-    // 影だけを描くため、絵は台の外（左へ OFF）に置き、影だけを元の場所へずらして落とす
+    // ロゴの絵は台の左上から（幅 1240・高さ 800）。字の真ん中（LOGO.cx, LOGO.cy）を中心に LOGO.scale 倍にする
+    // うしろに黒い光と影（スマホで見ても分かる濃さ）。影だけを描くため、絵は台の外（左へ OFF）に置き、影だけを元の場所へずらして落とす
     const OFF = 3000;
+    const place = (dx) => ctx.setTransform(LOGO.scale, 0, 0, LOGO.scale, LOGO.cx * (1 - LOGO.scale) + dx, LOGO.cy * (1 - LOGO.scale));
     ctx.save();
-    for (const sh of [
-      { blur: 6, x: 0, y: 0, color: 'rgba(0, 0, 0, 0.9)' },    // 字のまわりを締める濃い縁
-      { blur: 22, x: 7, y: 10, color: 'rgba(0, 0, 0, 0.95)' }, // 右下へ落ちる影
-      { blur: 40, x: 7, y: 12, color: 'rgba(0, 0, 0, 0.6)' },  // 広くうすい影
-    ]) {
+    for (const sh of LOGO.shadows) {
       ctx.shadowColor = sh.color;
       ctx.shadowBlur = sh.blur;
-      ctx.shadowOffsetX = OFF + sh.x;
+      ctx.shadowOffsetX = OFF * LOGO.scale + sh.x; // 影のずれは拡大の影響を受けない
       ctx.shadowOffsetY = sh.y;
+      place(0);
       ctx.drawImage(logo, -OFF, 0);
     }
     ctx.restore();
+    place(0);
     ctx.drawImage(logo, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
   drawTitle(ctx, ym, geo.top);
 
