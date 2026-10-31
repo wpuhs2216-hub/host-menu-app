@@ -141,7 +141,7 @@ const facesPath = (store) => `finale/${store}/faces.json`;
 // @ハジメル 人ごとの透過写真: 大きく出す枠に使う、背景を消した写真の置き場所（人ごと。どの月にも効く。倉庫の finale/<店>/cutouts.json） #設定
 const cutoutsPath = (store) => `finale/${store}/cutouts.json`;
 const cutoutImagePath = (store, panelId, ext) => `finale/${store}/cutout-${panelId}-${Date.now()}.${ext}`;
-// @ハジメル カレンダーの表示設定: 店ごとの見せ方（枠に名前を出すかどうか・季節の背景をどの月から使うか・枠を絵とプログラムのどちらで描くか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
+// @ハジメル カレンダーの表示設定: 店ごとの見せ方（DAY の枠に名前を出すかどうか・季節の背景をどの月から使うか）。どの月にも効く（倉庫の finale/<店>/settings.json） #設定
 const settingsPath = (store) => `finale/${store}/settings.json`;
 
 let storeId = '';
@@ -152,7 +152,7 @@ let ledger = emptyLedger();
 let prevLedger = emptyLedger();
 let cutouts = {};        // { panelId: { path, at } }（その人の背景を消した写真。前もって作っておく）
 let faces = {};          // { panelId: { x, y, z, v, auto } }（x・y は写真の中の中心の位置 0〜1、z は拡大率）
-let viewSettings = { showNames: true };
+let viewSettings = { showDayNames: false };
 
 function emptyLedger() {
   return { version: 1, days: [], hero: null };
@@ -362,9 +362,11 @@ function drawCrop(ctx, img, r, crop) {
 }
 
 // ===== 表示設定 =====
+const showDayNames = () => viewSettings.showDayNames === true;
 async function loadViewSettings() {
   const res = await fetch(`${publicImageUrl(settingsPath(storeId))}?t=${Date.now()}`, { cache: 'no-store' });
-  const base = { showNames: true, seasonBgs: [] }; // seasonBgs = [{ from: 'YYYY-MM', path }]。その月から次の背景までずっと使う
+  // showDayNames = DAY の枠に名前を出すか（既定は出さない。Today's の枠はいつも出す。旧 showNames は使わない・2026-10-31）
+  const base = { showDayNames: false, seasonBgs: [] }; // seasonBgs = [{ from: 'YYYY-MM', path }]。その月から次の背景までずっと使う
   if (!res.ok) return base;
   try { return { ...base, ...(await res.json()) }; } catch { return base; }
 }
@@ -466,7 +468,7 @@ function posterBgSrc() {
 }
 
 // 枠の中身（写真と名前）を画面に置く。r は枠の大きさ（写真の切り取りに使う）
-function fillSlotEl(el, d, r) {
+function fillSlotEl(el, d, r, showName) {
   if (d.panelId === NONE_ID) {
     if (noneImage()) {
       const img = document.createElement('img');
@@ -488,7 +490,7 @@ function fillSlotEl(el, d, r) {
     applyCrop(img, cropOf(c), r.w, r.h);
     el.appendChild(img);
   }
-  if (!viewSettings.showNames || !d.name) return;
+  if (!showName || !d.name) return;
   const name = document.createElement('span');
   name.className = 'fc-slot-name';
   const fit = fitName(d.name);
@@ -515,7 +517,7 @@ function render() {
     el.className = 'fc-slot';
     placeBox(el, r);
     if (d) {
-      fillSlotEl(el, d, r);
+      fillSlotEl(el, d, r, showDayNames());
       el.addEventListener('click', () => onFilledSlot(i));
     } else if (i < next) {
       // 途中で消して空いた枠。押せばまた入れられる
@@ -539,7 +541,7 @@ function render() {
     const el = document.createElement('div');
     el.className = 'fc-slot fc-today';
     placeBox(el, layout.today);
-    fillSlotEl(el, today, layout.today);
+    fillSlotEl(el, today, layout.today, true); // Today's はいつも名前を出す
     wrap.appendChild(el);
   }
 
@@ -1016,7 +1018,7 @@ function drawCover(ctx, img, r, posX = 50, posY = 30) {
 }
 
 // 枠の中身（写真と名前）を保存画像に描く。名前は画面と同じく枠の幅に比例させる
-async function drawSlotEntry(ctx, d, r) {
+async function drawSlotEntry(ctx, d, r, showName) {
   if (d.panelId === NONE_ID) {
     // ファイナルなしの日は店のロゴだけ（名前の帯は付けない）
     const logo = await loadImg(noneImage());
@@ -1027,7 +1029,7 @@ async function drawSlotEntry(ctx, d, r) {
   const img = await loadImg(castPhoto(c));
   if (img) drawCrop(ctx, img, r, cropOf(c));
   // 名前（下に薄い帯）。名前を出さない設定の時は描かない
-  if (!viewSettings.showNames || !d.name) return;
+  if (!showName || !d.name) return;
   const k = r.w / SLOT_W;
   const fit = fitName(d.name);
   const size = fit.size * k;
@@ -1103,10 +1105,10 @@ async function onSave() {
 
     // 日の枠
     for (let i = 0; i < ledger.days.length && i < maxDays(); i++) {
-      if (ledger.days[i]) await drawSlotEntry(ctx, ledger.days[i], layout.slots[i]); // 空いた枠は灰色のまま
+      if (ledger.days[i]) await drawSlotEntry(ctx, ledger.days[i], layout.slots[i], showDayNames()); // 空いた枠は灰色のまま
     }
     const today = lastEntry();
-    if (layout.today && today) await drawSlotEntry(ctx, today, layout.today);
+    if (layout.today && today) await drawSlotEntry(ctx, today, layout.today, true);
 
     // ストーリーの大きさ（縦長 9:16）に入れ、上下の余りは黒で埋める
     const story = document.createElement('canvas');
@@ -1141,7 +1143,7 @@ async function openMonth(month) {
   ym = month;
   [ledger, prevLedger, faces, viewSettings, cutouts] = await Promise.all([loadLedger(ym), loadLedger(shiftYm(ym, -1)), loadFaces(), loadViewSettings(), loadCutouts()]);
   layout = await buildLayout();
-  document.getElementById('fc-show-names').checked = viewSettings.showNames !== false;
+  document.getElementById('fc-show-names').checked = showDayNames();
   render();
 }
 
@@ -1177,9 +1179,9 @@ async function openMonth(month) {
   document.getElementById('fc-show-names').addEventListener('change', async (e) => {
     const on = e.target.checked;
     try {
-      await saveViewSettings({ showNames: on });
+      await saveViewSettings({ showDayNames: on });
       render();
-      dlg.toast(on ? '枠に名前を出します' : '枠の名前を消しました');
+      dlg.toast(on ? 'DAY の枠に名前を出します' : 'DAY の枠の名前を消しました');
     } catch (err) {
       e.target.checked = !on;
       await dlg.alert(`保存できませんでした。\n${err.message || err}`);
