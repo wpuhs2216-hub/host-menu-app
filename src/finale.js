@@ -8,7 +8,7 @@ import { supabase, PANEL_BUCKET, publicImageUrl } from './supabaseClient.js';
 import { getStoreId, STORES } from './storeContext.js';
 import { ensureStoreFixed } from './storeLogin.js';
 import * as dlg from './dialog.js';
-import { drawFrame, frameGeometry, FRAME_FONT } from './finaleFrame.js';
+import { drawFrame, frameGeometry, FRAME_FONT, LABEL_FONT } from './finaleFrame.js';
 import { watchWebUpdate } from './webUpdate.js';
 
 // 使える店と背景の絵。ここに無い店では画面を出さない
@@ -93,16 +93,24 @@ const maxDays = () => layout.slots.length;
 // 版 2 の月は絵ではなくプログラムで描く。日数は月ごとに ledger.dayCount（無ければ 20）。
 // ロゴの下には「年.月 / FINAL CALENDAR」を描く（表示中の月で変わる）
 const DEFAULT_DAY_COUNT = 20;
-const LOGO_V3 = 'finale/diva-logo-v3.png';
-const frameCache = new Map(); // 「日数|年-月」→ 描いた枠（data URL）
+const LOGO = 'finale/diva-logo-v4.png'; // 光の無いロゴ（影はプログラムで付ける）
+const frameCache = new Map(); // 「日数|年-月|DAY の文字」→ 描いた枠（data URL）
+
+const dayLabels = () => (ledger.labels && typeof ledger.labels === 'object' ? ledger.labels : {});
 
 async function codeLayout(days) {
   const geo = frameGeometry(days);
-  const key = `${days}|${ym}`;
+  const labels = dayLabels();
+  const key = `${days}|${ym}|${JSON.stringify(labels)}`;
   if (!frameCache.has(key)) {
-    try { await Promise.race([document.fonts.load(`30px ${FRAME_FONT}`, 'DAY1'), new Promise((r) => setTimeout(r, 3000))]); } catch { /* ignore */ }
-    const logo = await loadImg(`${import.meta.env.BASE_URL}${LOGO_V3}`);
-    frameCache.set(key, drawFrame(days, logo, ym).canvas.toDataURL('image/png'));
+    const texts = Object.values(labels).join('') || 'あ';
+    const fontsReady = Promise.all([
+      document.fonts.load(`30px ${FRAME_FONT}`, 'DAY1'),
+      document.fonts.load(`900 30px ${LABEL_FONT}`, texts),
+    ]);
+    try { await Promise.race([fontsReady, new Promise((r) => setTimeout(r, 3000))]); } catch { /* ignore */ }
+    const logo = await loadImg(`${import.meta.env.BASE_URL}${LOGO}`);
+    frameCache.set(key, drawFrame(days, logo, ym, labels).canvas.toDataURL('image/png'));
   }
   return {
     frame: '',
@@ -125,7 +133,7 @@ async function buildLayout() {
 
 const frameSrcOf = (l) => l.frameUrl || (l.frame ? `${import.meta.env.BASE_URL}${l.frame}` : '');
 
-// @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景・枠の日数（倉庫の finale/<店>/<年-月>.json） #一覧
+// @ハジメル ファイナル台帳: 月ごとの「その日のファイナルの人」の並びと、上の大枠の人・透過写真・人入りの背景・枠の日数・日ごとの DAY の文字（倉庫の finale/<店>/<年-月>.json） #一覧
 const ledgerPath = (store, ym) => `finale/${store}/${ym}.json`;
 const seasonBgPath = (store, ym, ext) => `finale/${store}/season-${ym}-${Date.now()}.${ext}`;
 // @ハジメル 枠の顔の位置: キャストごとの「四角い枠で写真のどこを映すか」（中心と拡大率。倉庫の finale/<店>/faces.json） #設定
@@ -549,6 +557,7 @@ function render() {
   document.getElementById('fc-season').hidden = !layout.seasonal;
   document.getElementById('fc-day-count-row').hidden = !layout.code;
   document.getElementById('fc-day-count').value = String(ledger.dayCount || DEFAULT_DAY_COUNT);
+  renderLabelForm();
   const season = seasonBgFor(ym);
   document.getElementById('fc-season-desc').textContent = season
     ? `いまは ${ymLabel(season.from)} から載せた背景を使っています（次に載せ替えるまで、その後の月もずっと同じ背景です）。`
@@ -814,6 +823,46 @@ async function onDayCount(e) {
     layout = await codeLayout(n); // 保存できた時だけ並びを変える
     render();
     dlg.toast(`${ymLabel(ym)} の枠を ${n} 日にしました`);
+  } catch (err) {
+    await dlg.alert(`保存できませんでした。通信を確かめてもう一度お試しください。\n${err.message || err}`);
+    ledger = await loadLedger(ym);
+    render();
+  }
+}
+
+// ===== DAY の文字（日ごとの好きな文字・金の字）=====
+function renderLabelForm() {
+  const box = document.getElementById('fc-labels');
+  box.hidden = !layout.code;
+  if (!layout.code) return;
+  const days = ledger.dayCount || DEFAULT_DAY_COUNT;
+  const labels = dayLabels();
+  const sel = document.getElementById('fc-label-day');
+  const keep = sel.value;
+  sel.replaceChildren(...Array.from({ length: days }, (_, i) => {
+    const n = i + 1;
+    return new Option(`DAY${n}${labels[n] ? `（${labels[n]}）` : ''}`, String(n));
+  }));
+  if (keep && Number(keep) <= days) sel.value = keep;
+  document.getElementById('fc-label-text').value = labels[sel.value] || '';
+  const list = Object.keys(labels).map(Number).filter((n) => n <= days).sort((a, b) => a - b);
+  document.getElementById('fc-label-list').textContent = list.length
+    ? `いま入っている文字: ${list.map((n) => `DAY${n} → ${labels[n]}`).join('、')}`
+    : 'いまは全部の日が「DAY◯」のままです。';
+}
+
+async function onLabelSave() {
+  const n = String(document.getElementById('fc-label-day').value);
+  const text = document.getElementById('fc-label-text').value.trim();
+  ledger = await loadLedger(ym); // 書く直前に読み直して、ほかの人が入れた分を消さない
+  const labels = { ...dayLabels() };
+  if (text) labels[n] = text; else delete labels[n];
+  ledger.labels = labels;
+  try {
+    await saveLedger();
+    layout = await codeLayout(ledger.dayCount || DEFAULT_DAY_COUNT);
+    render();
+    dlg.toast(text ? `DAY${n} を「${text}」にしました` : `DAY${n} を元に戻しました`);
   } catch (err) {
     await dlg.alert(`保存できませんでした。通信を確かめてもう一度お試しください。\n${err.message || err}`);
     ledger = await loadLedger(ym);
@@ -1121,6 +1170,10 @@ async function openMonth(month) {
   document.getElementById('fc-season-file').addEventListener('change', onSeasonFile);
   document.getElementById('fc-season-clear').addEventListener('click', onSeasonClear);
   document.getElementById('fc-day-count').addEventListener('change', onDayCount);
+  document.getElementById('fc-label-save').addEventListener('click', onLabelSave);
+  document.getElementById('fc-label-day').addEventListener('change', (e) => {
+    document.getElementById('fc-label-text').value = dayLabels()[e.target.value] || '';
+  });
   document.getElementById('fc-show-names').addEventListener('change', async (e) => {
     const on = e.target.checked;
     try {

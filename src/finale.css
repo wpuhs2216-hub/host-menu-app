@@ -210,3 +210,9 @@
 }
 .fc-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #ccc; }
 .fc-inline[hidden] { display: none; }
+.fc-input {
+  padding: 6px 10px; border-radius: 6px; width: 10em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #1a1a1a; color: #eee; font-size: 14px;
+}
+.fc-label-list { margin: 8px 0 0; }

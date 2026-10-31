@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="icon" href="./admin-icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Noto+Serif+JP:wght@900&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/style.css" />
   <link rel="stylesheet" href="/src/finale.css" />
 </head>
@@ -57,6 +57,16 @@
             <option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option>
           </select>
         </label>
+      </div>
+      <div id="fc-labels" hidden>
+        <h2 class="fc-sub">DAY の文字</h2>
+        <p class="fc-desc">日を選んで好きな文字を入れると、その日の「DAY◯」が金色の文字に変わります（例: 感謝デー・社長BD）。空にして「入れる」を押すと DAY に戻ります。この月だけに効きます。</p>
+        <div class="fc-actions">
+          <select id="fc-label-day" class="fc-select"></select>
+          <input type="text" id="fc-label-text" class="fc-input" maxlength="12" placeholder="感謝デー" />
+          <button type="button" id="fc-label-save">入れる</button>
+        </div>
+        <p id="fc-label-list" class="fc-desc fc-label-list"></p>
       </div>
     </section>
 

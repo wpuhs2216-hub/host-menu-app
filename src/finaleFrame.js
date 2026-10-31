@@ -161,6 +161,32 @@ function drawDayLabel(ctx, cell, n, k) {
   }));
 }
 
+// 好きな文字（感謝デーなど）。金の字で、セルの幅に収まるよう小さくする
+export const LABEL_FONT = "'Noto Serif JP', serif";
+function drawCustomLabel(ctx, cell, text, k) {
+  const maxW = cell.w - 10 * k;
+  let size = 29 * k;
+  ctx.font = `900 ${size}px ${LABEL_FONT}`;
+  const w = ctx.measureText(text).width;
+  if (w > maxW) { size *= maxW / w; ctx.font = `900 ${size}px ${LABEL_FONT}`; }
+  const cx = cell.x + cell.w / 2;
+  const baseline = cell.y + 29 * k + size * 0.38; // 字の真ん中を DAY の字の真ん中に合わせる
+  const gold = ctx.createLinearGradient(0, baseline - size * 0.9, 0, baseline + size * 0.1);
+  gold.addColorStop(0, '#fff1b8');
+  gold.addColorStop(0.45, '#e8c160');
+  gold.addColorStop(1, '#a8761f');
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = COLOR.textShadow;
+  ctx.shadowOffsetX = 1.5 * k;
+  ctx.shadowOffsetY = 2 * k;
+  ctx.shadowBlur = 2.5 * k;
+  ctx.fillStyle = gold;
+  ctx.fillText(text, cx, baseline);
+  ctx.restore();
+}
+
 function drawTodayLabel(ctx, cell, k) {
   const size = 42 * k;
   withTextShadow(ctx, k, () => stretched(ctx, cell.x + cell.w / 2, () => {
@@ -172,63 +198,76 @@ function drawTodayLabel(ctx, cell, k) {
   }, TODAY_STRETCH));
 }
 
-// ロゴの下・カレンダーの真上に「2026.11 / FINAL CALENDAR」（年と月は表示中の月）
-// 横は左上の人の右（x 620）から台の右の縁の手前（x 1228）まで使う。2 行とも、この幅いっぱいになる大きさで描く
-// ロゴと同じく白い光を付けて、暗い背景でも読めるようにする
-const TITLE = { left: 620, right: 1228, gap: 22, maxBig: 150, ink: '#141414', glow: 'rgba(255, 255, 255, 0.95)' };
+// カレンダーの真上の見出し（本人がくれた見本「LAST SONG CALENDAR 2025.03」の並び・大きさ・色に合わせる・2026-10-31）
+// 左に「FINAL / CALENDAR」の 2 行、右に「2026.11」を大きく。左はカレンダーの左の縁、右はカレンダーの右の縁にそろえる
+// 見本で測った割合（カレンダーの幅 W に対して）: 左の 2 行の幅 0.477W・字の高さ 0.05W／年月の幅 0.51W・字の高さ 0.104W／カレンダーとのすき間 0.039W
+const TITLE = {
+  margin: 14,
+  leftW: 0.477, capSmall: 0.05, lineGap: 0.004,
+  rightW: 0.51, capBig: 0.104,
+  gap: 0.039,
+  cap: 0.69, // この書体の大文字の高さ（字の大きさに対して）
+  ink: '#ffffff',
+  shadow: 'rgba(0, 0, 0, 0.7)',
+};
 
 function drawTitle(ctx, ym, top) {
   const month = String(ym || '').replace('-', '.');
   if (!month) return;
-  const sub = 'FINAL CALENDAR';
-  const cx = (TITLE.left + TITLE.right) / 2;
-  const maxW = TITLE.right - TITLE.left;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  // 100px で測って、幅いっぱいになる大きさを出す
-  const fit = (text, spacing) => {
-    ctx.font = `100px ${FRAME_FONT}`;
-    ctx.letterSpacing = spacing;
-    return (100 * maxW) / ctx.measureText(text).width;
-  };
-  const subSize = fit(sub, '3px');
-  const bigSize = Math.min(TITLE.maxBig, fit(month, '2px'));
-  const subBase = top - TITLE.gap;
-  const bigBase = subBase - subSize * 1.12;
-  const paint = (stroke = false) => {
-    const put = (t, y) => (stroke ? ctx.strokeText(t, cx, y) : ctx.fillText(t, cx, y));
-    ctx.font = `${bigSize}px ${FRAME_FONT}`;
-    ctx.letterSpacing = '2px';
-    put(month, bigBase);
-    ctx.font = `${subSize}px ${FRAME_FONT}`;
-    ctx.letterSpacing = '3px';
-    put(sub, subBase);
-  };
+  const x0 = TITLE.margin;
+  const W = ART_W - TITLE.margin * 2;
+  const base = top - TITLE.gap * W; // 下の行のいちばん下（字の足）
+  const small = (TITLE.capSmall * W) / TITLE.cap;
+  const big = (TITLE.capBig * W) / TITLE.cap;
   ctx.save();
-  // 白い光（ロゴと同じくらいの濃さ。大きいぼかしから順に重ね、最後に白い縁取り）
-  ctx.fillStyle = TITLE.glow;
-  ctx.shadowColor = TITLE.glow;
-  for (const blur of [40, 28, 18, 10, 5]) { ctx.shadowBlur = blur; paint(); }
-  ctx.shadowColor = 'transparent';
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 9;
-  paint(true);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  ctx.letterSpacing = '0px';
+  // 横幅を見本に合わせる倍率（字の高さはそのまま）
+  ctx.font = `${small}px ${FRAME_FONT}`;
+  const sxSmall = (TITLE.leftW * W) / ctx.measureText('CALENDAR').width;
+  ctx.font = `${big}px ${FRAME_FONT}`;
+  const sxBig = (TITLE.rightW * W) / ctx.measureText(month).width;
+  const paint = () => {
+    ctx.font = `${small}px ${FRAME_FONT}`;
+    for (const [text, y] of [['FINAL', base - TITLE.capSmall * W - TITLE.lineGap * W], ['CALENDAR', base]]) {
+      ctx.setTransform(sxSmall, 0, 0, 1, x0, y);
+      ctx.fillText(text, 0, 0);
+    }
+    ctx.font = `${big}px ${FRAME_FONT}`;
+    ctx.setTransform(sxBig, 0, 0, 1, x0 + W - TITLE.rightW * W, base);
+    ctx.fillText(month, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+  // 見本と同じく、白い字に黒い影
   ctx.fillStyle = TITLE.ink;
+  ctx.shadowColor = TITLE.shadow;
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 5;
   paint();
   ctx.restore();
-  ctx.letterSpacing = '0px';
 }
 
 // 枠の絵を 1 枚作る（1240×1754・透明の台）。logo はロゴと白い光だけの絵（台の上の部分 1240×800）。ym は「2026-11」の形
-export function drawFrame(days, logo, ym) {
+// labels は日ごとの好きな文字（{ '1': '感謝デー' }）。入っている日は「DAY1」の代わりに金の字で出す
+export function drawFrame(days, logo, ym, labels = {}) {
   const geo = frameGeometry(days);
   const k = geo.scale;
   const canvas = document.createElement('canvas');
   canvas.width = ART_W;
   canvas.height = ART_H;
   const ctx = canvas.getContext('2d');
-  if (logo) ctx.drawImage(logo, 0, 0); // ロゴの絵は台の左上から（幅 1240・高さ 800）
+  if (logo) {
+    // ロゴの絵は台の左上から（幅 1240・高さ 800）。うしろに黒い影
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetX = 4;
+    ctx.shadowOffsetY = 6;
+    ctx.drawImage(logo, 0, 0);
+    ctx.restore();
+  }
   drawTitle(ctx, ym, geo.top);
 
   // 外枠（影 → 白いすき間 → 線）
@@ -253,7 +292,9 @@ export function drawFrame(days, logo, ym) {
   drawTodayLabel(ctx, geo.today.cell, k);
   for (const d of geo.days) {
     drawCell(ctx, d.cell, d.photo, k);
-    drawDayLabel(ctx, d.cell, d.n, k);
+    const label = String(labels[d.n] || '').trim();
+    if (label) drawCustomLabel(ctx, d.cell, label, k);
+    else drawDayLabel(ctx, d.cell, d.n, k);
   }
   return { canvas, geo };
 }
