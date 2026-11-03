@@ -118,10 +118,74 @@ async function codeLayout(days) {
     seasonal: true,
     code: true,
     slots: geo.days.map((d) => d.photo),
-    hero: { x: 0, y: 40, w: 600, h: geo.top + 30 - 40 },
+    // 左上の人は大きく（見本の 2025 年のカレンダーくらい。台の幅の約 6 割）。下はカレンダーの後ろへもぐる
+    hero: { x: 0, y: 0, w: HERO_BIG.w, h: geo.top + 40 },
     heroAlign: 'left',
     today: geo.today.photo,
   };
+}
+
+// ===== 左上の人（プログラムの枠の月）=====
+// 横幅を HERO_BIG.w にそろえて上から置く（足の方はカレンダーの後ろに隠れる）。
+// 背景から浮いて見えないよう、①背景の平均の色を人の上に薄く重ね（tint）、②カレンダーに近い下の方を背景へ溶かす（fadeFrom〜）
+// 背景の模様そのものは重ねない（顔に葉っぱが透けて見えるため）
+const HERO_BIG = { w: 760, top: 14, tint: 0.14, fadeFrom: 0.62 };
+const heroCache = new Map(); // 写真|背景|大きさ → 描いた絵（data URL）
+
+async function drawHeroArt(hero, box) {
+  const off = document.createElement('canvas');
+  off.width = box.w;
+  off.height = box.h;
+  const o = off.getContext('2d');
+  if (hero.image) {
+    const img = await loadImg(publicImageUrl(hero.image));
+    if (!img) return null;
+    const s = box.w / img.naturalWidth;
+    o.drawImage(img, 0, HERO_BIG.top, box.w, img.naturalHeight * s);
+  } else {
+    // 背景を消した写真が無い人は、メニューの写真のふちをぼかして丸く溶かす
+    const img = await loadImg(castPhoto(castById(hero.panelId)));
+    if (!img) return null;
+    const r = { x: 0, y: 0, w: box.w, h: Math.min(box.h, box.w * 1.25) };
+    drawCover(o, img, r, 50, 30);
+    const g = o.createRadialGradient(r.w / 2, r.h * 0.45, r.h * 0.25, r.w / 2, r.h * 0.45, r.h * 0.52);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    o.globalCompositeOperation = 'destination-in';
+    o.fillStyle = g;
+    o.fillRect(0, 0, box.w, box.h);
+  }
+  // ① 背景の平均の色（この箱の範囲）を、人の形の中だけに薄く塗る
+  const bg = await loadImg(posterBgSrc());
+  if (bg && HERO_BIG.tint > 0) {
+    const one = document.createElement('canvas');
+    one.width = 1;
+    one.height = 1;
+    const oc = one.getContext('2d');
+    oc.drawImage(bg, box.x * bg.naturalWidth / ART_W, box.y * bg.naturalHeight / ART_H,
+      box.w * bg.naturalWidth / ART_W, box.h * bg.naturalHeight / ART_H, 0, 0, 1, 1);
+    const [r, g, b] = oc.getImageData(0, 0, 1, 1).data;
+    o.globalCompositeOperation = 'source-atop';
+    o.fillStyle = `rgba(${r}, ${g}, ${b}, ${HERO_BIG.tint})`;
+    o.fillRect(0, 0, box.w, box.h);
+  }
+  // ② 下の方を背景へ溶かす（カレンダーの上の縁で見えなくなる）
+  const fade = o.createLinearGradient(0, box.h * HERO_BIG.fadeFrom, 0, box.h - 40);
+  fade.addColorStop(0, 'rgba(0,0,0,1)');
+  fade.addColorStop(1, 'rgba(0,0,0,0)');
+  o.globalCompositeOperation = 'destination-in';
+  o.fillStyle = fade;
+  o.fillRect(0, 0, box.w, box.h);
+  return off;
+}
+
+async function heroArtUrl(hero, box) {
+  const key = [hero.image || hero.panelId, posterBgSrc(), box.x, box.y, box.w, box.h].join('|');
+  if (!heroCache.has(key)) {
+    const c = await drawHeroArt(hero, box);
+    heroCache.set(key, c ? c.toDataURL('image/png') : '');
+  }
+  return heroCache.get(key);
 }
 
 // 表示中の月の並びを決める（月と、店の設定と、その月の日数から）
@@ -570,9 +634,22 @@ function render() {
   const box = document.getElementById('fc-hero');
   placeBox(box, layout.hero);
   box.innerHTML = '';
-  box.classList.toggle('fc-hero-soft', !hero.image);
+  box.classList.toggle('fc-hero-soft', !hero.image && !layout.code);
   box.classList.toggle('fc-hero-left', layout.heroAlign === 'left');
-  const src = hero.frame ? '' : hero.image ? publicImageUrl(hero.image) : castPhoto(castById(hero.panelId));
+  box.classList.toggle('fc-hero-art', !!layout.code);
+  if (layout.code && !hero.frame && hero.panelId) {
+    // プログラムの枠の月は、保存画像と同じ絵を作って出す
+    const want = layout.hero;
+    heroArtUrl(hero, want).then((url) => {
+      if (!url || layout.hero !== want || box.dataset.for !== hero.panelId) return;
+      const img = document.createElement('img');
+      img.alt = hero.name || '';
+      img.src = url;
+      box.replaceChildren(img);
+    });
+    box.dataset.for = hero.panelId;
+  }
+  const src = layout.code || hero.frame ? '' : hero.image ? publicImageUrl(hero.image) : castPhoto(castById(hero.panelId));
   if (src) {
     const img = document.createElement('img');
     img.crossOrigin = 'anonymous';
@@ -1068,6 +1145,9 @@ async function onSave() {
     const hero = resolveHero();
     if (hero.frame) {
       // 人入りの背景を使う月は、背景だけで大枠ができている
+    } else if (layout.code && hero.panelId) {
+      const art = await loadImg(await heroArtUrl(hero, HERO));
+      if (art) ctx.drawImage(art, HERO.x, HERO.y);
     } else if (hero.image) {
       const img = await loadImg(publicImageUrl(hero.image));
       if (img) {

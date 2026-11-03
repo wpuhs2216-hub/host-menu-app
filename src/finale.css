@@ -61,6 +61,8 @@
 }
 /* 版 2 は左の縁にそろえる（背景を消した写真のとき） */
 .fc-hero-left:not(.fc-hero-soft) img { object-position: left bottom; }
+/* プログラムの枠の月: 箱と同じ大きさで作った絵をそのまま出す */
+.fc-hero-art img { object-fit: fill; }
 /* 背景を消していない写真は、ふちをぼかして丸く溶かす */
 .fc-hero-soft img {
   object-fit: cover; object-position: center 30%;
