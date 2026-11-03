@@ -127,9 +127,9 @@ async function codeLayout(days) {
 
 // ===== 左上の人（プログラムの枠の月）=====
 // 横幅を HERO_BIG.w にそろえて上から置く（足の方はカレンダーの後ろに隠れる）。
-// 背景から浮いて見えないよう、①背景の平均の色を人の上に薄く重ね（tint）、②カレンダーに近い下の方を背景へ溶かす（fadeFrom〜）
+// 背景から浮いて見えないよう、①背景の平均の色を人の上に薄く重ね（tint）。②下の方を背景へ溶かすのは「スケスケすぎる」と言われて止めた（fadeFrom: 0.62 で元に戻る）
 // 背景の模様そのものは重ねない（顔に葉っぱが透けて見えるため）
-const HERO_BIG = { w: 760, top: 14, tint: 0.14, fadeFrom: 0.62 };
+const HERO_BIG = { w: 760, top: 14, tint: 0.14, fadeFrom: null };
 const heroCache = new Map(); // 写真|背景|大きさ → 描いた絵（data URL）
 
 async function drawHeroArt(hero, box) {
@@ -169,7 +169,8 @@ async function drawHeroArt(hero, box) {
     o.fillStyle = `rgba(${r}, ${g}, ${b}, ${HERO_BIG.tint})`;
     o.fillRect(0, 0, box.w, box.h);
   }
-  // ② 下の方を背景へ溶かす（カレンダーの上の縁で見えなくなる）
+  // ② 下の方を背景へ溶かす（カレンダーの上の縁で見えなくなる）。fadeFrom が null なら溶かさない
+  if (HERO_BIG.fadeFrom == null) return off;
   const fade = o.createLinearGradient(0, box.h * HERO_BIG.fadeFrom, 0, box.h - 40);
   fade.addColorStop(0, 'rgba(0,0,0,1)');
   fade.addColorStop(1, 'rgba(0,0,0,0)');
