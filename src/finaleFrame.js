@@ -208,7 +208,11 @@ const TITLE = {
   gap: 0.039,
   cap: 0.69, // この書体の大文字の高さ（字の大きさに対して）
   ink: '#ffffff',
-  shadow: 'rgba(0, 0, 0, 0.7)',
+  shadows: [
+    { blur: 10, x: 0, y: 0, color: 'rgba(0, 0, 0, 0.9)' },   // 字のまわりの黒い光（濃い）
+    { blur: 26, x: 0, y: 0, color: 'rgba(0, 0, 0, 0.75)' },  // 字のまわりの黒い光（広い）
+    { blur: 18, x: 6, y: 9, color: 'rgba(0, 0, 0, 0.9)' },   // 右下へ落ちる影
+  ],
 };
 
 function drawTitle(ctx, ym, top) {
@@ -239,13 +243,15 @@ function drawTitle(ctx, ym, top) {
     ctx.fillText(month, 0, 0);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   };
-  // 見本と同じく、白い字に黒い影
+  // 見本と同じく、白い字に黒い光と影（字のまわりを黒く締め、右下へ影を落とす）。白い字は何回重ねても見た目は同じ
   ctx.fillStyle = TITLE.ink;
-  ctx.shadowColor = TITLE.shadow;
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetX = 3;
-  ctx.shadowOffsetY = 5;
-  paint();
+  for (const sh of TITLE.shadows) {
+    ctx.shadowColor = sh.color;
+    ctx.shadowBlur = sh.blur;
+    ctx.shadowOffsetX = sh.x;
+    ctx.shadowOffsetY = sh.y;
+    paint();
+  }
   ctx.restore();
 }
 
