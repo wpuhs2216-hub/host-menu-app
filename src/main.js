@@ -938,16 +938,31 @@ function fsImageList(item) {
   return list;
 }
 
+// 画像の縦横比が画面とほぼ同じか（差が 8% 以内）。読み込み前は false
+function fitsScreenRatio(img) {
+  const { naturalWidth: w, naturalHeight: h } = img;
+  if (!w || !h || !img.complete) return false;
+  const imgRatio = w / h;
+  const screenRatio = window.innerWidth / window.innerHeight;
+  return Math.abs(imgRatio / screenRatio - 1) <= 0.08;
+}
+
 function renderFsImage() {
   resetZoom();
   // 名前のない札（料金表などのメニュー画像）は黒い余白を出さず画面いっぱいに広げる。
   // 位置はサムネと同じ「表示範囲」（img_x / img_y）に従う。キャスト写真は全体表示のまま
+  // ただし画面と縦横比が違う画像は切り抜くと拡大されて端が欠けるので、全体表示のままにする
   const item = visibleItems[currentIndex];
-  const cover = !!item && !item.name;
-  fsImage.classList.toggle('fs-cover', cover);
-  fsImage.style.objectPosition = cover ? `${item.imgX ?? 50}% ${item.imgY ?? 50}%` : '';
+  const wantCover = !!item && !item.name;
+  const applyFit = () => {
+    const cover = wantCover && fitsScreenRatio(fsImage);
+    fsImage.classList.toggle('fs-cover', cover);
+    fsImage.style.objectPosition = cover ? `${item.imgX ?? 50}% ${item.imgY ?? 50}%` : '';
+  };
+  fsImage.onload = applyFit;
   if (fsImages.length > 0) {
     fsImage.src = fsImages[fsImgIndex]?.src || fsImages[0].src;
+    applyFit();   // 読み込み済み（同じ画像）なら onload が来ないのでここでも判定する
     fsImage.style.display = 'block';
     fsPlaceholder.style.display = 'none';
   } else {
