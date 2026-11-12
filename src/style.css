@@ -1992,7 +1992,7 @@ html.env-web #btn-clear-own-orders { display: none !important; }
 }
 .fs-thumb {
   flex: 0 0 auto;
-  height: 112px;
+  height: var(--fs-thumb-h, 112px);
   width: auto;
   border-radius: 8px;
   border: 2px solid rgba(255, 255, 255, 0.4);
@@ -2006,11 +2006,11 @@ html.env-web #btn-clear-own-orders { display: none !important; }
   border-color: #d4af37;
 }
 /* 画像ごとの形（アスペクト比）を保つ: 高さ固定・幅は成り行き。
-   2026-11-12「小さすぎる」→ 縦横 2 倍（面積で 4 つぶん）にした */
+   2026-11-12「小さすぎる」→ 縦横 2 倍（面積で 4 つぶん）にした。高さは管理画面の「全画面 サムネ」で端末ごとに変えられる */
 .fs-thumb img {
-  height: 112px;
+  height: var(--fs-thumb-h, 112px);
   width: auto;
-  max-width: 240px;
+  max-width: calc(var(--fs-thumb-h, 112px) * 2.15);
   object-fit: contain;
   pointer-events: none;
   display: block;

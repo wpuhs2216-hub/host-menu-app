@@ -1411,18 +1411,21 @@ const fsSliders = {
   title: document.getElementById('fs-title'),
   fsName: document.getElementById('fs-fs-name'),
   fsTitle: document.getElementById('fs-fs-title'),
+  fsThumb: document.getElementById('fs-fs-thumb'),
 };
 const fsVals = {
   name: document.getElementById('fs-name-val'),
   title: document.getElementById('fs-title-val'),
   fsName: document.getElementById('fs-fs-name-val'),
   fsTitle: document.getElementById('fs-fs-title-val'),
+  fsThumb: document.getElementById('fs-fs-thumb-val'),
 };
 const settingsKeyMap = {
   name: 'nameFontSize',
   title: 'titleFontSize',
   fsName: 'fsNameFontSize',
   fsTitle: 'fsTitleFontSize',
+  fsThumb: 'fsThumbHeight',
 };
 
 // === 店で既定を決めて、端末ごとに上書きできる設定（三択） ===
@@ -1505,6 +1508,7 @@ function initFontSettings() {
   fsSliders.title.value = s.titleFontSize;
   fsSliders.fsName.value = s.fsNameFontSize;
   fsSliders.fsTitle.value = s.fsTitleFontSize;
+  fsSliders.fsThumb.value = s.fsThumbHeight;
   Object.keys(fsVals).forEach((k) => { fsVals[k].textContent = fsSliders[k].value + 'px'; });
 
   // 店で既定を決めて台ごとに上書きできる設定（三択）

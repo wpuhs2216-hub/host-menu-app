@@ -223,6 +223,7 @@ function applyFontSettings() {
   root.style.setProperty('--title-font-size', s.titleFontSize + 'px');
   root.style.setProperty('--fs-name-font-size', s.fsNameFontSize + 'px');
   root.style.setProperty('--fs-title-font-size', s.fsTitleFontSize + 'px');
+  root.style.setProperty('--fs-thumb-h', s.fsThumbHeight + 'px');
 }
 
 // 表示中のアイテム一覧とインデックス

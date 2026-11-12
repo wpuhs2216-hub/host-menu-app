@@ -140,6 +140,7 @@ const DEFAULT_SETTINGS = {
   titleFontSize: 13,
   fsNameFontSize: 44,
   fsTitleFontSize: 24,
+  fsThumbHeight: 112,       // 全画面で上に並ぶサムネ（写真が 2 枚以上の人）の高さ。端末ごと
   skipOrderInput: false,
   consentTestMode: false,   // デジタル署名を使う（管理画面に署名の設定と一覧を出す）。名前は昔のまま
   consentCloudSave: false,  // 署名をクラウドにも保存する（オフ=この端末の中だけ）
