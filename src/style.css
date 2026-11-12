@@ -1992,7 +1992,7 @@ html.env-web #btn-clear-own-orders { display: none !important; }
 }
 .fs-thumb {
   flex: 0 0 auto;
-  height: 56px;
+  height: 112px;
   width: auto;
   border-radius: 8px;
   border: 2px solid rgba(255, 255, 255, 0.4);
@@ -2005,11 +2005,12 @@ html.env-web #btn-clear-own-orders { display: none !important; }
 .fs-thumb.active {
   border-color: #d4af37;
 }
-/* 画像ごとの形（アスペクト比）を保つ: 高さ固定・幅は成り行き */
+/* 画像ごとの形（アスペクト比）を保つ: 高さ固定・幅は成り行き。
+   2026-11-12「小さすぎる」→ 縦横 2 倍（面積で 4 つぶん）にした */
 .fs-thumb img {
-  height: 56px;
+  height: 112px;
   width: auto;
-  max-width: 120px;
+  max-width: 240px;
   object-fit: contain;
   pointer-events: none;
   display: block;
